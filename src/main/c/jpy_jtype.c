@@ -1926,13 +1926,13 @@ int JType_MatchPyArgAsJObject(JNIEnv* jenv, JPy_JType* paramType, PyObject* pyAr
                                    : view.itemsize == 2 ? 10
                                    : 0;
                     } else if (type == JPy_JInt) {
-                        matchValue = format == 'i' || format == 'l' ? 100
-                                   : format == 'I' || format == 'L' ? 90
+                        matchValue = format == 'i' ? 100
+                                   : format == 'I' ? 90
                                    : view.itemsize == 4 ? 10
                                    : 0;
                     } else if (type == JPy_JLong) {
-                        matchValue = format == 'q' ? 100
-                                   : format == 'Q' ? 90
+                        matchValue = format == 'q' || format == 'l' ? 100
+                                   : format == 'Q' || format == 'L' ? 90
                                    : view.itemsize == 8 ? 10
                                    : 0;
                     } else if (type == JPy_JFloat) {
