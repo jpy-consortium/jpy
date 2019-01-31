@@ -260,6 +260,8 @@ public class PyLib {
 
     static native int getIntValue(long pointer);
 
+    static native int getLongValue(long pointer);
+
     static native boolean getBooleanValue(long pointer);
 
     static native double getDoubleValue(long pointer);
@@ -285,7 +287,39 @@ public class PyLib {
 
     static native String repr(long pointer);
 
+    static native long hash(long pointer);
+
+    static native boolean eq(long pointer1, Object other);
+
     static native PyObject newDict();
+
+    /**
+     * https://docs.python.org/2/c-api/dict.html#c.PyDict_Keys
+     * https://docs.python.org/3/c-api/dict.html#c.PyDict_Keys
+     * @return Return a PyListObject containing all the keys from the dictionary.
+     */
+    static native PyObject pyDictKeys(long pointer);
+
+    /**
+     * https://docs.python.org/2/c-api/dict.html#c.PyDict_Values
+     * https://docs.python.org/3/c-api/dict.html#c.PyDict_Values
+     * @return Return a PyListObject containing all the values from the dictionary p.
+     */
+    static native PyObject pyDictValues(long pointer);
+
+    /**
+     * Determine if dictionary dict contains key.
+     * This is equivalent to the Python expression `key in dict`
+     *
+     * https://docs.python.org/2/c-api/dict.html#c.PyDict_Contains
+     * https://docs.python.org/3/c-api/dict.html#c.PyDict_Contains
+     *
+     * @param dict the dictionary
+     * @param key the key
+     * @param keyClass Optional type for converting the key to a Python object
+     * @return True iff key is in dict.
+     */
+    static native <T> boolean pyDictContains(long dict, T key, Class<? extends T> keyClass);
 
     static native <T> T[] getObjectArrayValue(long pointer, Class<? extends T> itemType);
 

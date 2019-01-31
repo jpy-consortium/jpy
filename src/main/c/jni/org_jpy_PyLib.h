@@ -113,6 +113,14 @@ JNIEXPORT jint JNICALL Java_org_jpy_PyLib_getIntValue
 
 /*
  * Class:     org_jpy_PyLib
+ * Method:    getLongValue
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_org_jpy_PyLib_getLongValue
+  (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     org_jpy_PyLib
  * Method:    getBooleanValue
  * Signature: (J)Z
  */
@@ -249,11 +257,51 @@ JNIEXPORT jstring JNICALL Java_org_jpy_PyLib_repr
 
 /*
  * Class:     org_jpy_PyLib
+ * Method:    hash
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_org_jpy_PyLib_hash
+  (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     org_jpy_PyLib
+ * Method:    eq
+ * Signature: (JLjava/lang/Object;)Z
+ */
+JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_eq
+  (JNIEnv *, jclass, jlong, jobject);
+
+/*
+ * Class:     org_jpy_PyLib
  * Method:    newDict
  * Signature: ()Lorg/jpy/PyObject;
  */
 JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_newDict
   (JNIEnv *, jclass);
+
+/*
+ * Class:     org_jpy_PyLib
+ * Method:    pyDictKeys
+ * Signature: (J)Lorg/jpy/PyObject;
+ */
+JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_pyDictKeys
+  (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     org_jpy_PyLib
+ * Method:    pyDictValues
+ * Signature: (J)Lorg/jpy/PyObject;
+ */
+JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_pyDictValues
+  (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     org_jpy_PyLib
+ * Method:    pyDictContains
+ * Signature: (JLjava/lang/Object;Ljava/lang/Class;)Z
+ */
+JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_pyDictContains
+  (JNIEnv *, jclass, jlong, jobject, jclass);
 
 /*
  * Class:     org_jpy_PyLib

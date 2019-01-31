@@ -42,7 +42,7 @@ void PyLib_ThrowRTE(JNIEnv* jenv, const char *message);
 void PyLib_RedirectStdOut(void);
 int copyPythonDictToJavaMap(JNIEnv *jenv, PyObject *pyDict, jobject jMap);
 
-static int JPy_InitThreads = 0;
+static PyThreadState *_save = NULL;
 
 //#define JPy_JNI_DEBUG 1
 #define JPy_JNI_DEBUG 0
@@ -55,7 +55,7 @@ static int JPy_InitThreads = 0;
 #define JPy_GIL_AWARE
 
 #ifdef JPy_GIL_AWARE
-    #define JPy_BEGIN_GIL_STATE  { PyGILState_STATE gilState; if (!JPy_InitThreads) {JPy_InitThreads = 1; PyEval_InitThreads(); PyEval_SaveThread(); } gilState = PyGILState_Ensure();
+    #define JPy_BEGIN_GIL_STATE  { PyGILState_STATE gilState = PyGILState_Ensure();
     #define JPy_END_GIL_STATE    PyGILState_Release(gilState); }
 #else
     #define JPy_BEGIN_GIL_STATE
@@ -209,7 +209,10 @@ JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_startPython0
         // See https://github.com/bcdev/jpy/issues/81
         PySys_SetArgvEx(0, NULL, 0);
         PyLib_RedirectStdOut();
-        pyInit = Py_IsInitialized();
+        pyInit = Py_IsInitialized(); // todo: assert pyInit == 1?
+
+        PyEval_InitThreads();
+        _save = PyEval_SaveThread(); // todo: assert not null
     }
 
     if (pyInit) {
@@ -325,13 +328,17 @@ JNIEXPORT void JNICALL Java_org_jpy_PyLib_stopPython0
     JPy_DIAG_PRINT(JPy_DIAG_F_ALL, "Java_org_jpy_PyLib_stopPython: entered: JPy_Module=%p\n", JPy_Module);
 
     if (Py_IsInitialized()) {
-        // Make sure we can get the GIL if needed before cleaning up.
-        PyGILState_STATE state = PyGILState_Ensure();
         // Cleanup the JPY stateful structures and shut down the interpreter.
+
+        JPy_BEGIN_GIL_STATE
+
         JPy_free();
+
+        JPy_END_GIL_STATE
+
+        PyEval_RestoreThread(_save);
+        _save = NULL;
         Py_Finalize();
-        // Make sure we reset our global flag
-        JPy_InitThreads = 0;
     }
 
     JPy_DIAG_PRINT(JPy_DIAG_F_ALL, "Java_org_jpy_PyLib_stopPython: exiting: JPy_Module=%p\n", JPy_Module);
@@ -395,6 +402,9 @@ error:
 
 PyObject* PyLib_ConvertJavaToPythonObject(JNIEnv* jenv, jobject jObject)
 {
+    if (jObject == NULL) {
+      return JPy_FROM_JNULL();
+    }
     JPy_JType* type;
     type = JType_GetTypeForObject(jenv, jObject);
     return JType_ConvertJavaToPythonObject(jenv, type, jObject);
@@ -496,6 +506,103 @@ JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_newDict
     }
 
     return objectRef;
+}
+
+JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_pyDictKeys
+        (JNIEnv *jenv, jclass libClass, jlong pyDict) {
+    jobject result;
+    PyObject* src;
+    PyObject* keys;
+
+    src = (PyObject*)pyDict;
+
+    JPy_BEGIN_GIL_STATE
+
+    if (!PyDict_Check(src)) {
+        result = NULL;
+        PyLib_ThrowUOE(jenv, "Not a dictionary!");
+        goto error;
+    }
+
+    keys = PyDict_Keys(src);
+    if (JType_CreateJavaPyObject(jenv, JPy_JPyObject, keys, &result) < 0) {
+        result = NULL;
+        goto error;
+    }
+
+error:
+    JPy_END_GIL_STATE
+    return result;
+}
+
+JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_pyDictValues
+        (JNIEnv *jenv, jclass libClass, jlong pyDict) {
+    jobject result;
+    PyObject* src;
+    PyObject* values;
+
+    src = (PyObject*)pyDict;
+
+    JPy_BEGIN_GIL_STATE
+
+    if (!PyDict_Check(src)) {
+        result = NULL;
+        PyLib_ThrowUOE(jenv, "Not a dictionary!");
+        goto error;
+    }
+
+    values = PyDict_Values(src);
+    if (JType_CreateJavaPyObject(jenv, JPy_JPyObject, values, &result) < 0) {
+        result = NULL;
+        goto error;
+    }
+
+error:
+    JPy_END_GIL_STATE
+    return result;
+}
+
+JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_pyDictContains
+        (JNIEnv *jenv, jclass libClass, jlong pyDict, jobject jKey, jclass jKeyClass) {
+    PyObject* src;
+    PyObject* key;
+    int result;
+    JPy_JType* keyType;
+    PyObject* pyKey;
+
+    src = (PyObject*)pyDict;
+
+    JPy_BEGIN_GIL_STATE
+
+    if (!PyDict_Check(src)) {
+        result = -1;
+        PyLib_ThrowUOE(jenv, "Not a dictionary!");
+        goto error;
+    }
+
+    if (jKeyClass != NULL) {
+        keyType = JType_GetType(jenv, jKeyClass, JNI_FALSE);
+        if (keyType == NULL) {
+            result = -1;
+            JPy_DIAG_PRINT(JPy_DIAG_F_ALL, "Java_org_jpy_PyLib_pyDictContains: failed to retrieve type\n");
+            PyLib_HandlePythonException(jenv);
+            goto error;
+        }
+        pyKey = JPy_FromJObjectWithType(jenv, jKey, keyType);
+    } else {
+        pyKey = JPy_FromJObject(jenv, jKey);
+    }
+
+    result = PyDict_Contains(src, pyKey);
+    if (result < 0) {
+        JPy_DIAG_PRINT(JPy_DIAG_F_ALL, "Java_org_jpy_PyLib_pyDictContains: PyDict_Contains error\n");
+        PyLib_HandlePythonException(jenv);
+        goto error;
+    }
+
+error:
+    JPy_END_GIL_STATE
+    return result == 1 ? JNI_TRUE : JNI_FALSE;
 }
 
 /**
@@ -935,6 +1042,27 @@ JNIEXPORT jint JNICALL Java_org_jpy_PyLib_getIntValue
     return value;
 }
 
+/*
+ * Class:     org_jpy_python_PyLib
+ * Method:    getLongValue
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_org_jpy_PyLib_getLongValue
+  (JNIEnv* jenv, jclass jLibClass, jlong objId)
+{
+    PyObject* pyObject;
+    jlong value;
+
+    JPy_BEGIN_GIL_STATE
+
+    pyObject = (PyObject*) objId;
+    value = JPy_AS_CLONG(pyObject);
+
+    JPy_END_GIL_STATE
+
+    return value;
+}
+
 /**
  * Used to convert a python object into it's corresponding boolean.  If the PyObject is not a boolean;
  * then return false.
@@ -1333,13 +1461,13 @@ JNIEXPORT jstring JNICALL Java_org_jpy_PyLib_str
     pyObject = (PyObject *) objId;
 
     pyStr = PyObject_Str(pyObject);
-    if (pyStr) {
+    if (pyStr != NULL) {
         jObject = (*jenv)->NewStringUTF(jenv, JPy_AS_UTF8(pyStr));
         Py_DECREF(pyStr);
     } else {
         jObject = NULL;
+        PyLib_HandlePythonException(jenv);
     }
-
 
     JPy_END_GIL_STATE
 
@@ -1377,6 +1505,84 @@ JNIEXPORT jstring JNICALL Java_org_jpy_PyLib_repr
     JPy_END_GIL_STATE
 
     return jObject;
+}
+
+/*
+ * Compute and return the hash value of an object o. On failure, return -1.
+ * This is the equivalent of the Python expression hash(o).
+ *
+ * @param jenv JNI environment.
+ * @param jLibClass the class object for PyLib
+ * @param objId a pointer to a python object
+ * @return the hash code, -1 on failure
+ */
+JNIEXPORT jlong JNICALL Java_org_jpy_PyLib_hash
+  (JNIEnv* jenv, jclass jLibClass, jlong objId)
+{
+    PyObject* pyObject;
+    long hash;
+
+    JPy_BEGIN_GIL_STATE
+
+    pyObject = (PyObject *) objId;
+
+    if ((hash = PyObject_Hash(pyObject)) == -1) {
+        PyLib_HandlePythonException(jenv);
+    }
+
+    JPy_END_GIL_STATE
+
+    return (jlong)hash;
+}
+
+JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_eq
+  (JNIEnv* jenv, jclass jLibClass, jlong objId1, jobject other)
+{
+    PyObject* pyObject1;
+    PyObject* pyObject2;
+    PyObject* eq;
+    jboolean result = JNI_FALSE;
+
+    JPy_BEGIN_GIL_STATE
+
+    pyObject1 = (PyObject *) objId1;
+    pyObject2 = PyLib_ConvertJavaToPythonObject(jenv, other);
+
+    // Note: there are subtle differences between PyObject_RichCompare and PyObject_RichCompareBool
+    // that make PyObject_RichCompareBool unacceptable to use here.
+    //
+    // Specifically, PyObject_RichCompareBool says that it will return True for the same object
+    // https://docs.python.org/2/c-api/object.html#c.PyObject_RichCompareBool
+    // We *DON'T* want that, we want to delegate to the implementations __eq__ function instead.
+    // i.e.
+    /*
+    >>> class AlwaysFalse:
+    ...     def __eq__(self, other):
+    ...             return False
+    ...
+    >>> a == a
+    False
+    */
+
+    eq = PyObject_RichCompare(pyObject1, pyObject2, Py_EQ);
+    if (eq == NULL) {
+        PyLib_HandlePythonException(jenv);
+    } else if (PyBool_Check(eq)) {
+      result = (eq == Py_True) ? JNI_TRUE : JNI_FALSE;
+      Py_DECREF(eq);
+    } else {
+      int val = PyObject_IsTrue(eq);
+      Py_DECREF(eq);
+      if (val == -1) {
+          PyLib_HandlePythonException(jenv);
+      } else {
+          result = val ? JNI_TRUE : JNI_FALSE;
+      }
+    }
+
+    JPy_END_GIL_STATE
+
+    return result;
 }
 
 /*
