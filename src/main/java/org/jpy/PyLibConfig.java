@@ -36,6 +36,7 @@ class PyLibConfig {
     private static final boolean DEBUG = Boolean.getBoolean("jpy.debug");
     public static final String PYTHON_LIB_KEY = "jpy.pythonLib";
     public static final String JPY_LIB_KEY = "jpy.jpyLib";
+    public static final String JDL_LIB_KEY = "jpy.jdlLib";
     public static final String JPY_CONFIG_KEY = "jpy.config";
     public static final String JPY_CONFIG_RESOURCE = "jpyconfig.properties";
 
