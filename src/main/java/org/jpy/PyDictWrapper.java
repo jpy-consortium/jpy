@@ -19,11 +19,13 @@
 package org.jpy;
 
 import java.util.*;
+import java.util.AbstractMap.SimpleImmutableEntry;
+import java.util.stream.Collectors;
 
 /**
-  * A simple wrapper around PyObjects that are actually Python dictionaries, to present the most useful parts of a
-  * Map interface.
-  */
+ * A simple wrapper around PyObjects that are actually Python dictionaries, to present the most useful parts of a
+ * Map interface.
+ */
 public class PyDictWrapper implements Map<PyObject, PyObject> {
     private PyObject pyObject;
 
@@ -68,8 +70,8 @@ public class PyDictWrapper implements Map<PyObject, PyObject> {
     }
 
     /**
-      * An extension to the Map interface that allows the use of String keys without generating warnings.
-      */
+     * An extension to the Map interface that allows the use of String keys without generating warnings.
+     */
     public PyObject get(String key) {
         return pyObject.callMethod("__getitem__", key);
     }
@@ -80,8 +82,8 @@ public class PyDictWrapper implements Map<PyObject, PyObject> {
     }
 
     /**
-      * An extension to the Map interface that allows the use of Object key-values without generating warnings.
-      */
+     * An extension to the Map interface that allows the use of Object key-values without generating warnings.
+     */
     public PyObject putObject(Object key, Object value) {
         return pyObject.callMethod("__setitem__", key, value);
     }
@@ -111,152 +113,69 @@ public class PyDictWrapper implements Map<PyObject, PyObject> {
         pyObject.callMethod("clear");
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <br><b>Note: we are returning a COPY not a VIEW of the keys</b>
+     */
     @Override
     public Set<PyObject> keySet() {
         return new LinkedHashSet<>(PyLib.pyDictKeys(pyObject.getPointer()).asList());
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <br><b>Note: we are returning a COPY not a VIEW of the values</b>
+     */
     @Override
     public Collection<PyObject> values() {
         return PyLib.pyDictValues(pyObject.getPointer()).asList();
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <br><b>Note: we are returning a COPY not a VIEW of the entries</b>
+     */
     @Override
     public Set<Entry<PyObject, PyObject>> entrySet() {
-        return new EntrySet();
+        // todo: we'd prefer to use something like
+        // https://docs.python.org/2.7/c-api/dict.html#c.PyDict_Next
+        // https://docs.python.org/3/c-api/dict.html#c.PyDict_Next
+        // but that method signature is a bit weird on the java <-> python jni layer with PyObject
+        // reference return values...
+        return PyLib.pyDictKeys(pyObject.getPointer())
+            .asList()
+            .stream()
+            .map(p -> new SimpleImmutableEntry<>(p, get(p)))
+            .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     /**
-      * Gets the underlying PyObject.
-      *
-      * @return the PyObject wrapped by this dictionary.
-      */
+     * Gets the underlying PyObject.
+     *
+     * @return the PyObject wrapped by this dictionary.
+     */
     public PyObject unwrap() {
         return pyObject;
     }
 
     /**
-      * Gets the underlying pointer for this object.
-      *
-      * @return the pointer to the underlying Python object wrapped by this dictionary.
-      */
+     * Gets the underlying pointer for this object.
+     *
+     * @return the pointer to the underlying Python object wrapped by this dictionary.
+     */
     long getPointer() {
         return pyObject.getPointer();
     }
 
     /**
-      * Copy this dictionary into a new dictionary.
-      *
-      * @return a wrapped copy of this Python dictionary.
-      */
+     * Copy this dictionary into a new dictionary.
+     *
+     * @return a wrapped copy of this Python dictionary.
+     */
     public PyDictWrapper copy() {
         return new PyDictWrapper(PyLib.copyDict(pyObject.getPointer()));
-    }
-
-    private class EntrySet implements Set<Entry<PyObject, PyObject>> {
-        @Override
-        public int size() {
-            return PyDictWrapper.this.size();
-        }
-
-        @Override
-        public boolean isEmpty() {
-            return size() == 0;
-        }
-
-        @Override
-        public boolean contains(Object o) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Iterator<Entry<PyObject, PyObject>> iterator() {
-            return new Iterator<Entry<PyObject, PyObject>>() {
-                PyModule builtins = PyModule.getBuiltins();
-                PyObject it = pyObject.callMethod("__iter__");
-                PyObject next = prepareNext();
-
-                private PyObject prepareNext() {
-                    try {
-                        return next = builtins.call("next", it);
-                    } catch (StopIteration e) {
-                        return next = null;
-                    }
-                }
-
-                @Override
-                public boolean hasNext() {
-                    return next != null;
-                }
-
-                @Override
-                public Entry<PyObject, PyObject> next() {
-                    final PyObject oldNext = next;
-                    prepareNext();
-                    return new Entry<PyObject, PyObject>() {
-
-                        @Override
-                        public PyObject getKey() {
-                            return oldNext;
-                        }
-
-                        @Override
-                        public PyObject getValue() {
-                            return get(oldNext);
-                        }
-
-                        @Override
-                        public PyObject setValue(PyObject value) {
-                            throw new UnsupportedOperationException();
-                        }
-                    };
-                }
-            };
-        }
-
-        @Override
-        public Object[] toArray() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public <T> T[] toArray(T[] a) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public boolean add(Entry<PyObject, PyObject> pyObjectPyObjectEntry) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public boolean remove(Object o) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public boolean containsAll(Collection<?> c) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public boolean addAll(Collection<? extends Entry<PyObject, PyObject>> c) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public boolean retainAll(Collection<?> c) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public boolean removeAll(Collection<?> c) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void clear() {
-            throw new UnsupportedOperationException();
-        }
     }
 }
