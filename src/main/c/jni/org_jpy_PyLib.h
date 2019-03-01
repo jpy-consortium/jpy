@@ -25,6 +25,14 @@ JNIEXPORT jint JNICALL Java_org_jpy_PyLib_setPythonHome
 
 /*
  * Class:     org_jpy_PyLib
+ * Method:    setProgramName
+ * Signature: (Ljava/lang/String;)Z
+ */
+JNIEXPORT jint JNICALL Java_org_jpy_PyLib_setProgramName
+  (JNIEnv* jenv, jclass jLibClass, jstring jProgramName);
+
+/*
+ * Class:     org_jpy_PyLib
  * Method:    startPython0
  * Signature: ([Ljava/lang/String;)Z
  */

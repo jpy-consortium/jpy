@@ -192,6 +192,73 @@ JNIEXPORT jint JNICALL Java_org_jpy_PyLib_setPythonHome
 #endif
 }
 
+#define  MAX_PROGRAM_NAME   256
+#if defined(JPY_COMPAT_33P)
+wchar_t staticProgramName[MAX_PROGRAM_NAME];
+#elif defined(JPY_COMPAT_27)
+char staticProgramName[MAX_PROGRAM_NAME];
+#endif
+
+/*
+ * Class:     org_jpy_PyLib
+ * Method:    setProgramName
+ * Signature: (Ljava/lang/String;)Z
+ */
+JNIEXPORT jint JNICALL Java_org_jpy_PyLib_setProgramName
+  (JNIEnv* jenv, jclass jLibClass, jstring jProgramName)
+{
+#if defined(JPY_COMPAT_33P) && !defined(JPY_COMPAT_35P)
+    return 0;  // Not supported because DecodeLocale didn't exist in 3.4
+#else
+
+    #if defined(JPY_COMPAT_35P)
+    const wchar_t* programName = NULL;
+    #elif defined(JPY_COMPAT_27)
+    const char* programName = NULL;
+    #endif
+
+    const char *nonWideProgramName = NULL;
+    jboolean result = 0;
+    nonWideProgramName = (*jenv)->GetStringUTFChars(jenv, jProgramName, NULL);
+
+    if (nonWideProgramName != NULL) {
+
+        #if defined(JPY_COMPAT_35P)
+        programName = Py_DecodeLocale(nonWideProgramName, NULL);
+        if (programName != NULL) {
+            if (wcslen(programName) < MAX_PROGRAM_NAME) {
+                 wcscpy(staticProgramName, programName);
+                 result = 1;
+            }
+            else {
+                PyMem_RawFree(programName);
+            }
+
+        }
+
+        #elif defined(JPY_COMPAT_27)
+        programName = nonWideProgramName;
+        if (strlen(programName) < MAX_PROGRAM_NAME) {
+            strcpy(staticProgramName, programName);
+            result = 1;
+        }
+        #endif
+
+        if (result) {
+            Py_SetProgramName(staticProgramName);
+
+            #if defined(JPY_COMPAT_35P)
+            PyMem_RawFree(programName);
+            #endif
+        }
+
+        (*jenv)->ReleaseStringUTFChars(jenv, jProgramName, nonWideProgramName);
+    }
+
+    return result;
+#endif
+}
+
 /*
  * Class:     org_jpy_PyLib
  * Method:    startPython0

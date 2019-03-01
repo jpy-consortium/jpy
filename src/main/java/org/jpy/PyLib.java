@@ -229,6 +229,16 @@ public class PyLib {
     public static native boolean setPythonHome(String pythonHome);
 
     /**
+     * Useful for virtual environments, helps in setting sys.prefix/exec_prefix.
+     * If used, this must be called prior to calling {@code startPython()}.
+     * @param programName Path to Python executable (must be less than 256 characters!)
+     * @return  true if successful, false if it fails
+     * @see <a href="https://docs.python.org/2/c-api/init.html#c.Py_SetProgramName">Py_SetProgramName (2)</a>
+     * @see <a href="https://docs.python.org/3/c-api/init.html#c.Py_SetProgramName">Py_SetProgramName (3)</a>
+     */
+    public static native boolean setProgramName(String programName);
+
+    /**
      * @return The Python interpreter version string.
      */
     public static native String getPythonVersion();
