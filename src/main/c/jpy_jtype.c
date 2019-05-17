@@ -1524,6 +1524,26 @@ int JType_ConvertPyArgToJStringArg(JNIEnv* jenv, JPy_ParamDescriptor* paramDescr
     return JPy_AsJString(jenv, pyArg, &value->l);
 }
 
+int JType_ConvertPyArgToJPyObjectArg(JNIEnv* jenv, JPy_ParamDescriptor* paramDescriptor, PyObject* pyArg, jvalue* value, JPy_ArgDisposer* disposer)
+{
+    disposer->data = NULL;
+    disposer->DisposeArg = JType_DisposeLocalObjectRefArg;
+    return JType_CreateJavaPyObject(jenv, JPy_JPyObject, pyArg, &value->l);
+}
+
+
+int JType_MatchPyArgAsJPyObjectParam(JNIEnv* jenv, JPy_ParamDescriptor* paramDescriptor, PyObject* pyArg)
+{
+    // We can always turn a python object into a PyObject
+    // But it has a lower matching value to give a more specific type a better chance
+    // ie, against:
+    // void method1(String s) { ... }
+    // void method1(PyObject o) { ... }
+    //
+    // the Python code: obj.method1('a string') should prefer the String specific version
+    return 10; // yeah - EZ PZ
+}
+
 int JType_MatchPyArgAsJObjectParam(JNIEnv* jenv, JPy_ParamDescriptor* paramDescriptor, PyObject* pyArg)
 {
     return JType_MatchPyArgAsJObject(jenv, paramDescriptor->type, pyArg);
@@ -1581,6 +1601,36 @@ int JType_MatchVarArgPyArgAsJStringParam(JNIEnv* jenv, JPy_ParamDescriptor* para
     for (ii = 0; ii < remaining; ii++) {
         PyObject *unpack = PyTuple_GetItem(varArgs, ii);
         int matchValue = JType_MatchPyArgAsJStringParam(jenv, paramDescriptor, unpack);
+        if (matchValue == 0) {
+            return 0;
+        }
+        minMatch = matchValue < minMatch ? matchValue : minMatch;
+    }
+    return minMatch;
+}
+
+int JType_MatchVarArgPyArgAsJPyObjectParam(JNIEnv* jenv, JPy_ParamDescriptor* paramDescriptor, PyObject* pyArg, int idx)
+{
+    Py_ssize_t argCount = PyTuple_Size(pyArg);
+    Py_ssize_t remaining = (argCount - idx);
+
+    JPy_JType *componentType = paramDescriptor->type->componentType;
+    PyObject *varArgs;
+    int minMatch = 100;
+    int ii;
+
+    if (componentType != JPy_JPyObject) {
+        return 0;
+    }
+
+    if (remaining == 0) {
+        return 10;
+    }
+
+    varArgs = PyTuple_GetSlice(pyArg, idx, argCount);
+    for (ii = 0; ii < remaining; ii++) {
+        PyObject *unpack = PyTuple_GetItem(varArgs, ii);
+        int matchValue = JType_MatchPyArgAsJPyObjectParam(jenv, paramDescriptor, unpack);
         if (matchValue == 0) {
             return 0;
         }
@@ -2289,6 +2339,9 @@ void JType_InitParamDescriptorFunctions(JPy_ParamDescriptor* paramDescriptor, jb
     //} else if (paramType == JPy_JMap) {
     //} else if (paramType == JPy_JList) {
     //} else if (paramType == JPy_JSet) {
+    } else if (paramType == JPy_JPyObject) {
+        paramDescriptor->MatchPyArg = JType_MatchPyArgAsJPyObjectParam;
+        paramDescriptor->ConvertPyArg = JType_ConvertPyArgToJPyObjectArg;
     } else {
         paramDescriptor->MatchPyArg = JType_MatchPyArgAsJObjectParam;
         paramDescriptor->ConvertPyArg = JType_ConvertPyArgToJObjectArg;
@@ -2314,6 +2367,8 @@ void JType_InitParamDescriptorFunctions(JPy_ParamDescriptor* paramDescriptor, jb
             paramDescriptor->MatchVarArgPyArg = JType_MatchVarArgPyArgAsJDoubleParam;
         } else if (paramType->componentType == JPy_JString) {
             paramDescriptor->MatchVarArgPyArg = JType_MatchVarArgPyArgAsJStringParam;
+        } else if (paramType->componentType == JPy_JPyObject) {
+            paramDescriptor->MatchVarArgPyArg = JType_MatchVarArgPyArgAsJPyObjectParam;
         } else {
             paramDescriptor->MatchVarArgPyArg = JType_MatchVarArgPyArgAsJObjectParam;
         }
