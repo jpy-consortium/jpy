@@ -557,9 +557,9 @@ JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_getCurrentLocals
         (JNIEnv *jenv, jclass libClass) {
      jobject objectRef;
 
-     PyObject *globals = PyEval_GetLocals();
+     PyObject *locals = PyEval_GetLocals();
 
-     if (JType_ConvertPythonToJavaObject(jenv, JPy_JPyObject, globals, &objectRef, JNI_FALSE) < 0) {
+     if (JType_ConvertPythonToJavaObject(jenv, JPy_JPyObject, locals, &objectRef, JNI_FALSE) < 0) {
          return NULL;
      }
 

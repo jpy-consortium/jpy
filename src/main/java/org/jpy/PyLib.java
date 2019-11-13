@@ -271,8 +271,26 @@ public class PyLib {
 
     public static native PyObject getMainGlobals();
 
+    /**
+     * Return a dictionary of the global variables in the current execution frame, or NULL if no
+     * frame is currently executing.
+     *
+     * @return the current globals, or null
+     *
+     * @see <a href="https://docs.python.org/2/c-api/reflection.html#c.PyEval_GetGlobals">PyEval_GetGlobals (2)</a>
+     * @see <a href="https://docs.python.org/3/c-api/reflection.html#c.PyEval_GetGlobals">PyEval_GetGlobals (3)</a>
+     */
     public static native PyObject getCurrentGlobals();
 
+    /**
+     * Return a dictionary of the local variables in the current execution frame, or NULL if no
+     * frame is currently executing.
+     *
+     * @return the current locals, or null
+     *
+     * @see <a href="https://docs.python.org/2/c-api/reflection.html#c.PyEval_GetLocals">PyEval_GetLocals (2)</a>
+     * @see <a href="https://docs.python.org/3/c-api/reflection.html#c.PyEval_GetLocals">PyEval_GetLocals (3)</a>
+     */
     public static native PyObject getCurrentLocals();
 
     static native PyObject copyDict(long pyPointer);
@@ -512,16 +530,6 @@ public class PyLib {
                 System.err.println(message);
             }
         }
-    }
-
-    public static PyObject eval(String code, PyInputMode mode) {
-        if (code == null) {
-            throw new NullPointerException("code must not be null");
-        }
-        if (mode == null) {
-            throw new NullPointerException("mode must not be null");
-        }
-        return new PyObject(PyLib.executeCode(code, mode.value(), getCurrentGlobals(), getCurrentLocals()));
     }
 
     private PyLib() {
