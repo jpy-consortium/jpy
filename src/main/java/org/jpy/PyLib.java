@@ -218,7 +218,7 @@ public class PyLib {
     }
 
     static native boolean startPython0(String... paths);
-    
+
     /**
      * Does the equivalent of setting the PYTHONHOME environment variable.  If used,
      * this must be called prior to calling {@code startPython()}.
@@ -270,6 +270,28 @@ public class PyLib {
             (String file, int start, Object globals, Object locals) throws FileNotFoundException;
 
     public static native PyObject getMainGlobals();
+
+    /**
+     * Return a dictionary of the global variables in the current execution frame, or NULL if no
+     * frame is currently executing.
+     *
+     * @return the current globals, or null
+     *
+     * @see <a href="https://docs.python.org/2/c-api/reflection.html#c.PyEval_GetGlobals">PyEval_GetGlobals (2)</a>
+     * @see <a href="https://docs.python.org/3/c-api/reflection.html#c.PyEval_GetGlobals">PyEval_GetGlobals (3)</a>
+     */
+    public static native PyObject getCurrentGlobals();
+
+    /**
+     * Return a dictionary of the local variables in the current execution frame, or NULL if no
+     * frame is currently executing.
+     *
+     * @return the current locals, or null
+     *
+     * @see <a href="https://docs.python.org/2/c-api/reflection.html#c.PyEval_GetLocals">PyEval_GetLocals (2)</a>
+     * @see <a href="https://docs.python.org/3/c-api/reflection.html#c.PyEval_GetLocals">PyEval_GetLocals (3)</a>
+     */
+    public static native PyObject getCurrentLocals();
 
     static native PyObject copyDict(long pyPointer);
 

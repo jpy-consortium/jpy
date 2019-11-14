@@ -89,6 +89,22 @@ JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_getMainGlobals
 
 /*
  * Class:     org_jpy_PyLib
+ * Method:    getCurrentLocals
+ * Signature: ()Lorg/jpy/PyObject;
+ */
+JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_getCurrentLocals
+  (JNIEnv *, jclass);
+
+/*
+ * Class:     org_jpy_PyLib
+ * Method:    getCurrentGlobals
+ * Signature: ()Lorg/jpy/PyObject;
+ */
+JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_getCurrentGlobals
+  (JNIEnv *, jclass);
+
+/*
+ * Class:     org_jpy_PyLib
  * Method:    copyDict
  * Signature: (J)Lorg/jpy/PyObject;
  */

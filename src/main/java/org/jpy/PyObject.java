@@ -109,6 +109,94 @@ public class PyObject {
     }
 
     /**
+     * Equivalent to {@code doEval(expression, PyLib.getCurrentGlobals(), PyLib.getCurrentLocals())}.
+     *
+     * <p> The caller must ensure that they are already in an executing frame, and running in the same
+     * thread. While this is not enforced right now, failure to follow the proper calling conventions
+     * can result in unexpected behavior. This method may be better implemented in the future as a
+     * fully-native method.
+     *
+     * <p>This is similar in spirit to the python code {@code eval(expression, globals(), locals())}.
+     *
+     * <p>Note: this method name is explicitly <b>not</b> {@code eval}, to match the convention set
+     * by {@link #doExec(String)}.
+     *
+     * @param expression the expression
+     * @return the results of the execution
+     *
+     * @see #doEval(String, Object, Object)
+     */
+    public static PyObject doEval(String expression) {
+        return doEval(expression, PyLib.getCurrentGlobals(), PyLib.getCurrentLocals());
+    }
+
+    /**
+     * Equivalent to {@code new PyObject(PyLib.executeCode(expression, PyInputMode.EXPRESSION.value(), globals, locals))}.
+     *
+     * <p>This is similar in spirit to the python code {@code eval(expression, globals, locals)}.
+     *
+     * <p>Note: this method name is explicitly <b>not</b> {@code eval}, to match the convention set
+     * by {@link #doExec(String, Object, Object)}.
+     *
+     * @param expression the expression
+     * @param globals the globals
+     * @param locals the locals
+     * @return the results of the evaluation
+     *
+     * @see <a href="https://docs.python.org/2/library/functions.html#eval">eval (2)</a>
+     * @see <a href="https://docs.python.org/3/library/functions.html#eval">eval (3)</a>
+     */
+    public static PyObject doEval(String expression, Object globals, Object locals) {
+        Objects.requireNonNull(expression, "expression must not be null");
+        Objects.requireNonNull(globals, "globals must not be null");
+        Objects.requireNonNull(locals, "locals must not be null");
+        return new PyObject(PyLib.executeCode(expression, PyInputMode.EXPRESSION.value(), globals, locals));
+    }
+
+    /**
+     * Equivalent to {@code doExec(code, PyLib.getCurrentGlobals(), PyLib.getCurrentLocals())}.
+     *
+     * <p> The caller must ensure that they are already in an executing frame, and running in the same
+     * thread. While this is not enforced right now, failure to follow the proper calling conventions
+     * can result in unexpected behavior. This method may be better implemented in the future as a
+     * fully-native method.
+     *
+     * <p>This is similar in spirit to the python code {@code exec(code, globals(), locals())}. Note:
+     * this is semantically different than {@code exec(code)} with respect to Python 2.
+     *
+     * <p>Note: this method name is explicitly <b>not</b> {@code exec}, as that causes an
+     * invalid syntax if called directly from python.
+     *
+     * @param code the code
+     * @see #doExec(String, Object, Object)
+     */
+    public static void doExec(String code) {
+        doExec(code, PyLib.getCurrentGlobals(), PyLib.getCurrentLocals());
+    }
+
+    /**
+     * Equivalent to {@code new PyObject(PyLib.executeCode(code, PyInputMode.SCRIPT.value(), globals, locals))}.
+     *
+     * <p>This is similar in spirit to the python code {@code exec(code, globals, locals)}.
+     *
+     * <p>Note: this method name is explicitly <b>not</b> {@code exec}, as that causes an
+     * invalid syntax if called directly from python.
+     *
+     * @param code the code
+     * @param globals the globals
+     * @param locals the locals
+     *
+     * @see <a href="https://docs.python.org/2/library/functions.html#exec">exec (2)</a>
+     * @see <a href="https://docs.python.org/3/library/functions.html#exec">exec (3)</a>
+     */
+    public static void doExec(String code, Object globals, Object locals) {
+        Objects.requireNonNull(code, "code must not be null");
+        Objects.requireNonNull(globals, "globals must not be null");
+        Objects.requireNonNull(locals, "locals must not be null");
+        PyLib.executeCode(code, PyInputMode.SCRIPT.value(), globals, locals);
+    }
+
+    /**
      * Decrements the reference count of the Python object which this class represents.
      *
      * @throws Throwable If any error occurs.
