@@ -97,7 +97,7 @@ int JArray_GetBufferProc(JPy_JArray* self, Py_buffer* view, int flags, char java
         return -1;
     }
 
-    JPy_DIAG_PRINT(JPy_DIAG_F_MEM, "JArray_GetBufferProc: buf=%p, type='%s', format='%s', itemSize=%d, itemCount=%d, isCopy=%d\n", buf, Py_TYPE(self)->tp_name, format, itemSize, itemCount, isCopy);
+    JPy_DIAG_PRINT(JPy_DIAG_F_MEM, "JArray_GetBufferProc: buf=%p, bufferExportCount=%d, type='%s', format='%s', itemSize=%d, itemCount=%d, isCopy=%d\n", buf, self->bufferExportCount, Py_TYPE(self)->tp_name, format, itemSize, itemCount, isCopy);
 
     // Step 2/5
     view->buf = buf;
@@ -189,36 +189,36 @@ void JArray_ReleaseBufferProc(JPy_JArray* self, Py_buffer* view, char javaType)
     JPy_DIAG_PRINT(JPy_DIAG_F_MEM, "JArray_ReleaseBufferProc: buf=%p, bufferExportCount=%d\n", view->buf, self->bufferExportCount);
 
     // Step 2
-    if (self->bufferExportCount == 0 && view->buf != NULL) {
+    if (view->buf != NULL) {
         JNIEnv* jenv = JPy_GetJNIEnv();
         if (jenv != NULL) {
 #ifdef JPy_USE_GET_PRIMITIVE_ARRAY_CRITICAL
-           (*jenv)->ReleasePrimitiveArrayCritical(jenv, self->objectRef, view->buf, 0);
+           (*jenv)->ReleasePrimitiveArrayCritical(jenv, self->objectRef, view->buf, view->readonly ? JNI_ABORT : 0);
 #else
             if (javaType == 'Z') {
-                (*jenv)->ReleaseBooleanArrayElements(jenv, self->objectRef, (jboolean*) view->buf, 0);
+                (*jenv)->ReleaseBooleanArrayElements(jenv, self->objectRef, (jboolean*) view->buf, view->readonly ? JNI_ABORT : 0);
             } else if (javaType == 'C') {
-                (*jenv)->ReleaseCharArrayElements(jenv, self->objectRef, (jchar*) view->buf, 0);
+                (*jenv)->ReleaseCharArrayElements(jenv, self->objectRef, (jchar*) view->buf, view->readonly ? JNI_ABORT : 0);
             } else if (javaType == 'B') {
-                (*jenv)->ReleaseByteArrayElements(jenv, self->objectRef, (jbyte*) view->buf, 0);
+                (*jenv)->ReleaseByteArrayElements(jenv, self->objectRef, (jbyte*) view->buf, view->readonly ? JNI_ABORT : 0);
             } else if (javaType == 'S') {
-                (*jenv)->ReleaseShortArrayElements(jenv, self->objectRef, (jshort*) view->buf, 0);
+                (*jenv)->ReleaseShortArrayElements(jenv, self->objectRef, (jshort*) view->buf, view->readonly ? JNI_ABORT : 0);
             } else if (javaType == 'I') {
-                (*jenv)->ReleaseIntArrayElements(jenv, self->objectRef, (jint*) view->buf, 0);
+                (*jenv)->ReleaseIntArrayElements(jenv, self->objectRef, (jint*) view->buf, view->readonly ? JNI_ABORT : 0);
             } else if (javaType == 'J') {
-                (*jenv)->ReleaseLongArrayElements(jenv, self->objectRef, (jlong*) view->buf, 0);
+                (*jenv)->ReleaseLongArrayElements(jenv, self->objectRef, (jlong*) view->buf, view->readonly ? JNI_ABORT : 0);
             } else if (javaType == 'F') {
-                (*jenv)->ReleaseFloatArrayElements(jenv, self->objectRef, (jfloat*) view->buf, 0);
+                (*jenv)->ReleaseFloatArrayElements(jenv, self->objectRef, (jfloat*) view->buf, view->readonly ? JNI_ABORT : 0);
             } else if (javaType == 'D') {
-                (*jenv)->ReleaseDoubleArrayElements(jenv, self->objectRef, (jdouble*) view->buf, 0);
+                (*jenv)->ReleaseDoubleArrayElements(jenv, self->objectRef, (jdouble*) view->buf, view->readonly ? JNI_ABORT : 0);
             }
 #endif
         }
         view->buf = NULL;
     }
 
-    // todo - check if we must Py_DECREF here
-    //Py_DECREF(view->obj);
+    // Note: this function is *not* responsible for PyDECREF of view->obj
+    // https://docs.python.org/3/c-api/typeobj.html#c.PyBufferProcs.bf_releasebuffer
 }
 
 // todo: py27: fix all releasebufferproc() functions which have different parameter types in 2.7

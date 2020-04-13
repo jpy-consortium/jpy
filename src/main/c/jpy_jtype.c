@@ -51,12 +51,12 @@ static int JType_MatchVarArgPyArgAsFPType(const JPy_ParamDescriptor *paramDescri
 static int JType_MatchVarArgPyArgIntType(const JPy_ParamDescriptor *paramDescriptor, PyObject *pyArg, int idx,
                                   struct JPy_JType *expectedComponentType);
 
-JPy_JType* JType_GetTypeForObject(JNIEnv* jenv, jobject objectRef)
+JPy_JType* JType_GetTypeForObject(JNIEnv* jenv, jobject objectRef, jboolean resolve)
 {
     JPy_JType* type;
     jclass classRef;
     classRef = (*jenv)->GetObjectClass(jenv, objectRef);
-    type = JType_GetType(jenv, classRef, JNI_FALSE);
+    type = JType_GetType(jenv, classRef, resolve);
     (*jenv)->DeleteLocalRef(jenv, classRef);
     return type;
 }
@@ -310,7 +310,7 @@ PyObject* JType_ConvertJavaToPythonObject(JNIEnv* jenv, JPy_JType* type, jobject
         } else if (type == JPy_JString) {
             return JPy_FromJString(jenv, objectRef);
         } else if (type == JPy_JObject) {
-            type = JType_GetTypeForObject(jenv, objectRef);
+            type = JType_GetTypeForObject(jenv, objectRef, JNI_FALSE);
             if (type != JPy_JObject) {
                 return JType_ConvertJavaToPythonObject(jenv, type, objectRef);
             }
@@ -360,6 +360,17 @@ int JType_PythonToJavaConversionError(JPy_JType* type, PyObject* pyArg)
 int JType_CreateJavaObject(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg, jclass classRef, jmethodID initMID, jvalue value, jobject* objectRef)
 {
     *objectRef = (*jenv)->NewObjectA(jenv, classRef, initMID, &value);
+    if (*objectRef == NULL) {
+        PyErr_NoMemory();
+        return -1;
+    }
+    JPy_ON_JAVA_EXCEPTION_RETURN(-1);
+    return 0;
+}
+
+int JType_CreateJavaObject_2(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg, jclass classRef, jmethodID initMID, jvalue value1, jvalue value2, jobject* objectRef)
+{
+    *objectRef = (*jenv)->NewObject(jenv, classRef, initMID, value1, value2);
     if (*objectRef == NULL) {
         PyErr_NoMemory();
         return -1;
@@ -462,9 +473,14 @@ int JType_CreateJavaDoubleObject(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg,
 
 int JType_CreateJavaPyObject(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg, jobject* objectRef)
 {
-    jvalue value;
-    value.j = (jlong) pyArg;
-    return JType_CreateJavaObject(jenv, type, pyArg, type->classRef, JPy_PyObject_Init_MID, value, objectRef);
+    jvalue value1;
+    jvalue value2;
+
+    value1.j = (jlong) pyArg;
+    value2.z = JNI_TRUE;
+
+    Py_INCREF(pyArg);
+    return JType_CreateJavaObject_2(jenv, type, pyArg, type->classRef, JPy_PyObject_Init_MID, value1, value2, objectRef);
 }
 
 int JType_CreateJavaArray(JNIEnv* jenv, JPy_JType* componentType, PyObject* pyArg, jobject* objectRef, jboolean allowObjectWrapping)
@@ -774,15 +790,53 @@ int JType_ConvertPythonToJavaObject(JNIEnv* jenv, JPy_JType* type, PyObject* pyA
     if (pyArg == Py_None) {
         // None converts into NULL
         *objectRef = NULL;
+        // todo: if the return type is PyObject, we should return Py_None instead
         return 0;
-    } else if (JObj_Check(pyArg)) {
-        // If it is already a Java object wrapper JObj, then we are done
-        *objectRef = ((JPy_JObj*) pyArg)->objectRef;
-        return 0;
-    } else if (JType_Check(pyArg)) {
-        *objectRef = ((JPy_JType*)pyArg)->classRef;
-        return 0;
-    } else if (type->componentType != NULL) {
+    }
+
+    // If it is already a Java object wrapper JObj, and assignable, then we are done
+    if (JObj_Check(pyArg)) {
+        jobject jobj = ((JPy_JObj*) pyArg)->objectRef;
+        jclass jobjclass = (*jenv)->GetObjectClass(jenv, jobj);
+
+        if ((*jenv)->IsAssignableFrom(jenv, jobjclass, type->classRef)) {
+            (*jenv)->DeleteLocalRef(jenv, jobjclass);
+
+            JPy_DIAG_PRINT(JPy_DIAG_F_TYPE, "JType_ConvertPythonToJavaObject: unwrapping JObj into type->javaName=\"%s\"\n", type->javaName);
+
+            jobj = (*jenv)->NewLocalRef(jenv, jobj);  // need a new reference to it
+            *objectRef = jobj;
+            if (jobj == NULL) {
+                PyErr_NoMemory();
+                return -1;
+            }
+            return 0;
+        }
+        (*jenv)->DeleteLocalRef(jenv, jobjclass);
+    }
+
+    // If it is already a Java type wrapper JType, and assignable, then we are done
+    if (JType_Check(pyArg)) {
+        jclass jobj = ((JPy_JType*)pyArg)->classRef;
+        jclass jobjclass = (*jenv)->GetObjectClass(jenv, jobj);
+
+        if ((*jenv)->IsAssignableFrom(jenv, jobjclass, type->classRef)) {
+            (*jenv)->DeleteLocalRef(jenv, jobjclass);
+
+            JPy_DIAG_PRINT(JPy_DIAG_F_TYPE, "JType_ConvertPythonToJavaObject: unwrapping JType into type->javaName=\"%s\"\n", type->javaName);
+
+            jobj = (*jenv)->NewLocalRef(jenv, jobj);  // need a new reference to it
+            *objectRef = jobj;
+            if (jobj == NULL) {
+                PyErr_NoMemory();
+                return -1;
+            }
+            return 0;
+        }
+        (*jenv)->DeleteLocalRef(jenv, jobjclass);
+    }
+
+    if (type->componentType != NULL) {
         // For any other Python argument create a Java object (a new local reference)
         return JType_CreateJavaArray(jenv, type->componentType, pyArg, objectRef, allowObjectWrapping);
     } else if (type == JPy_JBoolean || type == JPy_JBooleanObj) {
@@ -841,7 +895,7 @@ int JType_ResolveType(JNIEnv* jenv, JPy_JType* type)
 
     type->isResolving = JNI_TRUE;
 
-    typeObj = (PyTypeObject*) type;
+    typeObj = JTYPE_AS_PYTYPE(type);
     if (typeObj->tp_base != NULL && JType_Check((PyObject*) typeObj->tp_base)) {
         JPy_JType* baseType = (JPy_JType*) typeObj->tp_base;
         if (!baseType->isResolved) {

@@ -217,6 +217,21 @@ class TestJavaArrays(unittest.TestCase):
         for _ in range(100):
             java_array = fixture.createByteArray(1000000) # 1MB
 
+    def test_leak(self):
+        '''
+        This isn't a very good "unit"-test - the failure of this test depends
+        on the amount of RAM and specifics of the OS. On my machine I've been
+        able to demonstrate failure with the following constants.
+        '''
+        # skip the test unless you need to stress test array release logic
+        if True:
+            return
+        j_int_array = jpy.array('int', range(100000))
+        # ensure that the bufferExportCount doesn't go to 0
+        keep_around = memoryview(j_int_array)
+        for i in range(1000000):
+            memory_view = memoryview(j_int_array)
+
 if __name__ == '__main__':
     print('\nRunning ' + __file__)
     unittest.main()

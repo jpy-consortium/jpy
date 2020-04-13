@@ -28,16 +28,11 @@
 
 PyObject* JObj_New(JNIEnv* jenv, jobject objectRef)
 {
-    jclass classRef;
     JPy_JType* type;
-
-    classRef = (*jenv)->GetObjectClass(jenv, objectRef);
-    type = JType_GetType(jenv, classRef, JNI_TRUE);
-    (*jenv)->DeleteLocalRef(jenv, classRef);
+    type = JType_GetTypeForObject(jenv, objectRef, JNI_TRUE);
     if (type == NULL) {
         return NULL;
     }
-
     return JObj_FromType(jenv, type, objectRef);
 }
 
@@ -48,7 +43,7 @@ PyObject* JObj_FromType(JNIEnv* jenv, JPy_JType* type, jobject objectRef)
 
     JPy_JObj* obj;
 
-    obj = (JPy_JObj*) PyObject_New(JPy_JObj, (PyTypeObject*) type);
+    obj = (JPy_JObj*) PyObject_New(JPy_JObj, JTYPE_AS_PYTYPE(type));
     if (obj == NULL) {
         return NULL;
     }
@@ -701,7 +696,7 @@ int JType_InitSlots(JPy_JType* type)
     isArray = type->componentType != NULL;
     isPrimitiveArray = isArray && type->componentType->isPrimitive;
 
-    typeObj = (PyTypeObject*) type;
+    typeObj = JTYPE_AS_PYTYPE(type);
 
     Py_REFCNT(typeObj) = 1;
     Py_TYPE(typeObj) = NULL;
@@ -715,7 +710,7 @@ int JType_InitSlots(JPy_JType* type)
 
     typeObj->tp_basicsize = isPrimitiveArray ? sizeof (JPy_JArray) : sizeof (JPy_JObj);
     typeObj->tp_itemsize = 0;
-    typeObj->tp_base = type->superType != NULL ? (PyTypeObject*) type->superType : &JType_Type;
+    typeObj->tp_base = type->superType != NULL ? JTYPE_AS_PYTYPE(type->superType) : &JType_Type;
     //typeObj->tp_base = (PyTypeObject*) type->superType;
     typeObj->tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
     // If I uncomment the following line, I get (unpredictable) interpreter crashes
@@ -795,7 +790,7 @@ int JType_InitSlots(JPy_JType* type)
 }
 
 // This is only a good test as long JObj_init() is not used in other types
-#define JPY_IS_JTYPE(T)  (((PyTypeObject*) T)->tp_init == (initproc) JObj_init)
+#define JPY_IS_JTYPE(T)  (JTYPE_AS_PYTYPE(T)->tp_init == (initproc) JObj_init)
 
 
 int JObj_Check(PyObject* arg)

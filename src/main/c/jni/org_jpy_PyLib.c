@@ -137,11 +137,11 @@ char staticPythonHome[MAX_PYTHON_HOME];
  * Method:    setPythonHome
  * Signature: (Ljava/lang/String;)Z
  */
-JNIEXPORT jint JNICALL Java_org_jpy_PyLib_setPythonHome
+JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_setPythonHome
   (JNIEnv* jenv, jclass jLibClass, jstring jPythonHome)
 {
 #if defined(JPY_COMPAT_33P) && !defined(JPY_COMPAT_35P)
-    return 0;  // Not supported because DecodeLocale didn't exist in 3.4
+    return JNI_FALSE;  // Not supported because DecodeLocale didn't exist in 3.4
 #else
 
     #if defined(JPY_COMPAT_35P)
@@ -151,7 +151,7 @@ JNIEXPORT jint JNICALL Java_org_jpy_PyLib_setPythonHome
     #endif
 
     const char *nonWidePythonHome = NULL;
-    jboolean result = 0;
+    jboolean result = JNI_FALSE;
     nonWidePythonHome = (*jenv)->GetStringUTFChars(jenv, jPythonHome, NULL);
 
     if (nonWidePythonHome != NULL) {
@@ -161,7 +161,7 @@ JNIEXPORT jint JNICALL Java_org_jpy_PyLib_setPythonHome
         if (pythonHome != NULL) {
             if (wcslen(pythonHome) < MAX_PYTHON_HOME) {
                  wcscpy(staticPythonHome, pythonHome);
-                 result = 1;
+                 result = JNI_TRUE;
             }
             else {
                 PyMem_RawFree(pythonHome);
@@ -173,7 +173,7 @@ JNIEXPORT jint JNICALL Java_org_jpy_PyLib_setPythonHome
         pythonHome = nonWidePythonHome;
         if (strlen(pythonHome) < MAX_PYTHON_HOME) {
             strcpy(staticPythonHome, pythonHome);
-            result = 1;
+            result = JNI_TRUE;
         }
         #endif
 
@@ -204,11 +204,11 @@ char staticProgramName[MAX_PROGRAM_NAME];
  * Method:    setProgramName
  * Signature: (Ljava/lang/String;)Z
  */
-JNIEXPORT jint JNICALL Java_org_jpy_PyLib_setProgramName
+JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_setProgramName
   (JNIEnv* jenv, jclass jLibClass, jstring jProgramName)
 {
 #if defined(JPY_COMPAT_33P) && !defined(JPY_COMPAT_35P)
-    return 0;  // Not supported because DecodeLocale didn't exist in 3.4
+    return JNI_FALSE;  // Not supported because DecodeLocale didn't exist in 3.4
 #else
 
     #if defined(JPY_COMPAT_35P)
@@ -218,7 +218,7 @@ JNIEXPORT jint JNICALL Java_org_jpy_PyLib_setProgramName
     #endif
 
     const char *nonWideProgramName = NULL;
-    jboolean result = 0;
+    jboolean result = JNI_FALSE;
     nonWideProgramName = (*jenv)->GetStringUTFChars(jenv, jProgramName, NULL);
 
     if (nonWideProgramName != NULL) {
@@ -228,7 +228,7 @@ JNIEXPORT jint JNICALL Java_org_jpy_PyLib_setProgramName
         if (programName != NULL) {
             if (wcslen(programName) < MAX_PROGRAM_NAME) {
                  wcscpy(staticProgramName, programName);
-                 result = 1;
+                 result = JNI_TRUE;
             }
             else {
                 PyMem_RawFree(programName);
@@ -240,7 +240,7 @@ JNIEXPORT jint JNICALL Java_org_jpy_PyLib_setProgramName
         programName = nonWideProgramName;
         if (strlen(programName) < MAX_PROGRAM_NAME) {
             strcpy(staticProgramName, programName);
-            result = 1;
+            result = JNI_TRUE;
         }
         #endif
 
@@ -473,7 +473,7 @@ PyObject* PyLib_ConvertJavaToPythonObject(JNIEnv* jenv, jobject jObject)
     if (jObject == NULL) {
       return JPy_FROM_JNULL();
     }
-    type = JType_GetTypeForObject(jenv, jObject);
+    type = JType_GetTypeForObject(jenv, jObject, JNI_FALSE);
     return JType_ConvertJavaToPythonObject(jenv, type, jObject);
 }
 
@@ -511,46 +511,50 @@ PyObject *getMainGlobals() {
     PyObject* pyMainModule;
     PyObject* pyGlobals;
 
-    JPy_BEGIN_GIL_STATE
-
     pyMainModule = PyImport_AddModule("__main__"); // borrowed ref
 
     if (pyMainModule == NULL) {
         return NULL;
     }
 
-
     pyGlobals = PyModule_GetDict(pyMainModule); // borrowed ref
-
-    JPy_END_GIL_STATE
 
     return pyGlobals;
 }
 
 JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_getMainGlobals
         (JNIEnv *jenv, jclass libClass) {
-    jobject objectRef;
+    jobject objectRef = NULL;
+    PyObject *globals;
 
-    PyObject *globals = getMainGlobals();
+    JPy_BEGIN_GIL_STATE
+
+    globals = getMainGlobals(); // borrowed ref
+    if (globals == NULL) {
+        goto error;
+    }
 
     if (JType_ConvertPythonToJavaObject(jenv, JPy_JPyObject, globals, &objectRef, JNI_FALSE) < 0) {
-        return NULL;
+        objectRef = NULL;
+        goto error;
     }
+
+error:
+    JPy_END_GIL_STATE
 
     return objectRef;
 }
 
 JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_getCurrentGlobals
         (JNIEnv *jenv, jclass libClass) {
-    jobject objectRef;
+    jobject objectRef = NULL;
     PyObject *globals;
 
     JPy_BEGIN_GIL_STATE
 
-    globals = PyEval_GetGlobals();
+    globals = PyEval_GetGlobals(); // borrowed ref
 
     if (globals == NULL) {
-        objectRef = NULL;
         goto error;
     }
 
@@ -567,14 +571,13 @@ error:
 
 JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_getCurrentLocals
         (JNIEnv *jenv, jclass libClass) {
+    jobject objectRef = NULL;
     PyObject *locals;
-    jobject objectRef;
 
     JPy_BEGIN_GIL_STATE
 
-    locals = PyEval_GetLocals();
+    locals = PyEval_GetLocals(); // borrowed ref
     if (locals == NULL) {
-        objectRef = NULL;
         goto error;
     }
 
@@ -592,51 +595,60 @@ error:
 
 JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_copyDict
         (JNIEnv *jenv, jclass libClass, jlong pyPointer) {
-    jobject objectRef;
-    PyObject *src, *copy;
+    jobject objectRef = NULL;
+    PyObject* copy = NULL;
+    PyObject* src = (PyObject*)pyPointer;
 
-    src = (PyObject*)pyPointer;
+    JPy_BEGIN_GIL_STATE
 
     if (!PyDict_Check(src)) {
         PyLib_ThrowUOE(jenv, "Not a dictionary!");
-        return NULL;
+        goto error;
     }
 
     copy = PyDict_Copy(src);
-
     if (JType_ConvertPythonToJavaObject(jenv, JPy_JPyObject, copy, &objectRef, JNI_FALSE) < 0) {
-        return NULL;
+        objectRef = NULL;
+        goto error;
     }
+
+error:
+    Py_XDECREF(copy);
+    JPy_END_GIL_STATE
 
     return objectRef;
 }
 
 JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_newDict
         (JNIEnv *jenv, jclass libClass) {
-    jobject objectRef;
+    jobject objectRef = NULL;
     PyObject *dict;
+
+    JPy_BEGIN_GIL_STATE
 
     dict = PyDict_New();
 
     if (JType_ConvertPythonToJavaObject(jenv, JPy_JPyObject, dict, &objectRef, JNI_FALSE) < 0) {
-        return NULL;
+        objectRef = NULL;
+        goto error;
     }
+
+error:
+    Py_XDECREF(dict);
+    JPy_END_GIL_STATE
 
     return objectRef;
 }
 
 JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_pyDictKeys
         (JNIEnv *jenv, jclass libClass, jlong pyDict) {
-    jobject result;
-    PyObject* src;
-    PyObject* keys;
-
-    src = (PyObject*)pyDict;
+    jobject result = NULL;
+    PyObject* keys = NULL;
+    PyObject* src = (PyObject*)pyDict;
 
     JPy_BEGIN_GIL_STATE
 
     if (!PyDict_Check(src)) {
-        result = NULL;
         PyLib_ThrowUOE(jenv, "Not a dictionary!");
         goto error;
     }
@@ -648,22 +660,20 @@ JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_pyDictKeys
     }
 
 error:
+    Py_XDECREF(keys);
     JPy_END_GIL_STATE
     return result;
 }
 
 JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_pyDictValues
         (JNIEnv *jenv, jclass libClass, jlong pyDict) {
-    jobject result;
-    PyObject* src;
-    PyObject* values;
-
-    src = (PyObject*)pyDict;
+    jobject result = NULL;
+    PyObject* values = NULL;
+    PyObject* src = (PyObject*)pyDict;
 
     JPy_BEGIN_GIL_STATE
 
     if (!PyDict_Check(src)) {
-        result = NULL;
         PyLib_ThrowUOE(jenv, "Not a dictionary!");
         goto error;
     }
@@ -675,19 +685,17 @@ JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_pyDictValues
     }
 
 error:
+    Py_XDECREF(values);
     JPy_END_GIL_STATE
     return result;
 }
 
 JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_pyDictContains
         (JNIEnv *jenv, jclass libClass, jlong pyDict, jobject jKey, jclass jKeyClass) {
-    PyObject* src;
-    PyObject* key;
-    int result;
+    PyObject* src = (PyObject*)pyDict;
+    int result = 0;
     JPy_JType* keyType;
     PyObject* pyKey;
-
-    src = (PyObject*)pyDict;
 
     JPy_BEGIN_GIL_STATE
 
@@ -726,7 +734,7 @@ error:
  * Copies a Java Map<String, Object> into a new Python dictionary.
  */
 PyObject *copyJavaStringObjectMapToPyDict(JNIEnv *jenv, jobject jMap) {
-    PyObject *result;
+    PyObject* result = NULL;
     jobject entrySet, iterator, mapEntry;
     jboolean hasNext;
 
@@ -778,7 +786,7 @@ PyObject *copyJavaStringObjectMapToPyDict(JNIEnv *jenv, jobject jMap) {
 
         value = (*jenv)->CallObjectMethod(jenv, mapEntry, JPy_Map_Entry_getValue_MID);
 
-        type = JType_GetTypeForObject(jenv, value);
+        type = JType_GetTypeForObject(jenv, value, JNI_FALSE);
         pyValue = JType_ConvertJavaToPythonObject(jenv, type, value);
 
         PyDict_SetItem(result, pyKey, pyValue);
@@ -789,9 +797,7 @@ PyObject *copyJavaStringObjectMapToPyDict(JNIEnv *jenv, jobject jMap) {
     return result;
 
 error:
-    if (result != NULL) {
-        Py_XDECREF(result);
-    }
+    Py_XDECREF(result);
     return NULL;
 }
 
@@ -1137,6 +1143,40 @@ JNIEXPORT void JNICALL Java_org_jpy_PyLib_decRef
     }
 }
 
+JNIEXPORT void JNICALL Java_org_jpy_PyLib_decRefs
+  (JNIEnv* jenv, jclass jLibClass, jlongArray objIds, jsize len)
+{
+    PyObject* pyObject;
+    Py_ssize_t refCount;
+    jsize i;
+
+    jboolean isCopy;
+    jlong* buf;
+
+    if (Py_IsInitialized()) {
+        JPy_BEGIN_GIL_STATE
+
+        // Note: it *may* be desirable to instead force a local copy using GetLongArrayRegion, TBD.
+        // It is *not* a good idea to use a critical array here, as Py_DECREF may trigger the python
+        // object destructor, which can run arbitrary code.
+        buf = (*jenv)->GetLongArrayElements(jenv, objIds, &isCopy);
+        for (i = 0; i < len; i++) {
+            pyObject = (PyObject*) buf[i];
+            refCount = pyObject->ob_refcnt;
+            if (refCount <= 0) {
+                JPy_DIAG_PRINT(JPy_DIAG_F_ALL, "Java_org_jpy_PyLib_decRefs: error: refCount <= 0: pyObject=%p, refCount=%d\n", pyObject, refCount);
+            } else {
+                JPy_DIAG_PRINT(JPy_DIAG_F_MEM, "Java_org_jpy_PyLib_decRefs: pyObject=%p, refCount=%d, type='%s'\n", pyObject, refCount, Py_TYPE(pyObject)->tp_name);
+                Py_DECREF(pyObject);
+            }
+        }
+        (*jenv)->ReleaseLongArrayElements(jenv, objIds, buf, JNI_ABORT);
+        JPy_END_GIL_STATE
+    } else {
+        JPy_DIAG_PRINT(JPy_DIAG_F_ALL, "Java_org_jpy_PyLib_decRefs: error: no interpreter\n");
+    }
+}
+
 
 /*
  * Class:     org_jpy_python_PyLib
@@ -1319,6 +1359,7 @@ JNIEXPORT jlong JNICALL Java_org_jpy_PyLib_getType
     JPy_BEGIN_GIL_STATE
 
     pyObject = ((PyObject*) objId)->ob_type;
+    Py_INCREF(pyObject);
 
     JPy_END_GIL_STATE
 
@@ -1560,6 +1601,84 @@ JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_pyCallableCheck
 }
 
 /**
+ * Evaluate PyFunction_Check against a Python object.
+ *
+ * @param jenv JNI environment.
+ * @param jLibClass
+ * @param objId a pointer to a python object
+ * @return true if objId is a python function
+ */
+JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_pyFunctionCheck
+  (JNIEnv* jenv, jclass jLibClass, jlong objId)
+{
+    jboolean result;
+
+    JPy_BEGIN_GIL_STATE
+
+    if (PyFunction_Check(((PyObject*) objId))) {
+        result = JNI_TRUE;
+    } else {
+        result = JNI_FALSE;
+    }
+
+    JPy_END_GIL_STATE
+
+    return result;
+}
+
+/**
+ * Evaluate PyModule_Check against a Python object.
+ *
+ * @param jenv JNI environment.
+ * @param jLibClass
+ * @param objId a pointer to a python object
+ * @return true if objId is a python module
+ */
+JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_pyModuleCheck
+  (JNIEnv* jenv, jclass jLibClass, jlong objId)
+{
+    jboolean result;
+
+    JPy_BEGIN_GIL_STATE
+
+    if (PyModule_Check(((PyObject*) objId))) {
+        result = JNI_TRUE;
+    } else {
+        result = JNI_FALSE;
+    }
+
+    JPy_END_GIL_STATE
+
+    return result;
+}
+
+/**
+ * Evaluate PyTuple_Check against a Python object.
+ *
+ * @param jenv JNI environment.
+ * @param jLibClass
+ * @param objId a pointer to a python object
+ * @return true if objId is a python tuple
+ */
+JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_pyTupleCheck
+  (JNIEnv* jenv, jclass jLibClass, jlong objId)
+{
+    jboolean result;
+
+    JPy_BEGIN_GIL_STATE
+
+    if (PyTuple_Check(((PyObject*) objId))) {
+        result = JNI_TRUE;
+    } else {
+        result = JNI_FALSE;
+    }
+
+    JPy_END_GIL_STATE
+
+    return result;
+}
+
+/**
  * Runs the str function on a Python object.
  *
  * @param jenv JNI environment.
@@ -1702,6 +1821,7 @@ JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_eq
     return result;
 }
 
+// TODO: this implementation *should* use JType_CreateJavaArray instead...
 /*
  * Class:     org_jpy_PyLib
  * Method:    getObjectArrayValue
@@ -1856,6 +1976,7 @@ JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_getAttributeValue
     }
 
 error:
+    Py_XDECREF(pyValue);
     JPy_END_GIL_STATE
 
     return jReturnValue;
@@ -1999,6 +2120,26 @@ error:
     return result;
 }
 
+/*
+ * Class:     org_jpy_PyLib
+ * Method:    hasGil
+ * Signature: ()Z
+ */
+JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_hasGil
+  (JNIEnv* jenv, jclass jLibClass)
+{
+    jboolean result;
+
+    #if defined(JPY_COMPAT_33P)
+    // Note: we *don't* need the GIL to inquire if we have the GIL, that would be silly.
+    result = PyGILState_Check() ? JNI_TRUE : JNI_FALSE;
+    #else
+    PyThreadState* tstate = _PyThreadState_Current;
+    return tstate && (tstate == PyGILState_GetThisThreadState());
+    #endif
+    return result;
+}
+
 
 /*
  * Class:     org_jpy_python_PyLib
@@ -2030,29 +2171,26 @@ JNIEXPORT jlong JNICALL Java_org_jpy_PyLib_callAndReturnObject
 JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_callAndReturnValue
   (JNIEnv *jenv, jclass jLibClass, jlong objId, jboolean isMethodCall, jstring jName, jint argCount, jobjectArray jArgs, jobjectArray jParamClasses, jclass jReturnClass)
 {
-    PyObject* pyObject;
+    PyObject* pyObject = (PyObject*) objId;
     PyObject* pyReturnValue;
-    jobject jReturnValue;
+    jobject jReturnValue = NULL;
 
     JPy_BEGIN_GIL_STATE
 
-    pyObject = (PyObject*) objId;
-
     pyReturnValue = PyLib_CallAndReturnObject(jenv, pyObject, isMethodCall, jName, argCount, jArgs, jParamClasses);
     if (pyReturnValue == NULL) {
-        jReturnValue = NULL;
         goto error;
     }
 
     if (JPy_AsJObjectWithClass(jenv, pyReturnValue, &jReturnValue, jReturnClass) < 0) {
         JPy_DIAG_PRINT(JPy_DIAG_F_ALL, "Java_org_jpy_PyLib_callAndReturnValue: error: failed to convert attribute value\n");
         PyLib_HandlePythonException(jenv);
-        Py_DECREF(pyReturnValue);
         jReturnValue = NULL;
         goto error;
     }
 
 error:
+    Py_XDECREF(pyReturnValue);
     JPy_END_GIL_STATE
 
     return jReturnValue;
@@ -2109,19 +2247,74 @@ error:
     return pyValue;
 }
 
+PyObject* PyLib_FromJObjectForTuple(JNIEnv *jenv, jobject jArg, jclass jParamClass, char* nameChars, jint index) {
+    JPy_JType* implicitParamType;
+    JPy_JType* explicitParamType;
+    PyObject* pyReturnValue;
+
+    // if jArg is NULL, we don't care about the implicit / explicit types, we'll return None
+    if (jArg == NULL) {
+        return JPy_FROM_JNULL();
+    }
+
+    pyReturnValue = NULL;
+    explicitParamType = NULL;
+    implicitParamType = JType_GetTypeForObject(jenv, jArg, JNI_FALSE);
+    if (implicitParamType == NULL) {
+        JPy_DIAG_PRINT(JPy_DIAG_F_ALL, "PyLib_FromJObjectForTuple: error: callable '%s': argument %d: failed to retrieve implicit-type\n", nameChars, index);
+        PyLib_HandlePythonException(jenv);
+        goto error;
+    }
+
+    if (jParamClass != NULL) {
+        explicitParamType = JType_GetType(jenv, jParamClass, JNI_FALSE);
+        if (explicitParamType == NULL) {
+            JPy_DIAG_PRINT(JPy_DIAG_F_ALL, "PyLib_FromJObjectForTuple: error: callable '%s': argument %d: failed to retrieve explicit-type\n", nameChars, index);
+            PyLib_HandlePythonException(jenv);
+            goto error;
+        }
+        pyReturnValue = JPy_FromJObjectWithType(jenv, jArg, explicitParamType);
+    } else {
+        pyReturnValue = JPy_FromJObjectWithType(jenv, jArg, implicitParamType);
+    }
+
+    // We must keep unchanged the reference counter when calling a Python method
+    // with a complex Python object as parameter.
+    // Per example:
+    // PyObject dt_X = kycProcessor.getDataFrame(inputColumns.toArray(new String[0]));
+    // for (DataFrameColumn column : values) {
+    //    kycProcessor.addColumn(dt_X, column.getName(), column.getValues());
+    // }
+
+    // Note: it would be better if we were able to get more information passed back from
+    // JPy_FromJObjectWithType about the specifics of the conversion. This is a bit hacky, but
+    // we can try to infer what happened based on the implicit/explicit types.
+    // This does not work for proxy types! (We'd need to use the better method.)
+    if (((implicitParamType == JPy_JPyObject || implicitParamType == JPy_JPyModule) && implicitParamType->componentType == NULL) ||
+        ((explicitParamType == JPy_JPyObject || explicitParamType == JPy_JPyModule) && explicitParamType->componentType == NULL)) {
+        JPy_DIAG_PRINT(JPy_DIAG_F_MEM, "PyLib_FromJObjectForTuple: name='%s', arg-index=%d, increasing ref to account for tuple stealing\n", nameChars, index);
+        Py_INCREF(pyReturnValue);
+    }
+
+error:
+    Py_XDECREF(explicitParamType);
+    Py_XDECREF(implicitParamType);
+    return pyReturnValue;
+}
+
+
 PyObject* PyLib_CallAndReturnObject(JNIEnv *jenv, PyObject* pyObject, jboolean isMethodCall, jstring jName, jint argCount, jobjectArray jArgs, jobjectArray jParamClasses)
 {
     PyObject* pyCallable = NULL;
     PyObject* pyArgs = NULL;
     PyObject* pyArg;
-    PyObject* pyReturnValue = Py_None;
+    PyObject* pyReturnValue = NULL;
     const char* nameChars;
     jint i;
     jobject jArg;
-    jclass jParamClass;
-    JPy_JType* paramType;
-
-    pyReturnValue = NULL;
+    jclass jParamClass = NULL;
+    JPy_JType* explicitParamType = NULL;
+    JPy_JType* jArgParamType;
 
     nameChars = (*jenv)->GetStringUTFChars(jenv, jName, NULL);
     if (nameChars == NULL) {
@@ -2130,8 +2323,6 @@ PyObject* PyLib_CallAndReturnObject(JNIEnv *jenv, PyObject* pyObject, jboolean i
     }
 
     JPy_DIAG_PRINT(JPy_DIAG_F_EXEC, "PyLib_CallAndReturnObject: objId=%p, isMethodCall=%d, name='%s', argCount=%d\n", pyObject, isMethodCall, nameChars, argCount);
-
-    pyArgs = NULL;
 
     // Note: pyCallable is a new reference
     pyCallable = PyObject_GetAttrString(pyObject, nameChars);
@@ -2149,47 +2340,21 @@ PyObject* PyLib_CallAndReturnObject(JNIEnv *jenv, PyObject* pyObject, jboolean i
 
     pyArgs = PyTuple_New(argCount);
     for (i = 0; i < argCount; i++) {
+        // get the implicit java type (the real type of the object)
         jArg = (*jenv)->GetObjectArrayElement(jenv, jArgs, i);
-
         if (jParamClasses != NULL) {
             jParamClass = (*jenv)->GetObjectArrayElement(jenv, jParamClasses, i);
-        } else {
+        }
+        pyArg = PyLib_FromJObjectForTuple(jenv, jArg, jParamClass, nameChars, i);
+        if (jParamClass != NULL) {
+            (*jenv)->DeleteLocalRef(jenv, jParamClass);
             jParamClass = NULL;
         }
-
-        if (jParamClass != NULL) {
-            paramType = JType_GetType(jenv, jParamClass, JNI_FALSE);
-            if (paramType == NULL) {
-                JPy_DIAG_PRINT(JPy_DIAG_F_ALL, "PyLib_CallAndReturnObject: error: callable '%s': argument %d: failed to retrieve type\n", nameChars, i);
-                PyLib_HandlePythonException(jenv);
-                goto error;
-            }
-            pyArg = JPy_FromJObjectWithType(jenv, jArg, paramType);
-
-            // We must keep unchanged the reference counter when calling a Python method
-            // with a complex Python object as parameter. 
-            // Per example:
-            // PyObject dt_X = kycProcessor.getDataFrame(inputColumns.toArray(new String[0]));
-            // for (DataFrameColumn column : values) {
-            //    kycProcessor.addColumn(dt_X, column.getName(), column.getValues());
-            // }
-            if (paramType == JPy_JPyObject && paramType->componentType == NULL) {
-                Py_INCREF(pyArg);
-            } 
-
-            (*jenv)->DeleteLocalRef(jenv, jParamClass);
-        } else {
-            pyArg = JPy_FromJObject(jenv, jArg);
-        }
-
-        (*jenv)->DeleteLocalRef(jenv, jArg);
-
         if (pyArg == NULL) {
             JPy_DIAG_PRINT(JPy_DIAG_F_ALL, "PyLib_CallAndReturnObject: error: callable '%s': argument %d: failed to convert Java into Python object\n", nameChars, i);
             PyLib_HandlePythonException(jenv);
             goto error;
         }
-
         // pyArg reference stolen here
         PyTuple_SetItem(pyArgs, i, pyArg);
     }
@@ -2216,8 +2381,6 @@ PyObject* PyLib_CallAndReturnObject(JNIEnv *jenv, PyObject* pyObject, jboolean i
         PyLib_HandlePythonException(jenv);
         goto error;
     }
-
-    Py_INCREF(pyReturnValue);
 
 error:
     if (nameChars != NULL) {

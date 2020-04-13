@@ -44,7 +44,7 @@ int JPy_AsJObjectWithClass(JNIEnv* jenv, PyObject* pyObj, jobject* objectRef, jc
     if (classRef != NULL) {
         JPy_JType* valueType;
 
-        valueType = JType_GetType(jenv, classRef, JNI_FALSE);
+        valueType = JType_GetType(jenv, classRef, JNI_FALSE); // TODO: we need to xdecref this
         if (valueType == NULL) {
             return -1;
         }
@@ -64,16 +64,11 @@ int JPy_AsJObjectWithClass(JNIEnv* jenv, PyObject* pyObj, jobject* objectRef, jc
 
 PyObject* JPy_FromJObject(JNIEnv* jenv, jobject objectRef)
 {
-    jclass classRef;
     JPy_JType* type;
-
-    classRef = (*jenv)->GetObjectClass(jenv, objectRef);
-    type = JType_GetType(jenv, classRef, JNI_FALSE);
-    (*jenv)->DeleteLocalRef(jenv, classRef);
+    type = JType_GetTypeForObject(jenv, objectRef, JNI_FALSE);
     if (type == NULL) {
         return NULL;
     }
-
     return JPy_FromJObjectWithType(jenv, objectRef, type);
 }
 

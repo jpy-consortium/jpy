@@ -46,28 +46,32 @@ public class UseCases {
     @Test
     public void modifyPythonSysPath() {
 
-        PyModule builtinsMod = PyModule.getBuiltins();
+        try (
+            final PyModule builtinsMod = PyModule.getBuiltins();
+            final PyModule sysMod = PyModule.importModule("sys");
+            final PyObject pathObj = sysMod.getAttribute("path")) {
 
-        PyModule sysMod = PyModule.importModule("sys");
-        PyObject pathObj = sysMod.getAttribute("path");
+            final PyObject lenObj1 = builtinsMod.call("len", pathObj);
+            pathObj.call("append", "/usr/home/norman/");
+            final PyObject lenObj2 = builtinsMod.call("len", pathObj);
 
-        PyObject lenObj1 = builtinsMod.call("len", pathObj);
-        pathObj.call("append", "/usr/home/norman/");
-        PyObject lenObj2 = builtinsMod.call("len", pathObj);
+            int lenVal1 = lenObj1.getIntValue();
+            int lenVal2 = lenObj2.getIntValue();
+            String[] pathEntries = pathObj.getObjectArrayValue(String.class);
 
-        int lenVal1 = lenObj1.getIntValue();
-        int lenVal2 = lenObj2.getIntValue();
-        String[] pathEntries = pathObj.getObjectArrayValue(String.class);
+            lenObj2.close();
+            lenObj1.close();
 
-        /////////////////////////////////////////////////
+            /////////////////////////////////////////////////
 
-        assertEquals(lenVal1 + 1, lenVal2);
-        assertEquals(pathEntries.length, lenVal2);
-        //for (int i = 0; i < pathEntries.length; i++) {
-        //    System.out.printf("pathEntries[%d] = %s%n", i, pathEntries[i]);
-        //}
+            assertEquals(lenVal1 + 1, lenVal2);
+            assertEquals(pathEntries.length, lenVal2);
+            //for (int i = 0; i < pathEntries.length; i++) {
+            //    System.out.printf("pathEntries[%d] = %s%n", i, pathEntries[i]);
+            //}
 
-        /////////////////////////////////////////////////
+            /////////////////////////////////////////////////
+        }
     }
 
     @Test
@@ -76,18 +80,20 @@ public class UseCases {
         PyLib.startPython();
         PyLib.execScript("paramInt = 123");
         PyLib.execScript("paramStr = 'abc'");
-        PyModule mainModule = PyModule.getMain();
-        PyObject paramIntObj = mainModule.getAttribute("paramInt");
-        PyObject paramStrObj = mainModule.getAttribute("paramStr");
-        int paramIntValue = paramIntObj.getIntValue();
-        String paramStrValue = paramStrObj.getStringValue();
+        try (
+            final PyModule mainModule = PyModule.getMain();
+            final PyObject paramIntObj = mainModule.getAttribute("paramInt");
+            final PyObject paramStrObj = mainModule.getAttribute("paramStr")) {
+            int paramIntValue = paramIntObj.getIntValue();
+            String paramStrValue = paramStrObj.getStringValue();
 
-        /////////////////////////////////////////////////
+            /////////////////////////////////////////////////
 
-        assertEquals(123, paramIntValue);
-        assertEquals("abc", paramStrValue);
+            assertEquals(123, paramIntValue);
+            assertEquals("abc", paramStrValue);
 
-        /////////////////////////////////////////////////
+            /////////////////////////////////////////////////
+        }
     }
 
     @Test
