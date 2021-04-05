@@ -62,6 +62,7 @@ PyObject* JObj_FromType(JNIEnv* jenv, JPy_JType* type, jobject objectRef)
 
         array = (JPy_JArray*) obj;
         array->bufferExportCount = 0;
+        array->buf = NULL;
     }
 
     // we check the type translations dictionary for a callable for this java type name,
@@ -166,8 +167,20 @@ int JObj_init(JPy_JObj* self, PyObject* args, PyObject* kwds)
 void JObj_dealloc(JPy_JObj* self)
 {
     JNIEnv* jenv;
+    JPy_JType* jtype;
 
     JPy_DIAG_PRINT(JPy_DIAG_F_MEM, "JObj_dealloc: releasing instance of %s, self->objectRef=%p\n", Py_TYPE(self)->tp_name, self->objectRef);
+
+    jtype = (JPy_JType *)Py_TYPE(self);
+    if (jtype->componentType != NULL && jtype->componentType->isPrimitive) {
+        JPy_JArray* array;
+        array = (JPy_JArray*) self;
+        assert(array->bufferExportCount == 0);
+        if (array->buf != NULL) {
+            JArray_ReleaseJavaArrayElements(array, array->javaType);
+        }
+  
+    }    
 
     jenv = JPy_GetJNIEnv();
     if (jenv != NULL) {

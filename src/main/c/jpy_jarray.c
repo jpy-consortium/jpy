@@ -71,25 +71,33 @@ int JArray_GetBufferProc(JPy_JArray* self, Py_buffer* view, int flags, char java
 #ifdef JPy_USE_GET_PRIMITIVE_ARRAY_CRITICAL
     buf = (*jenv)->GetPrimitiveArrayCritical(jenv, self->objectRef, &isCopy);
 #else
-    if (javaType == 'Z') {
-        buf = (*jenv)->GetBooleanArrayElements(jenv, self->objectRef, &isCopy);
-    } else if (javaType == 'C') {
-        buf = (*jenv)->GetCharArrayElements(jenv, self->objectRef, &isCopy);
-    } else if (javaType == 'B') {
-        buf = (*jenv)->GetByteArrayElements(jenv, self->objectRef, &isCopy);
-    } else if (javaType == 'S') {
-        buf = (*jenv)->GetShortArrayElements(jenv, self->objectRef, &isCopy);
-    } else if (javaType == 'I') {
-        buf = (*jenv)->GetIntArrayElements(jenv, self->objectRef, &isCopy);
-    } else if (javaType == 'J') {
-        buf = (*jenv)->GetLongArrayElements(jenv, self->objectRef, &isCopy);
-    } else if (javaType == 'F') {
-        buf = (*jenv)->GetFloatArrayElements(jenv, self->objectRef, &isCopy);
-    } else if (javaType == 'D') {
-        buf = (*jenv)->GetDoubleArrayElements(jenv, self->objectRef, &isCopy);
+    if (self->buf == NULL) {
+        if (javaType == 'Z') {
+            buf = (*jenv)->GetBooleanArrayElements(jenv, self->objectRef, &isCopy);
+        } else if (javaType == 'C') {
+            buf = (*jenv)->GetCharArrayElements(jenv, self->objectRef, &isCopy);
+        } else if (javaType == 'B') {
+            buf = (*jenv)->GetByteArrayElements(jenv, self->objectRef, &isCopy);
+        } else if (javaType == 'S') {
+            buf = (*jenv)->GetShortArrayElements(jenv, self->objectRef, &isCopy);
+        } else if (javaType == 'I') {
+            buf = (*jenv)->GetIntArrayElements(jenv, self->objectRef, &isCopy);
+        } else if (javaType == 'J') {
+            buf = (*jenv)->GetLongArrayElements(jenv, self->objectRef, &isCopy);
+        } else if (javaType == 'F') {
+            buf = (*jenv)->GetFloatArrayElements(jenv, self->objectRef, &isCopy);
+        } else if (javaType == 'D') {
+            buf = (*jenv)->GetDoubleArrayElements(jenv, self->objectRef, &isCopy);
+        } else {
+            PyErr_Format(PyExc_RuntimeError, "internal error: illegal Java array type '%c'", javaType);
+            return -1;
+        }
+        self->buf = buf;
+        self->javaType = javaType;
+        self->isCopy = isCopy;
+        self->bufReadonly = (flags & (PyBUF_WRITE | PyBUF_WRITEABLE)) == 0;
     } else {
-        PyErr_Format(PyExc_RuntimeError, "internal error: illegal Java array type '%c'", javaType);
-        return -1;
+        buf = self->buf;
     }
 #endif
     if (buf == NULL) {
@@ -104,6 +112,7 @@ int JArray_GetBufferProc(JPy_JArray* self, Py_buffer* view, int flags, char java
     view->len = itemCount * itemSize;
     view->itemsize = itemSize;
     view->readonly = (flags & (PyBUF_WRITE | PyBUF_WRITEABLE)) == 0;
+    self->bufReadonly &= view->readonly;
     view->ndim = 1;
     view->shape = PyMem_New(Py_ssize_t, 1);
     *view->shape = itemCount;
@@ -179,43 +188,53 @@ int JArray_getbufferproc_double(JPy_JArray* self, Py_buffer* view, int flags)
 
 
 /*
+ *
+ */
+void JArray_ReleaseJavaArrayElements(JPy_JArray* self, char javaType)
+{
+    JNIEnv* jenv = JPy_GetJNIEnv();
+    if (!self->buf) 
+        return;
+    
+    if (jenv != NULL) {
+    #ifdef JPy_USE_GET_PRIMITIVE_ARRAY_CRITICAL
+        (*jenv)->ReleasePrimitiveArrayCritical(jenv, self->objectRef, view->buf, view->readonly ? JNI_ABORT : 0);
+    #else
+        if (javaType == 'Z') {
+            (*jenv)->ReleaseBooleanArrayElements(jenv, self->objectRef, (jboolean*) self->buf, self->bufReadonly ? JNI_ABORT : 0);
+        } else if (javaType == 'C') {
+            (*jenv)->ReleaseCharArrayElements(jenv, self->objectRef, (jchar*) self->buf, self->bufReadonly ? JNI_ABORT : 0);
+        } else if (javaType == 'B') {
+            (*jenv)->ReleaseByteArrayElements(jenv, self->objectRef, (jbyte*) self->buf, self->bufReadonly ? JNI_ABORT : 0);
+        } else if (javaType == 'S') {
+            (*jenv)->ReleaseShortArrayElements(jenv, self->objectRef, (jshort*) self->buf, self->bufReadonly ? JNI_ABORT : 0);
+        } else if (javaType == 'I') {
+            (*jenv)->ReleaseIntArrayElements(jenv, self->objectRef, (jint*) self->buf, self->bufReadonly ? JNI_ABORT : 0);
+        } else if (javaType == 'J') {
+            (*jenv)->ReleaseLongArrayElements(jenv, self->objectRef, (jlong*) self->buf, self->bufReadonly ? JNI_ABORT : 0);
+        } else if (javaType == 'F') {
+            (*jenv)->ReleaseFloatArrayElements(jenv, self->objectRef, (jfloat*) self->buf, self->bufReadonly ? JNI_ABORT : 0);
+        } else if (javaType == 'D') {
+            (*jenv)->ReleaseDoubleArrayElements(jenv, self->objectRef, (jdouble*) self->buf, self->bufReadonly ? JNI_ABORT : 0);
+        }
+    #endif
+    }
+
+} 
+
+/*
  * Implements the releasebuffer() method the buffer protocol for JPy_JArray objects
  */
 void JArray_ReleaseBufferProc(JPy_JArray* self, Py_buffer* view, char javaType)
 {
+
     // Step 1
     self->bufferExportCount--;
 
     JPy_DIAG_PRINT(JPy_DIAG_F_MEM, "JArray_ReleaseBufferProc: buf=%p, bufferExportCount=%d\n", view->buf, self->bufferExportCount);
 
     // Step 2
-    if (view->buf != NULL) {
-        JNIEnv* jenv = JPy_GetJNIEnv();
-        if (jenv != NULL) {
-#ifdef JPy_USE_GET_PRIMITIVE_ARRAY_CRITICAL
-           (*jenv)->ReleasePrimitiveArrayCritical(jenv, self->objectRef, view->buf, view->readonly ? JNI_ABORT : 0);
-#else
-            if (javaType == 'Z') {
-                (*jenv)->ReleaseBooleanArrayElements(jenv, self->objectRef, (jboolean*) view->buf, view->readonly ? JNI_ABORT : 0);
-            } else if (javaType == 'C') {
-                (*jenv)->ReleaseCharArrayElements(jenv, self->objectRef, (jchar*) view->buf, view->readonly ? JNI_ABORT : 0);
-            } else if (javaType == 'B') {
-                (*jenv)->ReleaseByteArrayElements(jenv, self->objectRef, (jbyte*) view->buf, view->readonly ? JNI_ABORT : 0);
-            } else if (javaType == 'S') {
-                (*jenv)->ReleaseShortArrayElements(jenv, self->objectRef, (jshort*) view->buf, view->readonly ? JNI_ABORT : 0);
-            } else if (javaType == 'I') {
-                (*jenv)->ReleaseIntArrayElements(jenv, self->objectRef, (jint*) view->buf, view->readonly ? JNI_ABORT : 0);
-            } else if (javaType == 'J') {
-                (*jenv)->ReleaseLongArrayElements(jenv, self->objectRef, (jlong*) view->buf, view->readonly ? JNI_ABORT : 0);
-            } else if (javaType == 'F') {
-                (*jenv)->ReleaseFloatArrayElements(jenv, self->objectRef, (jfloat*) view->buf, view->readonly ? JNI_ABORT : 0);
-            } else if (javaType == 'D') {
-                (*jenv)->ReleaseDoubleArrayElements(jenv, self->objectRef, (jdouble*) view->buf, view->readonly ? JNI_ABORT : 0);
-            }
-#endif
-        }
-        view->buf = NULL;
-    }
+    // defer the release of Java buffer to dealloc
 
     // Note: this function is *not* responsible for PyDECREF of view->obj
     // https://docs.python.org/3/c-api/typeobj.html#c.PyBufferProcs.bf_releasebuffer

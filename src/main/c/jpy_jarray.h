@@ -35,6 +35,10 @@ typedef struct JPy_JArray
     PyObject_HEAD
     jobject objectRef;
     jint bufferExportCount;
+    void *buf;
+    char javaType;
+    jint bufReadonly;
+    jint isCopy;
 }
 JPy_JArray;
 
@@ -46,6 +50,8 @@ extern PyBufferProcs JArray_as_buffer_int;
 extern PyBufferProcs JArray_as_buffer_long;
 extern PyBufferProcs JArray_as_buffer_float;
 extern PyBufferProcs JArray_as_buffer_double;
+
+extern void JArray_ReleaseJavaArrayElements(JPy_JArray* self, char javaType);
 
 #ifdef __cplusplus
 }  /* extern "C" */
