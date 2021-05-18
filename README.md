@@ -2,12 +2,6 @@
 [![Documentation Status](https://readthedocs.org/projects/jpy/badge/?version=latest)](http://jpy.readthedocs.org/en/latest/?badge=latest)
 
 
-| :exclamation:  Note on jpy development status |
-|-----------------------------------------------|
-
-Currently, jpy is **not being actively developed**. New issues and pull
-requests are welcome, but we cannot guarantee to respond to them in a
-timely manner.
 
 jpy - a Python-Java Bridge
 ==========================
