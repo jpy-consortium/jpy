@@ -114,3 +114,15 @@ macOS (≥10.9). Only 64-bit wheels are built.
 The repository also contains an outdated configuration for [automated Travis
 builds](https://travis-ci.org/github/bcdev/jpy), but this configuration is
 currently unmaintained and broken.
+
+Code Of Conduct
+---------------
+
+This project has adopted the [Contributor Covenant Code of Conduct](https://www.contributor-covenant.org/version/2/0/code_of_conduct/). 
+For more information see the [Code of Conduct](CODE_OF_CONDUCT.md) or contact [opencode@deephaven.io](mailto:opencode@deephaven.io)
+with any additional questions or comments.
+
+Contributing
+------------
+
+For instructions on contributing, see [CONTRIBUTING.md](CONTRIBUTING.md).
