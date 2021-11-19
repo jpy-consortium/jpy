@@ -701,7 +701,7 @@ int JType_InitSlots(JPy_JType* type)
 
     typeObj = (PyTypeObject*) type;
 
-    Py_REFCNT(typeObj) = 1;
+    Py_SET_REFCNT(typeObj, 1);
     Py_TYPE(typeObj) = NULL;
     Py_SIZE(typeObj) = 0;
     // todo: The following lines are actually correct, but setting Py_TYPE(type) = &JType_Type results in an interpreter crash. Why?
