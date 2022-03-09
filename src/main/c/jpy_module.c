@@ -515,14 +515,11 @@ PyObject* JPy_destroy_jvm(PyObject* self, PyObject* args)
     return Py_BuildValue("");
 }
 
-PyObject* JPy_get_type(PyObject* self, PyObject* args, PyObject* kwds)
+PyObject* JPy_get_type_internal(JNIEnv* jenv, PyObject* self, PyObject* args, PyObject* kwds)
 {
-    JNIEnv* jenv;
     static char* keywords[] = {"name", "resolve", NULL};
     const char* className;
     int resolve;
-
-    JPy_GET_JNI_ENV_OR_RETURN(jenv, NULL)
 
     resolve = 1; // True
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "s|i:get_type", keywords, &className, &resolve)) {
@@ -532,15 +529,17 @@ PyObject* JPy_get_type(PyObject* self, PyObject* args, PyObject* kwds)
     return (PyObject*) JType_GetTypeForName(jenv, className, (jboolean) (resolve != 0 ? JNI_TRUE : JNI_FALSE));
 }
 
-PyObject* JPy_cast(PyObject* self, PyObject* args)
+PyObject* JPy_get_type(PyObject* self, PyObject* args, PyObject* kwds)
 {
-    JNIEnv* jenv;
+    JPy_FRAME(PyObject*, NULL, JPy_get_type_internal(jenv, self, args, kwds), 16)
+}
+
+PyObject* JPy_cast_internal(JNIEnv* jenv, PyObject* self, PyObject* args)
+{
     PyObject* obj;
     PyObject* objType;
     JPy_JType* type;
     jboolean inst;
-
-    JPy_GET_JNI_ENV_OR_RETURN(jenv, NULL)
 
     if (!PyArg_ParseTuple(args, "OO:cast", &obj, &objType)) {
         return NULL;
@@ -576,15 +575,17 @@ PyObject* JPy_cast(PyObject* self, PyObject* args)
     }
 }
 
-PyObject* JPy_array(PyObject* self, PyObject* args)
+PyObject* JPy_cast(PyObject* self, PyObject* args)
 {
-    JNIEnv* jenv;
+    JPy_FRAME(PyObject*, NULL, JPy_cast_internal(jenv, self, args), 16)
+}
+
+PyObject* JPy_array_internal(JNIEnv* jenv, PyObject* self, PyObject* args)
+{
     JPy_JType* componentType;
     jarray arrayRef;
     PyObject* objType;
     PyObject* objInit;
-
-    JPy_GET_JNI_ENV_OR_RETURN(jenv, NULL)
 
     if (!PyArg_ParseTuple(args, "OO:array", &objType, &objInit)) {
         return NULL;
@@ -649,6 +650,10 @@ PyObject* JPy_array(PyObject* self, PyObject* args)
     }
 }
 
+PyObject* JPy_array(PyObject* self, PyObject* args)
+{
+    JPy_FRAME(PyObject*, NULL, JPy_array_internal(jenv, self, args), 16)
+}
 
 JPy_JType* JPy_GetNonObjectJType(JNIEnv* jenv, jclass classRef)
 {

@@ -4,7 +4,7 @@ import sys
 import jpyutil
 
 
-jpyutil.init_jvm(jvm_maxmem='512M', jvm_classpath=['target/test-classes'])
+jpyutil.init_jvm(jvm_maxmem='32M', jvm_classpath=['target/test-classes'])
 import jpy
 
 
@@ -200,6 +200,22 @@ class TestJavaArrays(unittest.TestCase):
     def test_buffer_double(self):
         self.do_test_buffer_protocol_float('double', 8, [0.12345678, 0.0, -100.123456, 54.3], 8)
 
+    def test_large_array_by_size_alloc(self):
+        # 100 * 1MB
+        for _ in range(100):
+            java_array = jpy.array('byte', 1000000) # 1MB
+
+    def test_large_array_by_sequence_alloc(self):
+        sequence = list(range(250000)) # 1MB
+        # 100 * 1MB
+        for _ in range(100):
+            java_array = jpy.array('int', sequence)
+
+    def test_java_constructed_array_alloc(self):
+        fixture = jpy.get_type('org.jpy.fixtures.JavaArrayTestFixture')
+        # 100 * 1MB
+        for _ in range(100):
+            java_array = fixture.createByteArray(1000000) # 1MB
 
 if __name__ == '__main__':
     print('\nRunning ' + __file__)

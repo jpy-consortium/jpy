@@ -86,12 +86,8 @@ PyObject* JObj_FromType(JNIEnv* jenv, JPy_JType* type, jobject objectRef)
     return (PyObject *)obj;
 }
 
-/**
- * The JObj type's tp_init slot. Called when the type is used to create new instances (constructor).
- */
-int JObj_init(JPy_JObj* self, PyObject* args, PyObject* kwds)
+int JObj_init_internal(JNIEnv* jenv, JPy_JObj* self, PyObject* args, PyObject* kwds)
 {
-    JNIEnv* jenv;
     PyTypeObject* type;
     JPy_JType* jType;
     PyObject* constructor;
@@ -100,8 +96,6 @@ int JObj_init(JPy_JObj* self, PyObject* args, PyObject* kwds)
     jvalue* jArgs;
     JPy_ArgDisposer* jDisposers;
     int isVarArgsArray;
-
-    JPy_GET_JNI_ENV_OR_RETURN(jenv, -1)
 
     type = ((PyObject*) self)->ob_type;
 
@@ -161,6 +155,14 @@ int JObj_init(JPy_JObj* self, PyObject* args, PyObject* kwds)
     JPy_DIAG_PRINT(JPy_DIAG_F_MEM, "JObj_init: self->objectRef=%p\n", self->objectRef);
 
     return 0;
+}
+
+/**
+ * The JObj type's tp_init slot. Called when the type is used to create new instances (constructor).
+ */
+int JObj_init(JPy_JObj* self, PyObject* args, PyObject* kwds)
+{
+    JPy_FRAME(int, -1, JObj_init_internal(jenv, self, args, kwds), 16)
 }
 
 /**

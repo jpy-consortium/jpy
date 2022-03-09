@@ -93,6 +93,19 @@ void JPy_HandleJavaException(JNIEnv* jenv);
         return VALUE; \
     }
 
+#define JPy_FRAME(TYPE, ON_ERROR, FUNCTION, FRAME_SIZE) \
+  JNIEnv* jenv; \
+  TYPE result; \
+  if ((jenv = JPy_GetJNIEnv()) == NULL) { \
+    return ON_ERROR; \
+  } \
+  if ((*jenv)->PushLocalFrame(jenv, FRAME_SIZE) < 0) { \
+    JPy_HandleJavaException(jenv); \
+    return ON_ERROR; \
+  } \
+  result = FUNCTION; \
+  (*jenv)->PopLocalFrame(jenv, NULL); \
+  return result;
 
 struct JPy_JType;
 
