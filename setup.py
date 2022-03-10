@@ -93,6 +93,7 @@ python_java_jpy_tests = [
     os.path.join(src_test_py_dir, 'jpy_gettype_test.py'),
     os.path.join(src_test_py_dir, 'jpy_reentrant_test.py'),
     os.path.join(src_test_py_dir, 'jpy_java_embeddable_test.py'),
+    os.path.join(src_test_py_dir, 'jpy_obj_test.py'),
 ]
 
 # e.g. jdk_home_dir = '/home/marta/jdk1.7.0_15'

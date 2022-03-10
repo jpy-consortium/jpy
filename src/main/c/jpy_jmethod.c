@@ -913,16 +913,10 @@ void JOverloadedMethod_dealloc(JPy_JOverloadedMethod* self)
     Py_TYPE(self)->tp_free((PyObject*) self);
 }
 
-/**
- * The 'JOverloadedMethod' type's tp_call slot. Makes instances of the 'JOverloadedMethod' type callable.
- */
-PyObject* JOverloadedMethod_call(JPy_JOverloadedMethod* self, PyObject *args, PyObject *kw)
+PyObject* JOverloadedMethod_call_internal(JNIEnv* jenv, JPy_JOverloadedMethod* self, PyObject *args, PyObject *kw)
 {
-    JNIEnv* jenv;
     JPy_JMethod* method;
     int isVarArgsArray;
-
-    JPy_GET_JNI_ENV_OR_RETURN(jenv, NULL)
 
     method = JOverloadedMethod_FindMethod(jenv, self, args, JNI_TRUE, &isVarArgsArray);
     if (method == NULL) {
@@ -930,6 +924,14 @@ PyObject* JOverloadedMethod_call(JPy_JOverloadedMethod* self, PyObject *args, Py
     }
 
     return JMethod_InvokeMethod(jenv, method, args, isVarArgsArray);
+}
+
+/**
+ * The 'JOverloadedMethod' type's tp_call slot. Makes instances of the 'JOverloadedMethod' type callable.
+ */
+PyObject* JOverloadedMethod_call(JPy_JOverloadedMethod* self, PyObject *args, PyObject *kw)
+{
+    JPy_FRAME(PyObject*, NULL, JOverloadedMethod_call_internal(jenv, self, args, kw), 16)
 }
 
 /**
