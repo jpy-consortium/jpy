@@ -78,8 +78,8 @@ python_java_rt_tests = [
     # os.path.join(src_test_py_dir, 'jpy_perf_test.py'),
 ]
 
-# Python unit tests that require jpy test fixture classes to be accessible
-# via JRE system property '-Djava.class.path=target/test-classes'
+# Python unit tests that require target/test-classes or target/classes
+# available on the classpath
 python_java_jpy_tests = [
     os.path.join(src_test_py_dir, 'jpy_array_test.py'),
     os.path.join(src_test_py_dir, 'jpy_field_test.py'),
@@ -91,6 +91,8 @@ python_java_jpy_tests = [
     os.path.join(src_test_py_dir, 'jpy_modretparam_test.py'),
     os.path.join(src_test_py_dir, 'jpy_translation_test.py'),
     os.path.join(src_test_py_dir, 'jpy_gettype_test.py'),
+    os.path.join(src_test_py_dir, 'jpy_reentrant_test.py'),
+    os.path.join(src_test_py_dir, 'jpy_java_embeddable_test.py'),
 ]
 
 # e.g. jdk_home_dir = '/home/marta/jdk1.7.0_15'
