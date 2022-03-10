@@ -1,4 +1,4 @@
-# This file was modified by Illumon.
+# This file was modified by Deephaven Data Labs.
 import unittest
 
 import jpyutil

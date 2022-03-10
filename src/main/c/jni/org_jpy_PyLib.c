@@ -13,12 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * This file was modified by Illumon.
+ * This file was modified by Deephaven Data Labs.
  *
  */
 
 #include <jni.h>
 #include <Python.h>
+#include "frameobject.h"
 
 #include "jpy_module.h"
 #include "jpy_diag.h"
@@ -43,6 +44,8 @@ void PyLib_RedirectStdOut(void);
 int copyPythonDictToJavaMap(JNIEnv *jenv, PyObject *pyDict, jobject jMap);
 
 static PyThreadState *_save = NULL;
+
+static int python_traceback_report(PyObject *tb, char **buf, int* bufLen);
 
 //#define JPy_JNI_DEBUG 1
 #define JPy_JNI_DEBUG 0
@@ -2442,7 +2445,7 @@ void PyLib_HandlePythonException(JNIEnv* jenv)
 {
     PyObject* pyType = NULL;
     PyObject* pyValue = NULL;
-    PyObject* pyTraceback = NULL;
+    PyTracebackObject* pyTraceback = NULL;
 
     PyObject* pyTypeUtf8 = NULL;
     PyObject* pyValueUtf8 = NULL;
@@ -2478,6 +2481,10 @@ void PyLib_HandlePythonException(JNIEnv* jenv)
         jExceptionClass = JPy_RuntimeException_JClass;
     }
 
+    PyTracebackObject* topPyTraceback = pyTraceback;
+    while (pyTraceback && pyTraceback->tb_next)
+        pyTraceback = pyTraceback->tb_next;
+
     if (pyTraceback != NULL) {
         PyObject* pyFrame = NULL;
         PyObject* pyCode = NULL;
@@ -2497,15 +2504,17 @@ void PyLib_HandlePythonException(JNIEnv* jenv)
     //printf("U2: typeChars=%s, valueChars=%s, linenoChars=%s, filenameChars=%s, namespaceChars=%s\n",
     //       typeChars, valueChars, linenoChars, filenameChars, namespaceChars);
 
+    pyTraceback = topPyTraceback;
+
     if (typeChars != NULL || valueChars != NULL
         || linenoChars != NULL || filenameChars != NULL || namespaceChars != NULL) {
         char* javaMessage;
-        javaMessage = PyMem_New(char,
-                                (typeChars != NULL ? strlen(typeChars) : JPY_NOT_AVAILABLE_MSG_LEN)
+        int bufLen = (typeChars != NULL ? strlen(typeChars) : JPY_NOT_AVAILABLE_MSG_LEN)
                                + (valueChars != NULL ? strlen(valueChars) : JPY_NOT_AVAILABLE_MSG_LEN)
                                + (linenoChars != NULL ? strlen(linenoChars) : JPY_NOT_AVAILABLE_MSG_LEN)
                                + (filenameChars != NULL ? strlen(filenameChars) : JPY_NOT_AVAILABLE_MSG_LEN)
-                               + (namespaceChars != NULL ? strlen(namespaceChars) : JPY_NOT_AVAILABLE_MSG_LEN) + 80);
+                               + (namespaceChars != NULL ? strlen(namespaceChars) : JPY_NOT_AVAILABLE_MSG_LEN) + 1024;
+        javaMessage = PyMem_New(char, bufLen);
         if (javaMessage != NULL) {
             sprintf(javaMessage,
                     JPY_ERR_BASE_MSG ":\n"
@@ -2519,7 +2528,12 @@ void PyLib_HandlePythonException(JNIEnv* jenv)
                     linenoChars != NULL ? linenoChars : JPY_NOT_AVAILABLE_MSG,
                     namespaceChars != NULL ? namespaceChars : JPY_NOT_AVAILABLE_MSG,
                     filenameChars != NULL ? filenameChars : JPY_NOT_AVAILABLE_MSG);
-            (*jenv)->ThrowNew(jenv, jExceptionClass, javaMessage);
+            int err = python_traceback_report(pyTraceback, &javaMessage, &bufLen);
+            if (err != 0) {
+                (*jenv)->ThrowNew(jenv, jExceptionClass, JPY_INFO_ALLOC_FAILED_MSG);
+            } else {
+                (*jenv)->ThrowNew(jenv, jExceptionClass, javaMessage);
+            }
             PyMem_Del(javaMessage);
         } else {
             (*jenv)->ThrowNew(jenv, jExceptionClass, JPY_INFO_ALLOC_FAILED_MSG);
@@ -2638,4 +2652,132 @@ void PyLib_RedirectStdOut(void)
 #endif
     PySys_SetObject("stdout", module);
     PySys_SetObject("stderr", module);
+}
+
+
+static const int PYLIB_RECURSIVE_CUTOFF = 3;
+#define PyLib_TraceBack_LIMIT 1024 
+
+static PyObject *format_displayline(PyObject *filename, int lineno, PyObject *name)
+{
+    PyObject *line;
+    PyObject *pyObjUtf8 = NULL;
+
+    if (filename == NULL || name == NULL)
+        return NULL;
+
+    line = PyUnicode_FromFormat("  File \"%U\", line %d, in %U\n",
+                                filename, lineno, name);
+    if (line == NULL) {
+        return NULL;
+    }
+
+    pyObjUtf8 = PyUnicode_AsEncodedString(line, "utf-8", "replace");
+    Py_DECREF(line);
+    return pyObjUtf8;
+}
+
+static PyObject *format_line_repeated(long cnt)
+{
+    cnt -= PYLIB_RECURSIVE_CUTOFF;
+    PyObject *line = PyUnicode_FromFormat(
+        (cnt > 1)
+          ? "  [Previous line repeated %ld more times]\n"
+          : "  [Previous line repeated %ld more time]\n",
+        cnt);
+    if (line == NULL) {
+        return NULL;
+    }
+    PyObject* pyObjUtf8 = PyUnicode_AsEncodedString(line, "utf-8", "replace");
+    Py_DECREF(line);
+    return pyObjUtf8;
+}
+
+static int append_to_java_message(PyObject * pyObjUtf8, char **buf, int *bufLen ) {
+    if (pyObjUtf8 == NULL)
+        return 0;
+
+    char *msg = PyBytes_AsString(pyObjUtf8);
+    int msgLen = strlen(msg);
+
+    if (strlen(*buf) + msgLen + 1 >= *bufLen) {
+        char *newBuf = PyMem_New(char, *bufLen + 64 * msgLen);
+        if (newBuf == NULL) {
+            Py_DECREF(pyObjUtf8);
+            return -1;
+        }
+
+        newBuf[0]='\0';
+        strcat(newBuf, *buf);
+        PyMem_Del(*buf);
+        *buf = newBuf;
+        *bufLen = *bufLen + 64 * msgLen;
+    }
+
+    strcat(*buf, msg);
+    Py_DECREF(pyObjUtf8);
+    return 0;
+}
+
+static int format_python_traceback(PyTracebackObject *tb, char **buf, int *bufLen)
+{
+    int err = 0;
+    long limit = PyLib_TraceBack_LIMIT;
+    PyObject *pyObjUtf8 = NULL;
+    Py_ssize_t depth = 0;
+    PyObject *last_file = NULL;
+    int last_line = -1;
+    PyObject *last_name = NULL;
+    long cnt = 0;
+    PyTracebackObject *tb1 = tb;
+
+    while (tb1 != NULL) {
+        depth++;
+        tb1 = tb1->tb_next;
+    }
+    while (tb != NULL && depth > limit) {
+        depth--;
+        tb = tb->tb_next;
+    }
+    while (tb != NULL && err == 0) {
+        if (last_file == NULL ||
+            tb->tb_frame->f_code->co_filename != last_file ||
+            last_line == -1 || tb->tb_lineno != last_line ||
+            last_name == NULL || tb->tb_frame->f_code->co_name != last_name) {
+            if (cnt >  PYLIB_RECURSIVE_CUTOFF) {
+                pyObjUtf8 = format_line_repeated(cnt);
+                err = append_to_java_message(pyObjUtf8, buf, bufLen);
+                if (err != 0) 
+                        return err;
+            }
+            last_file = tb->tb_frame->f_code->co_filename;
+            last_line = tb->tb_lineno;
+            last_name = tb->tb_frame->f_code->co_name;
+            cnt = 0;
+        }
+        cnt++;
+        if (err == 0 && cnt <= PYLIB_RECURSIVE_CUTOFF) {
+            pyObjUtf8 = format_displayline( 
+                                 tb->tb_frame->f_code->co_filename,
+                                 tb->tb_lineno,
+                                 tb->tb_frame->f_code->co_name);
+            err = append_to_java_message(pyObjUtf8, buf, bufLen);
+            if (err != 0) 
+                return err;
+        }
+        tb = tb->tb_next;
+    }
+    if (err == 0 && cnt > PYLIB_RECURSIVE_CUTOFF) {
+        PyObject *pyObjUtf8 = format_line_repeated(cnt);
+        err = append_to_java_message(pyObjUtf8, buf, bufLen);
+    }
+    return err;
+}
+
+static int python_traceback_report(PyObject *tb, char **buf, int* bufLen)
+{
+    /* buf should be big enough for the message */
+    strcat(*buf, "\nTraceback (most recent call last):\n");
+
+    return format_python_traceback(tb, buf, bufLen);
 }
