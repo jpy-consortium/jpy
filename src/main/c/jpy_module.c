@@ -673,6 +673,7 @@ JPy_JType* JPy_GetNonObjectJType(JNIEnv* jenv, jclass classRef)
     }
 
     type = JType_GetType(jenv, primClassRef, JNI_FALSE);
+    (*jenv)->DeleteLocalRef(jenv, primClassRef);
     if (type == NULL) {
         return NULL;
     }
@@ -695,7 +696,7 @@ jclass JPy_GetClass(JNIEnv* jenv, const char* name)
     }
 
     globalClassRef = (*jenv)->NewGlobalRef(jenv, localClassRef);
-    //(*jenv)->DeleteLocalRef(jenv, localClassRef);
+    (*jenv)->DeleteLocalRef(jenv, localClassRef);
     if (globalClassRef == NULL) {
         PyErr_NoMemory();
         return NULL;

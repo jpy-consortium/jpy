@@ -124,7 +124,9 @@ JPy_JType* JType_GetTypeForName(JNIEnv* jenv, const char* typeName, jboolean res
         return NULL;
     }
 
-    return JType_GetType(jenv, classRef, resolve);
+    JPy_JType *result = JType_GetType(jenv, classRef, resolve);
+    (*jenv)->DeleteLocalRef(jenv, classRef);
+    return result;
 }
 
 /**
@@ -269,7 +271,21 @@ JPy_JType* JType_New(JNIEnv* jenv, jclass classRef, jboolean resolve)
     }
 
     type->isPrimitive = (*jenv)->CallBooleanMethod(jenv, type->classRef, JPy_Class_IsPrimitive_MID);
+    if ((*jenv)->ExceptionCheck(jenv)) {
+        (*jenv)->ExceptionClear(jenv);
+        PyMem_Del(type->javaName);
+        type->javaName = NULL;
+        metaType->tp_free(type);
+        return NULL;
+    }
     type->isInterface = (*jenv)->CallBooleanMethod(jenv, type->classRef, JPy_Class_IsInterface_MID);
+    if ((*jenv)->ExceptionCheck(jenv)) {
+        (*jenv)->ExceptionClear(jenv);
+        PyMem_Del(type->javaName);
+        type->javaName = NULL;
+        metaType->tp_free(type);
+        return NULL;
+    }
 
     JPy_DIAG_PRINT(JPy_DIAG_F_TYPE, "JType_New: javaName=\"%s\", resolve=%d, type=%p\n", type->javaName, resolve, type);
 
@@ -935,8 +951,10 @@ int JType_InitComponentType(JNIEnv* jenv, JPy_JType* type, jboolean resolve)
     jclass componentTypeRef;
 
     componentTypeRef = (jclass) (*jenv)->CallObjectMethod(jenv, type->classRef, JPy_Class_GetComponentType_MID);
+    JPy_ON_JAVA_EXCEPTION_RETURN(-1);
     if (componentTypeRef != NULL) {
         type->componentType = JType_GetType(jenv, componentTypeRef, resolve);
+        (*jenv)->DeleteLocalRef(jenv, componentTypeRef);
         if (type->componentType == NULL) {
             return -1;
         }
@@ -989,6 +1007,7 @@ int JType_ProcessClassConstructors(JNIEnv* jenv, JPy_JType* type)
     classRef = type->classRef;
     methodKey = Py_BuildValue("s", JPy_JTYPE_ATTR_NAME_JINIT);
     constructors = (*jenv)->CallObjectMethod(jenv, classRef, JPy_Class_GetDeclaredConstructors_MID);
+    JPy_ON_JAVA_EXCEPTION_RETURN(-1);
     constrCount = (*jenv)->GetArrayLength(jenv, constructors);
 
     JPy_DIAG_PRINT(JPy_DIAG_F_TYPE, "JType_ProcessClassConstructors: constrCount=%d\n", constrCount);
@@ -996,10 +1015,12 @@ int JType_ProcessClassConstructors(JNIEnv* jenv, JPy_JType* type)
     for (i = 0; i < constrCount; i++) {
         constructor = (*jenv)->GetObjectArrayElement(jenv, constructors, i);
         modifiers = (*jenv)->CallIntMethod(jenv, constructor, JPy_Constructor_GetModifiers_MID);
+        JPy_ON_JAVA_EXCEPTION_RETURN(-1);
         isPublic = (modifiers & 0x0001) != 0;
         isVarArg = (modifiers & 0x0080) != 0;
         if (isPublic) {
             parameterTypes = (*jenv)->CallObjectMethod(jenv, constructor, JPy_Constructor_GetParameterTypes_MID);
+            JPy_ON_JAVA_EXCEPTION_RETURN(-1);
             mid = (*jenv)->FromReflectedMethod(jenv, constructor);
             JType_ProcessMethod(jenv, type, methodKey, JPy_JTYPE_ATTR_NAME_JINIT, NULL, parameterTypes, 1, isVarArg, mid);
             (*jenv)->DeleteLocalRef(jenv, parameterTypes);
@@ -1036,6 +1057,7 @@ int JType_ProcessClassFields(JNIEnv* jenv, JPy_JType* type)
     } else {
         fields = (*jenv)->CallObjectMethod(jenv, classRef, JPy_Class_GetDeclaredFields_MID);
     }
+    JPy_ON_JAVA_EXCEPTION_RETURN(-1);
     fieldCount = (*jenv)->GetArrayLength(jenv, fields);
 
     JPy_DIAG_PRINT(JPy_DIAG_F_TYPE, "JType_ProcessClassFields: fieldCount=%d\n", fieldCount);
@@ -1043,13 +1065,16 @@ int JType_ProcessClassFields(JNIEnv* jenv, JPy_JType* type)
     for (i = 0; i < fieldCount; i++) {
         field = (*jenv)->GetObjectArrayElement(jenv, fields, i);
         modifiers = (*jenv)->CallIntMethod(jenv, field, JPy_Field_GetModifiers_MID);
+        JPy_ON_JAVA_EXCEPTION_RETURN(-1);
         // see http://docs.oracle.com/javase/6/docs/api/constant-values.html#java.lang.reflect.Modifier.PUBLIC
         isPublic = (modifiers & 0x0001) != 0;
         isStatic = (modifiers & 0x0008) != 0;
         isFinal  = (modifiers & 0x0010) != 0;
         if (isPublic) {
             fieldNameStr = (*jenv)->CallObjectMethod(jenv, field, JPy_Field_GetName_MID);
+            JPy_ON_JAVA_EXCEPTION_RETURN(-1);
             fieldTypeObj = (*jenv)->CallObjectMethod(jenv, field, JPy_Field_GetType_MID);
+            JPy_ON_JAVA_EXCEPTION_RETURN(-1);
             fid = (*jenv)->FromReflectedField(jenv, field);
 
             fieldName = (*jenv)->GetStringUTFChars(jenv, fieldNameStr, NULL);
@@ -1066,8 +1091,7 @@ int JType_ProcessClassFields(JNIEnv* jenv, JPy_JType* type)
     return 0;
 }
 
-int JType_ProcessClassMethods(JNIEnv* jenv, JPy_JType* type)
-{
+int JType_ProcessClassMethods(JNIEnv* jenv, JPy_JType* type) {
     jclass classRef;
     jobject methods;
     jobject method;
@@ -1081,20 +1105,24 @@ int JType_ProcessClassMethods(JNIEnv* jenv, JPy_JType* type)
     jboolean isVarArg;
     jboolean isPublic;
     jboolean isBridge;
-    const char* methodName;
+    const char *methodName;
     jmethodID mid;
-    PyObject* methodKey;
+    PyObject *methodKey;
 
     classRef = type->classRef;
 
     methods = (*jenv)->CallObjectMethod(jenv, classRef, JPy_Class_GetMethods_MID);
+    JPy_ON_JAVA_EXCEPTION_RETURN(-1);
     methodCount = (*jenv)->GetArrayLength(jenv, methods);
+    JPy_ON_JAVA_EXCEPTION_RETURN(-1);
 
     JPy_DIAG_PRINT(JPy_DIAG_F_TYPE, "JType_ProcessClassMethods: methodCount=%d\n", methodCount);
 
     for (i = 0; i < methodCount; i++) {
         method = (*jenv)->GetObjectArrayElement(jenv, methods, i);
         modifiers = (*jenv)->CallIntMethod(jenv, method, JPy_Method_GetModifiers_MID);
+        JPy_ON_JAVA_EXCEPTION_RETURN(-1);
+
         // see http://docs.oracle.com/javase/6/docs/api/constant-values.html#java.lang.reflect.Modifier.PUBLIC
         isPublic   = (modifiers & 0x0001) != 0;
         isStatic   = (modifiers & 0x0008) != 0;
@@ -1103,8 +1131,11 @@ int JType_ProcessClassMethods(JNIEnv* jenv, JPy_JType* type)
         // we exclude bridge methods; as covariant return types will result in bridge methods that cause ambiguity
         if (isPublic && !isBridge) {
             methodNameStr = (*jenv)->CallObjectMethod(jenv, method, JPy_Method_GetName_MID);
+            JPy_ON_JAVA_EXCEPTION_RETURN(-1);
             returnType = (*jenv)->CallObjectMethod(jenv, method, JPy_Method_GetReturnType_MID);
+            JPy_ON_JAVA_EXCEPTION_RETURN(-1);
             parameterTypes = (*jenv)->CallObjectMethod(jenv, method, JPy_Method_GetParameterTypes_MID);
+            JPy_ON_JAVA_EXCEPTION_RETURN(-1);
             mid = (*jenv)->FromReflectedMethod(jenv, method);
 
             methodName = (*jenv)->GetStringUTFChars(jenv, methodNameStr, NULL);
@@ -1359,6 +1390,7 @@ JPy_ParamDescriptor* JType_CreateParamDescriptors(JNIEnv* jenv, int paramCount, 
         paramDescriptor = paramDescriptors + i;
 
         type = JType_GetType(jenv, paramClass, JNI_FALSE);
+        (*jenv)->DeleteLocalRef(jenv, paramClass);
         if (type == NULL) {
             return NULL;
         }
@@ -1537,6 +1569,8 @@ int JType_MatchVarArgPyArgAsJObjectParam(JNIEnv* jenv, JPy_ParamDescriptor* para
         }
         minMatch = matchValue < minMatch ? matchValue : minMatch;
     }
+    Py_XDECREF(varArgs);
+
     return minMatch;
 }
 
@@ -1567,6 +1601,8 @@ int JType_MatchVarArgPyArgAsJStringParam(JNIEnv* jenv, JPy_ParamDescriptor* para
         }
         minMatch = matchValue < minMatch ? matchValue : minMatch;
     }
+    Py_XDECREF(varArgs);
+
     return minMatch;
 }
 
@@ -1599,6 +1635,7 @@ int JType_MatchVarArgPyArgAsJBooleanParam(JNIEnv *jenv, JPy_ParamDescriptor *par
         else return 0;
         minMatch = matchValue < minMatch ? matchValue : minMatch;
     }
+    Py_XDECREF(varArgs);
 
     return minMatch;
 }
@@ -1657,6 +1694,7 @@ int JType_MatchVarArgPyArgIntType(const JPy_ParamDescriptor *paramDescriptor, Py
         else return 0;
         minMatch = matchValue < minMatch ? matchValue : minMatch;
     }
+    Py_XDECREF(varArgs);
 
     return minMatch;
 }
@@ -1705,6 +1743,7 @@ int JType_MatchVarArgPyArgAsFPType(const JPy_ParamDescriptor *paramDescriptor, P
         else return 0;
         minMatch = matchValue < minMatch ? matchValue : minMatch;
     }
+    Py_XDECREF(varArgs);
 
     return minMatch;
 }
@@ -1836,6 +1875,8 @@ int JType_ConvertVarArgPyArgToJObjectArg(JNIEnv* jenv, JPy_ParamDescriptor* para
             disposer->DisposeArg = JType_DisposeLocalObjectRefArg;
         }
     }
+
+    Py_XDECREF(pyArg);
 
     return 0;
 }
