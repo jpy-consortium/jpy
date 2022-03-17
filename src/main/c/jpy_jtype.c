@@ -66,6 +66,7 @@ JPy_JType* JType_GetTypeForName(JNIEnv* jenv, const char* typeName, jboolean res
 {
     const char* resourceName;
     jclass classRef;
+    JPy_JType *result;
 
     JPy_JType* javaType = NULL;
     if (strcmp(typeName, "boolean") == 0) {
@@ -124,7 +125,7 @@ JPy_JType* JType_GetTypeForName(JNIEnv* jenv, const char* typeName, jboolean res
         return NULL;
     }
 
-    JPy_JType *result = JType_GetType(jenv, classRef, resolve);
+    result = JType_GetType(jenv, classRef, resolve);
     (*jenv)->DeleteLocalRef(jenv, classRef);
     return result;
 }
@@ -1391,6 +1392,7 @@ JPy_ParamDescriptor* JType_CreateParamDescriptors(JNIEnv* jenv, int paramCount, 
 
         type = JType_GetType(jenv, paramClass, JNI_FALSE);
         (*jenv)->DeleteLocalRef(jenv, paramClass);
+        paramClass = NULL;
         if (type == NULL) {
             return NULL;
         }
@@ -1548,7 +1550,6 @@ int JType_MatchVarArgPyArgAsJObjectParam(JNIEnv* jenv, JPy_ParamDescriptor* para
     Py_ssize_t remaining = (argCount - idx);
 
     JPy_JType *componentType = paramDescriptor->type->componentType;
-    PyObject *varArgs;
     int minMatch = 100;
     int ii;
 
@@ -1560,16 +1561,14 @@ int JType_MatchVarArgPyArgAsJObjectParam(JNIEnv* jenv, JPy_ParamDescriptor* para
         return 10;
     }
 
-    varArgs = PyTuple_GetSlice(pyArg, idx, argCount);
     for (ii = 0; ii < remaining; ii++) {
-        PyObject *unpack = PyTuple_GetItem(varArgs, ii);
+        PyObject *unpack = PyTuple_GetItem(pyArg, idx + ii);
         int matchValue = JType_MatchPyArgAsJObject(jenv, componentType, unpack);
         if (matchValue == 0) {
             return 0;
         }
         minMatch = matchValue < minMatch ? matchValue : minMatch;
     }
-    Py_XDECREF(varArgs);
 
     return minMatch;
 }
@@ -1580,7 +1579,6 @@ int JType_MatchVarArgPyArgAsJStringParam(JNIEnv* jenv, JPy_ParamDescriptor* para
     Py_ssize_t remaining = (argCount - idx);
 
     JPy_JType *componentType = paramDescriptor->type->componentType;
-    PyObject *varArgs;
     int minMatch = 100;
     int ii;
 
@@ -1592,16 +1590,14 @@ int JType_MatchVarArgPyArgAsJStringParam(JNIEnv* jenv, JPy_ParamDescriptor* para
         return 10;
     }
 
-    varArgs = PyTuple_GetSlice(pyArg, idx, argCount);
     for (ii = 0; ii < remaining; ii++) {
-        PyObject *unpack = PyTuple_GetItem(varArgs, ii);
+        PyObject *unpack = PyTuple_GetItem(pyArg, idx + ii);
         int matchValue = JType_MatchPyArgAsJStringParam(jenv, paramDescriptor, unpack);
         if (matchValue == 0) {
             return 0;
         }
         minMatch = matchValue < minMatch ? matchValue : minMatch;
     }
-    Py_XDECREF(varArgs);
 
     return minMatch;
 }
@@ -1612,7 +1608,6 @@ int JType_MatchVarArgPyArgAsJBooleanParam(JNIEnv *jenv, JPy_ParamDescriptor *par
     Py_ssize_t remaining = (argCount - idx);
 
     JPy_JType *componentType = paramDescriptor->type->componentType;
-    PyObject *varArgs;
     int minMatch = 100;
     int ii;
 
@@ -1625,9 +1620,8 @@ int JType_MatchVarArgPyArgAsJBooleanParam(JNIEnv *jenv, JPy_ParamDescriptor *par
         return 10;
     }
 
-    varArgs = PyTuple_GetSlice(pyArg, idx, argCount);
     for (ii = 0; ii < remaining; ii++) {
-        PyObject *unpack = PyTuple_GetItem(varArgs, ii);
+        PyObject *unpack = PyTuple_GetItem(pyArg, idx + ii);
 
         int matchValue;
         if (PyBool_Check(unpack)) matchValue = 100;
@@ -1635,7 +1629,6 @@ int JType_MatchVarArgPyArgAsJBooleanParam(JNIEnv *jenv, JPy_ParamDescriptor *par
         else return 0;
         minMatch = matchValue < minMatch ? matchValue : minMatch;
     }
-    Py_XDECREF(varArgs);
 
     return minMatch;
 }
@@ -1671,7 +1664,6 @@ int JType_MatchVarArgPyArgIntType(const JPy_ParamDescriptor *paramDescriptor, Py
     Py_ssize_t remaining = (argCount - idx);
 
     JPy_JType *componentType = paramDescriptor->type->componentType;
-    PyObject *varArgs;
     int minMatch = 100;
     int ii;
 
@@ -1684,9 +1676,8 @@ int JType_MatchVarArgPyArgIntType(const JPy_ParamDescriptor *paramDescriptor, Py
         return 10;
     }
 
-    varArgs = PyTuple_GetSlice(pyArg, idx, argCount);
     for (ii = 0; ii < remaining; ii++) {
-        PyObject *unpack = PyTuple_GetItem(varArgs, ii);
+        PyObject *unpack = PyTuple_GetItem(pyArg, idx + ii);
 
         int matchValue;
         if (JPy_IS_CLONG(unpack)) matchValue = 100;
@@ -1694,7 +1685,6 @@ int JType_MatchVarArgPyArgIntType(const JPy_ParamDescriptor *paramDescriptor, Py
         else return 0;
         minMatch = matchValue < minMatch ? matchValue : minMatch;
     }
-    Py_XDECREF(varArgs);
 
     return minMatch;
 }
@@ -1718,7 +1708,6 @@ int JType_MatchVarArgPyArgAsFPType(const JPy_ParamDescriptor *paramDescriptor, P
     Py_ssize_t remaining = (argCount - idx);
 
     JPy_JType *componentType = paramDescriptor->type->componentType;
-    PyObject *varArgs;
     int minMatch = 100;
     int ii;
 
@@ -1731,9 +1720,8 @@ int JType_MatchVarArgPyArgAsFPType(const JPy_ParamDescriptor *paramDescriptor, P
         return 10;
     }
 
-    varArgs = PyTuple_GetSlice(pyArg, idx, argCount);
     for (ii = 0; ii < remaining; ii++) {
-        PyObject *unpack = PyTuple_GetItem(varArgs, ii);
+        PyObject *unpack = PyTuple_GetItem(pyArg, idx + ii);
 
         int matchValue;
         if (PyFloat_Check(unpack)) matchValue = floatMatch;
@@ -1743,7 +1731,6 @@ int JType_MatchVarArgPyArgAsFPType(const JPy_ParamDescriptor *paramDescriptor, P
         else return 0;
         minMatch = matchValue < minMatch ? matchValue : minMatch;
     }
-    Py_XDECREF(varArgs);
 
     return minMatch;
 }
@@ -1782,12 +1769,14 @@ int JType_ConvertVarArgPyArgToJObjectArg(JNIEnv* jenv, JPy_ParamDescriptor* para
             pyBuffer = PyMem_New(Py_buffer, 1);
             if (pyBuffer == NULL) {
                 PyErr_NoMemory();
+                Py_DECREF(pyArg);
                 return -1;
             }
 
             flags = paramDescriptor->isMutable ? PyBUF_WRITABLE : PyBUF_SIMPLE;
             if (PyObject_GetBuffer(pyArg, pyBuffer, flags) < 0) {
                 PyMem_Del(pyBuffer);
+                Py_DECREF(pyArg);
                 return -1;
             }
 
@@ -1795,6 +1784,7 @@ int JType_ConvertVarArgPyArgToJObjectArg(JNIEnv* jenv, JPy_ParamDescriptor* para
             if (itemCount <= 0) {
                 PyBuffer_Release(pyBuffer);
                 PyMem_Del(pyBuffer);
+                Py_DECREF(pyArg);
                 PyErr_Format(PyExc_ValueError, "illegal buffer argument: not a positive item count: %ld", itemCount);
                 return -1;
             }
@@ -1824,6 +1814,7 @@ int JType_ConvertVarArgPyArgToJObjectArg(JNIEnv* jenv, JPy_ParamDescriptor* para
                 jArray = (*jenv)->NewDoubleArray(jenv, itemCount);
                 itemSize = sizeof(jdouble);
             } else {
+                Py_DECREF(pyArg);
                 PyBuffer_Release(pyBuffer);
                 PyMem_Del(pyBuffer);
                 PyErr_SetString(PyExc_RuntimeError, "internal error: illegal primitive Java type");
@@ -1834,6 +1825,7 @@ int JType_ConvertVarArgPyArgToJObjectArg(JNIEnv* jenv, JPy_ParamDescriptor* para
                 Py_ssize_t bufferLen = pyBuffer->len;
                 Py_ssize_t bufferItemSize = pyBuffer->itemsize;
                 //printf("%ld, %ld, %ld, %ld\n", pyBuffer->len , pyBuffer->itemsize, itemCount, itemSize);
+                Py_DECREF(pyArg);
                 PyBuffer_Release(pyBuffer);
                 PyMem_Del(pyBuffer);
                 PyErr_Format(PyExc_ValueError,
@@ -1843,6 +1835,7 @@ int JType_ConvertVarArgPyArgToJObjectArg(JNIEnv* jenv, JPy_ParamDescriptor* para
             }
 
             if (jArray == NULL) {
+                Py_DECREF(pyArg);
                 PyBuffer_Release(pyBuffer);
                 PyMem_Del(pyBuffer);
                 PyErr_NoMemory();
@@ -1852,6 +1845,7 @@ int JType_ConvertVarArgPyArgToJObjectArg(JNIEnv* jenv, JPy_ParamDescriptor* para
             if (!paramDescriptor->isOutput) {
                 arrayItems = (*jenv)->GetPrimitiveArrayCritical(jenv, jArray, NULL);
                 if (arrayItems == NULL) {
+                    Py_DECREF(pyArg);
                     PyBuffer_Release(pyBuffer);
                     PyMem_Del(pyBuffer);
                     PyErr_NoMemory();
@@ -1868,6 +1862,7 @@ int JType_ConvertVarArgPyArgToJObjectArg(JNIEnv* jenv, JPy_ParamDescriptor* para
         } else {
             jobject objectRef;
             if (JType_ConvertPythonToJavaObject(jenv, paramType, pyArg, &objectRef, JNI_FALSE) < 0) {
+                Py_DECREF(pyArg);
                 return -1;
             }
             value->l = objectRef;
@@ -1876,7 +1871,7 @@ int JType_ConvertVarArgPyArgToJObjectArg(JNIEnv* jenv, JPy_ParamDescriptor* para
         }
     }
 
-    Py_XDECREF(pyArg);
+    Py_DECREF(pyArg);
 
     return 0;
 }
