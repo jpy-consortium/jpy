@@ -93,6 +93,9 @@ void JPy_HandleJavaException(JNIEnv* jenv);
         return VALUE; \
     }
 
+#define JPy_DELETE_LOCAL_REF(VALUE) \
+    (*jenv)->DeleteLocalRef(jenv, VALUE); \
+    VALUE = NULL;
 
 struct JPy_JType;
 

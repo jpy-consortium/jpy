@@ -673,7 +673,7 @@ JPy_JType* JPy_GetNonObjectJType(JNIEnv* jenv, jclass classRef)
     }
 
     type = JType_GetType(jenv, primClassRef, JNI_FALSE);
-    (*jenv)->DeleteLocalRef(jenv, primClassRef);
+    JPy_DELETE_LOCAL_REF(primClassRef);
     if (type == NULL) {
         return NULL;
     }
@@ -696,7 +696,7 @@ jclass JPy_GetClass(JNIEnv* jenv, const char* name)
     }
 
     globalClassRef = (*jenv)->NewGlobalRef(jenv, localClassRef);
-    (*jenv)->DeleteLocalRef(jenv, localClassRef);
+    JPy_DELETE_LOCAL_REF(localClassRef);
     if (globalClassRef == NULL) {
         PyErr_NoMemory();
         return NULL;
@@ -1135,7 +1135,7 @@ void JPy_HandleJavaException(JNIEnv* jenv)
                         allocError = 1;
                         break;
                     }
-                    (*jenv)->DeleteLocalRef(jenv, message);
+                    JPy_DELETE_LOCAL_REF(message);
                 }
 
                 /* We should assemble a string based on the stack trace. */
@@ -1240,13 +1240,13 @@ void JPy_HandleJavaException(JNIEnv* jenv)
                     PyErr_SetString(PyExc_RuntimeError,
                                     "Java VM exception occurred, but failed to allocate message text");
                 }
-                (*jenv)->DeleteLocalRef(jenv, message);
+                JPy_DELETE_LOCAL_REF(message);
             } else {
                 PyErr_SetString(PyExc_RuntimeError, "Java VM exception occurred, no message");
             }
         }
 
-        (*jenv)->DeleteLocalRef(jenv, error);
+        JPy_DELETE_LOCAL_REF(error);
         (*jenv)->ExceptionClear(jenv);
     }
 }

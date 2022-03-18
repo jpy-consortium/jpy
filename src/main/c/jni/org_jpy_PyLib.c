@@ -1410,13 +1410,11 @@ JNIEXPORT jobjectArray JNICALL Java_org_jpy_PyLib_getObjectArrayValue
         for (i = 0; i < length; i++) {
             pyItem = PySequence_GetItem(pyObject, i);
             if (pyItem == NULL) {
-                (*jenv)->DeleteLocalRef(jenv, jObject);
-                jObject = NULL;
+                JPy_DELETE_LOCAL_REF(jObject);
                 goto error;
             }
             if (JPy_AsJObject(jenv, pyItem, &jItem, JNI_FALSE) < 0) {
-                (*jenv)->DeleteLocalRef(jenv, jObject);
-                jObject = NULL;
+                JPy_DELETE_LOCAL_REF(jObject);
                 JPy_DIAG_PRINT(JPy_DIAG_F_ALL, "Java_org_jpy_PyLib_getObjectArrayValue: error: failed to convert Python item to Java Object\n");
                 PyLib_HandlePythonException(jenv);
                 goto error;
@@ -1424,8 +1422,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_jpy_PyLib_getObjectArrayValue
             Py_XDECREF(pyItem);
             (*jenv)->SetObjectArrayElement(jenv, jObject, i, jItem);
             if ((*jenv)->ExceptionCheck(jenv)) {
-                (*jenv)->DeleteLocalRef(jenv, jObject);
-                jObject = NULL;
+                JPy_DELETE_LOCAL_REF(jObject);
                 goto error;
             }
         }
@@ -1854,12 +1851,12 @@ PyObject* PyLib_CallAndReturnObject(JNIEnv *jenv, PyObject* pyObject, jboolean i
                 Py_INCREF(pyArg);
             } 
 
-            (*jenv)->DeleteLocalRef(jenv, jParamClass);
+            JPy_DELETE_LOCAL_REF(jParamClass);
         } else {
             pyArg = JPy_FromJObject(jenv, jArg);
         }
 
-        (*jenv)->DeleteLocalRef(jenv, jArg);
+        JPy_DELETE_LOCAL_REF(jArg);
 
         if (pyArg == NULL) {
             JPy_DIAG_PRINT(JPy_DIAG_F_ALL, "PyLib_CallAndReturnObject: error: callable '%s': argument %d: failed to convert Java into Python object\n", nameChars, i);
