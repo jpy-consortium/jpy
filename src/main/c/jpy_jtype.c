@@ -956,7 +956,6 @@ int JType_InitComponentType(JNIEnv* jenv, JPy_JType* type, jboolean resolve)
     if (componentTypeRef != NULL) {
         type->componentType = JType_GetType(jenv, componentTypeRef, resolve);
         JPy_DELETE_LOCAL_REF(componentTypeRef);
-        componentTypeRef = NULL;
         if (type->componentType == NULL) {
             return -1;
         }
@@ -1393,7 +1392,6 @@ JPy_ParamDescriptor* JType_CreateParamDescriptors(JNIEnv* jenv, int paramCount, 
 
         type = JType_GetType(jenv, paramClass, JNI_FALSE);
         JPy_DELETE_LOCAL_REF(paramClass);
-        paramClass = NULL;
         if (type == NULL) {
             return NULL;
         }
