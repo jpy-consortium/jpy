@@ -214,7 +214,11 @@ def find_jvm_dll_file(java_home_dir=None, fail=False):
 
 
 def _get_jvm_lib_dirs(java_home_dir):
-    arch = 'amd64' if PYTHON_64BIT else 'i386'
+    machine = platform.machine()
+    if machine == "aarch64":
+        arch = "aarch64"
+    else:
+        arch = 'amd64' if PYTHON_64BIT else 'i386'
     return (os.path.join(java_home_dir, 'bin'),
             os.path.join(java_home_dir, 'bin', 'server'),
             os.path.join(java_home_dir, 'bin', 'client'),

@@ -85,6 +85,33 @@ jobs:
           path: dist/*.whl
           retention-days: 1
 
+  bdist-wheel-linux-arm64:
+    runs-on: 'ubuntu-22.04'
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Bake
+        uses: docker/bake-action@v3.1.0
+        with:
+          files: .github/docker/docker-bake.hcl
+          pull: true
+          targets: python-311-linux
+          set: |
+            *.platform=linux/arm64/v8
+            *.output=type=local,dest=/tmp/dist
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: build-linux-arm64
+          path: /tmp/dist/dist/*.whl
+          retention-days: 1
+
   collect-artifacts:
     runs-on: 'ubuntu-20.04'
     needs: ['sdist', 'bdist-wheel']
