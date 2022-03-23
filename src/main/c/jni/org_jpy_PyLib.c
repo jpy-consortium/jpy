@@ -469,10 +469,10 @@ error:
 
 PyObject* PyLib_ConvertJavaToPythonObject(JNIEnv* jenv, jobject jObject)
 {
+    JPy_JType* type;
     if (jObject == NULL) {
       return JPy_FROM_JNULL();
     }
-    JPy_JType* type;
     type = JType_GetTypeForObject(jenv, jObject);
     return JType_ConvertJavaToPythonObject(jenv, type, jObject);
 }
