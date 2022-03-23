@@ -23,6 +23,20 @@ public class PyLibInitializer {
   static boolean dlInitialized = false;
 
   /**
+   * Returns true iff the {@link PyLib} class has been initialized
+   */
+  public static boolean isPyLibInitialized() {
+    return pyLibInitialized;
+  }
+
+  /**
+   * Returns true iff the {@link DL} class has been initialized
+   */
+  public static boolean isDlInitialized() {
+    return dlInitialized;
+  }
+  
+  /**
    * This method should only be called once - it is dependent on {@link PyLib} and {@link DL} being
    * uninitialized. Any consumers who want to programmatically configure jpy should call this method
    * first.
