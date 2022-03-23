@@ -166,6 +166,13 @@ public class PyLib {
     public static native boolean isPythonRunning();
 
     /**
+     * Delegates to {@link #startPython(int, String...)} with {@code flags = Diag.F_OFF}.
+     */
+    public static void startPython(String... extraPaths) {
+        startPython(Diag.F_OFF, extraPaths);
+    }
+
+    /**
      * Starts the Python interpreter. It does the following:
      * <ol>
      * <li>Initializes the Python interpreter, if not already running.</li>
@@ -173,11 +180,11 @@ public class PyLib {
      * <li>Imports the 'jpy' extension module, if not already done.</li>
      * </ol>
      *
+     * @param flags If non-zero, is passed to {@link Diag#setFlags(int)} before python is started
      * @param extraPaths List of paths that will be prepended to Python's 'sys.path'.
      * @throws RuntimeException if Python could not be started or if the 'jpy' extension module could not be loaded.
      */
-    public static void startPython(String... extraPaths) {
-
+    public static void startPython(int flags, String... extraPaths) {
         ArrayList<File> dirList = new ArrayList<>(1 + extraPaths.length);
 
         File moduleDir = new File(dllFilePath).getParentFile();
@@ -202,7 +209,9 @@ public class PyLib {
             for (String path : extraPaths) {
                 System.out.printf("org.jpy.PyLib:   %s%n", path);
             }
-            Diag.setFlags(Diag.F_EXEC);
+            Diag.setFlags(Diag.F_EXEC | flags);
+        } else if (flags != 0) {
+            Diag.setFlags(flags);
         }
 
         startPython0(extraPaths);
@@ -494,7 +503,17 @@ public class PyLib {
     private PyLib() {
     }
 
+    /**
+     * We call this method to ensure that this class gets loaded, and thus the static block gets run
+     *
+     * We don't technically need this method. Callers could instead rely on reflection, using
+     * {@link Class#forName(String)}, but this method is better because it is much more explicit.
+     */
+    static void dummyMethodForInitialization() { }
+
     static {
+        // see documentation in PyLibInitializer for explanation
+        PyLibInitializer.pyLibInitialized = true;
         if (DEBUG) System.out.println("org.jpy.PyLib: entered static initializer");
         loadLib();
         if (DEBUG) System.out.println("org.jpy.PyLib: exited static initializer");
