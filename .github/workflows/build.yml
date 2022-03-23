@@ -1,0 +1,49 @@
+name: Build JPY wheels
+
+on: push
+
+jobs:
+  bdist-wheel:
+    runs-on: ${{ matrix.info.machine }}
+    strategy:
+      fail-fast: false
+      matrix:
+        info:
+          - { machine: 'ubuntu-18.04', python: '3.4', pythonArchitecture: 'x64', arch: 'amd64' }
+          - { machine: 'ubuntu-20.04', python: '3.5', pythonArchitecture: 'x64', arch: 'amd64' }
+          - { machine: 'ubuntu-20.04', python: '3.6', pythonArchitecture: 'x64', arch: 'amd64' }
+          - { machine: 'ubuntu-20.04', python: '3.7', pythonArchitecture: 'x64', arch: 'amd64' }
+          - { machine: 'ubuntu-20.04', python: '3.8', pythonArchitecture: 'x64', arch: 'amd64' }
+          - { machine: 'ubuntu-20.04', python: '3.9', pythonArchitecture: 'x64', arch: 'amd64' }
+          # Can't get 3.4 win build
+          #- { machine: 'windows-2016', python: '3.4', pythonArchitecture: 'x64', arch: 'amd64' }
+          - { machine: 'windows-2019', python: '3.5', pythonArchitecture: 'x64', arch: 'amd64' }
+          - { machine: 'windows-2022', python: '3.6', pythonArchitecture: 'x64', arch: 'amd64' }
+          - { machine: 'windows-2022', python: '3.7', pythonArchitecture: 'x64', arch: 'amd64' }
+          - { machine: 'windows-2022', python: '3.8', pythonArchitecture: 'x64', arch: 'amd64' }
+          - { machine: 'windows-2022', python: '3.9', pythonArchitecture: 'x64', arch: 'amd64' }
+          # macos-11 gcc errors
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.info.python }}
+          architecture: ${{ matrix.info.pythonArchitecture }}
+
+      - uses: actions/setup-java@v3
+        id: setup-java
+        with:
+          distribution: 'temurin'
+          java-version: '8'
+
+      - run: pip install -r .github/requirements.txt
+
+      - run: python setup.py bdist_wheel
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: build-${{ matrix.info.python }}-${{ matrix.info.machine }}-${{ matrix.info.arch }}
+          path: dist/*.whl
+          retention-days: 1
