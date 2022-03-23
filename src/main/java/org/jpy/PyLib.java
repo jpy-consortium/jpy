@@ -249,6 +249,7 @@ public class PyLib {
      * For more information refer to https://github.com/bcdev/jpy/issues/70
      */
     public static void stopPython() {
+        PyObject.cleanup();
         if (!STOP_IS_NO_OP) {
             stopPython0();
         }
@@ -259,8 +260,14 @@ public class PyLib {
     @Deprecated
     public static native int execScript(String script);
 
+    /**
+     * Callers must close the returned reference with {@link #decRef(long)}.
+     */
     static native long executeCode(String code, int start, Object globals, Object locals);
 
+    /**
+     * Callers must close the returned reference with {@link #decRef(long)}.
+     */
     static native long executeScript
             (String file, int start, Object globals, Object locals) throws FileNotFoundException;
 
@@ -292,9 +299,11 @@ public class PyLib {
 
     static native void decRef(long pointer);
 
+    static native void decRefs(long[] pointers, int len);
+
     static native int getIntValue(long pointer);
 
-    static native int getLongValue(long pointer);
+    static native long getLongValue(long pointer);
 
     static native boolean getBooleanValue(long pointer);
 
@@ -314,6 +323,9 @@ public class PyLib {
     static native boolean pyFloatCheck(long pointer);
     static native boolean pyStringCheck(long pointer);
     static native boolean pyCallableCheck(long pointer);
+    static native boolean pyFunctionCheck(long pointer);
+    static native boolean pyModuleCheck(long pointer);
+    static native boolean pyTupleCheck(long pointer);
 
     static native long getType(long pointer);
 
@@ -357,10 +369,15 @@ public class PyLib {
 
     static native <T> T[] getObjectArrayValue(long pointer, Class<? extends T> itemType);
 
+    /**
+     * Callers must close the returned reference with {@link #decRef(long)}.
+     */
     static native long importModule(String name);
 
     /**
      * Gets the value of a given Python attribute as Python object pointer.
+     * <p>
+     * Callers must close the returned reference with {@link #decRef(long)}.
      *
      * @param pointer Identifies the Python object which contains the attribute {@code name}.
      * @param name    The attribute name.
@@ -412,6 +429,8 @@ public class PyLib {
      */
     static native boolean hasAttribute(long pointer, String name);
 
+    public static native boolean hasGil();
+
     /**
      * Calls a Python callable and returns the resulting Python object.
      * <p>
@@ -419,6 +438,8 @@ public class PyLib {
      * Python objects.
      * The {@code args} array may also contain objects of type {@code PyObject}.
      * These will be directly translated into the corresponding Python objects without conversion.
+     * <p>
+     * Callers must close the returned reference with {@link #decRef(long)}.
      *
      * @param pointer    Identifies the Python object which contains the callable {@code name}.
      * @param methodCall true, if this is a call of a method of the Python object pointed to by {@code pointer}.

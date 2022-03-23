@@ -16,13 +16,18 @@
 
 package org.jpy;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.util.Collection;
 import java.util.Collections;
-import org.junit.*;
-
-import static org.junit.Assert.*;
-
 import java.util.Map;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 public class PyLibTest {
 
@@ -77,9 +82,11 @@ public class PyLibTest {
 
         pyModule = PyLib.importModule("os");
         assertTrue(pyModule != 0);
+        PyLib.decRef(pyModule);
 
         pyModule = PyLib.importModule("sys");
         assertTrue(pyModule != 0);
+        PyLib.decRef(pyModule);
     }
 
     @Test
@@ -88,22 +95,31 @@ public class PyLibTest {
         long pyObject;
 
         pyModule = PyLib.importModule("jpy");
-        assertTrue(pyModule != 0);
+        try {
+            assertTrue(pyModule != 0);
 
-        long pyObj = PyLib.getAttributeObject(pyModule, "JType");
-        assertTrue(pyObj != 0);
+            long pyObj = PyLib.getAttributeObject(pyModule, "JType");
+            assertTrue(pyObj != 0);
+            PyLib.decRef(pyObj);
 
-        PyLib.setAttributeValue(pyModule, "_hello", "Hello Python!", String.class);
-        assertEquals("Hello Python!", PyLib.getAttributeValue(pyModule, "_hello", String.class));
+            PyLib.setAttributeValue(pyModule, "_hello", "Hello Python!", String.class);
+            assertEquals("Hello Python!",
+                PyLib.getAttributeValue(pyModule, "_hello", String.class));
 
-        pyObject = PyLib.getAttributeObject(pyModule, "_hello");
-        assertTrue(pyObject != 0);
+            pyObject = PyLib.getAttributeObject(pyModule, "_hello");
+            try {
+                assertTrue(pyObject != 0);
+            } finally {
+                PyLib.decRef(pyObject);
+            }
+        } finally {
+            PyLib.decRef(pyModule);
+        }
     }
 
     @Test
     public void testCallAndReturnValue() throws Exception {
         long builtins;
-
         try {
             //Python 3.3
             builtins = PyLib.importModule("builtins");
@@ -111,22 +127,27 @@ public class PyLibTest {
             //Python 2.7
             builtins = PyLib.importModule("__builtin__");
         }
-        assertTrue(builtins != 0);
+        try {
+            assertTrue(builtins != 0);
 
-        long max = PyLib.getAttributeObject(builtins, "max");
-        assertTrue(max != 0);
+            long max = PyLib.getAttributeObject(builtins, "max");
+            try {
+                assertTrue(max != 0);
+            } finally {
+                PyLib.decRef(max);
+            }
 
-        //PyLib.Diag.setFlags(PyLib.Diag.F_ALL);
-        String result = PyLib.callAndReturnValue(builtins, false, "max", 2, new Object[]{"A", "Z"}, new Class[]{String.class, String.class}, String.class);
-
-        assertEquals("Z", result);
+            //PyLib.Diag.setFlags(PyLib.Diag.F_ALL);
+            String result = PyLib.callAndReturnValue(builtins, false, "max", 2, new Object[]{"A", "Z"}, new Class[]{String.class, String.class}, String.class);
+            assertEquals("Z", result);
+        } finally {
+            PyLib.decRef(builtins);
+        }
     }
 
     @Test
     public void testCallAndReturnObject() throws Exception {
         long builtins;
-        long pointer;
-
         try {
             //Python 3.3
             builtins = PyLib.importModule("builtins");
@@ -134,16 +155,25 @@ public class PyLibTest {
             //Python 2.7
             builtins = PyLib.importModule("__builtin__");
         }
-        assertTrue(builtins != 0);
+        try {
+            assertTrue(builtins != 0);
 
-        long max = PyLib.getAttributeObject(builtins, "max");
-        assertTrue(max != 0);
+            long max = PyLib.getAttributeObject(builtins, "max");
+            assertTrue(max != 0);
+            PyLib.decRef(max);
 
-        pointer = PyLib.callAndReturnObject(builtins, false, "max", 2, new Object[]{"A", "Z"}, null);
-        assertTrue(pointer != 0);
+            long pointer = PyLib.callAndReturnObject(builtins, false, "max", 2, new Object[]{"A", "Z"}, null);
+            try {
+                assertTrue(pointer != 0);
 
-        //PyLib.Diag.setFlags(PyLib.Diag.F_ALL);
-        assertEquals("Z", new PyObject(pointer).getStringValue());
+                //PyLib.Diag.setFlags(PyLib.Diag.F_ALL);
+                assertEquals("Z", new PyObject(pointer).getStringValue());
+            } finally {
+                PyLib.decRef(pointer);
+            }
+        } finally {
+            PyLib.decRef(builtins);
+        }
     }
 
     @Test
@@ -244,5 +274,13 @@ public class PyLibTest {
         } catch (UnsupportedOperationException e) {
             // expected
         }
+    }
+
+    @Test
+    public void decRefs() {
+        final long pyObject1 = PyLib.executeCode("4321", PyInputMode.EXPRESSION.value(), null, null);
+        final long pyObject2 = PyLib.executeCode("4322", PyInputMode.EXPRESSION.value(), null, null);
+
+        PyLib.decRefs(new long[] { pyObject1, pyObject2, 0, 0 }, 2);
     }
 }

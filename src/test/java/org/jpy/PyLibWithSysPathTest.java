@@ -58,10 +58,12 @@ public class PyLibWithSysPathTest {
 
     @Test
     public void testLoadModule() throws Exception {
-        PyModule pyModule = PyModule.importModule("mod_1");
-        assertNotNull(pyModule);
-        PyObject pyAnswer = pyModule.getAttribute("answer");
-        assertNotNull(pyAnswer);
-        assertEquals(42, pyAnswer.getIntValue());
+        try (final PyModule pyModule = PyModule.importModule("mod_1")) {
+            assertNotNull(pyModule);
+            try (final PyObject pyAnswer = pyModule.getAttribute("answer")) {
+                assertNotNull(pyAnswer);
+                assertEquals(42, pyAnswer.getIntValue());
+            }
+        }
     }
 }

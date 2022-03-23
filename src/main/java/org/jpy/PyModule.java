@@ -105,14 +105,21 @@ public class PyModule extends PyObject {
      */
     public static PyObject extendSysPath(String modulePath, boolean prepend) {
         Objects.requireNonNull(modulePath, "path must not be null");
-        PyModule sys = importModule("sys");
-        PyObject sysPath = sys.getAttribute("path");
-        if (prepend) {
-            sysPath.call("insert", 0, modulePath);
-        } else {
-            sysPath.call("append", modulePath);
+        try (final PyModule sys = importModule("sys")) {
+            final PyObject sysPath = sys.getAttribute("path");
+            if (prepend) {
+                //noinspection EmptyTryBlock
+                try (final PyObject pyObj = sysPath.call("insert", 0, modulePath)) {
+
+                }
+            } else {
+                //noinspection EmptyTryBlock
+                try (final PyObject pyObj = sysPath.call("append", modulePath)) {
+
+                }
+            }
+            return sysPath;
         }
-        return sysPath;
     }
 
 

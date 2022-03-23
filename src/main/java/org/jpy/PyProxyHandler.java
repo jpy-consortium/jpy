@@ -19,6 +19,7 @@ package org.jpy;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import org.jpy.PyLib.CallableKind;
 
 import static org.jpy.PyLib.assertPythonRuns;
 
@@ -37,6 +38,7 @@ class PyProxyHandler implements InvocationHandler {
     private static Method equalsMethod;
     
     private static Method toStringMethod;
+
     static {
         try {
             hashCodeMethod = Object.class.getMethod("hashCode");
@@ -61,24 +63,37 @@ class PyProxyHandler implements InvocationHandler {
 
     @Override
     public Object invoke(Object proxyObject, Method method, Object[] args) throws Throwable {
-        assertPythonRuns();
-        
+        //assertPythonRuns(); // todo: get rid of this check to remove a call down into JNI?
+
+        final long pointer = this.pyObject.getPointer();
+
         if ((PyLib.Diag.getFlags() & PyLib.Diag.F_METH) != 0) {
             System.out.printf("org.jpy.PyProxyHandler: invoke: %s(%s) on pyObject=%s in thread %s\n", method.getName(),
-                    Arrays.toString(args), Long.toHexString(this.pyObject.getPointer()), Thread.currentThread());
+                    Arrays.toString(args), Long.toHexString(pointer), Thread.currentThread());
         }
-        String methodName = method.getName();
-        Class<?> returnType = method.getReturnType();
+        final String methodName = method.getName();
+        final Class<?> returnType = method.getReturnType();
         if (method.equals(hashCodeMethod)) {
             return callPythonHash();
         } else if (method.equals(equalsMethod)) {
             return this.pyObject.eq(args[0]);
         } else if (method.equals(toStringMethod)) {
             return this.pyObject.str();
+        } else if ("close".equals(method.getName())
+            && method.getParameterCount() == 0
+            && void.class.equals(method.getReturnType())
+            && AutoCloseable.class.isAssignableFrom(method.getDeclaringClass())) {
+            this.pyObject.close();
+            return null;
         }
 
-        return PyLib.callAndReturnValue(this.pyObject.getPointer(), callableKind == PyLib.CallableKind.METHOD,
-                methodName, args != null ? args.length : 0, args, method.getParameterTypes(), returnType);
+        return PyLib.callAndReturnValue(
+            pointer,
+            callableKind == CallableKind.METHOD,
+            methodName,
+            args != null ? args.length : 0, args,
+            method.getParameterTypes(),
+            returnType);
     }
 
     PyObject getPyObject() {

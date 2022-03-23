@@ -26,16 +26,25 @@ import java.util.stream.Collectors;
  * A simple wrapper around PyObjects that are actually Python dictionaries, to present the most useful parts of a
  * Map interface.
  */
-public class PyDictWrapper implements Map<PyObject, PyObject> {
-    private PyObject pyObject;
+public class PyDictWrapper implements Map<PyObject, PyObject>, AutoCloseable {
+    // todo: consider using https://docs.python.org/3/c-api/mapping.html instead of
+    // https://docs.python.org/3/c-api/dict.html? Or adding an additional layer?
+    private final PyObject pyObject;
 
     PyDictWrapper(PyObject pyObject) {
         this.pyObject = pyObject;
     }
 
     @Override
+    public void close() {
+        pyObject.close();
+    }
+
+    @Override
     public int size() {
-        return pyObject.callMethod("__len__").getIntValue();
+        try (final PyObject pyObj = pyObject.callMethod("__len__")) {
+            return pyObj.getIntValue();
+        }
     }
 
     @Override
@@ -66,37 +75,66 @@ public class PyDictWrapper implements Map<PyObject, PyObject> {
 
     @Override
     public PyObject get(Object key) {
-        return pyObject.callMethod("__getitem__", key);
+        try {
+            return getItem(key);
+        } catch (KeyError e) {
+            return null;
+        }
     }
 
     /**
      * An extension to the Map interface that allows the use of String keys without generating warnings.
      */
     public PyObject get(String key) {
-        return pyObject.callMethod("__getitem__", key);
+        return get((Object)key);
     }
 
     @Override
     public PyObject put(PyObject key, PyObject value) {
-        return putObject(key, value);
+        PyObject previous;
+        try {
+            // note: this is a BORROWED REFERENCE - todo
+            previous = getItem(key);
+        } catch (KeyError e) {
+            previous = null;
+        }
+        setItem(key, value);
+        return previous;
     }
 
-    /**
-     * An extension to the Map interface that allows the use of Object key-values without generating warnings.
-     */
-    public PyObject putObject(Object key, Object value) {
-        return pyObject.callMethod("__setitem__", key, value);
+    public PyObject getItem(Object key) throws KeyError {
+        // todo: eventually use api https://docs.python.org/3/c-api/dict.html#c.PyDict_GetItem
+        // note: this is a BORROWED REFERENCE - todo
+        return pyObject.callMethod("__getitem__", key);
+    }
+
+    public void setItem(Object key, Object value) {
+        // todo: eventually use api https://docs.python.org/3/c-api/dict.html#c.PyDict_SetItem
+        //noinspection EmptyTryBlock
+        try (final PyObject result = pyObject.callMethod("__setitem__", key, value)) {
+
+        }
+    }
+
+    public void putObject(Object key, Object value) {
+        setItem(key, value);
+    }
+
+    public void delItem(Object key) {
+        // todo: eventually use api https://docs.python.org/3/c-api/dict.html#c.PyDict_DelItem
+        //noinspection EmptyTryBlock
+        try (final PyObject result = pyObject.callMethod("__delitem__", key)) {
+
+        }
     }
 
     @Override
     public PyObject remove(Object key) {
-        try {
-            PyObject value = get(key);
-            pyObject.callMethod("__delitem__", key);
-            return value;
-        } catch (KeyError ke) {
-            return null;
+        final PyObject existing = get(key);
+        if (existing != null) {
+            delItem(key);
         }
+        return existing;
     }
 
     public PyObject remove(String key) {
@@ -110,7 +148,11 @@ public class PyDictWrapper implements Map<PyObject, PyObject> {
 
     @Override
     public void clear() {
-        pyObject.callMethod("clear");
+        // todo: https://docs.python.org/3/c-api/dict.html#c.PyDict_Clear
+        //noinspection EmptyTryBlock
+        try (PyObject pyObj = pyObject.callMethod("clear")) {
+
+        }
     }
 
     /**
@@ -120,7 +162,9 @@ public class PyDictWrapper implements Map<PyObject, PyObject> {
      */
     @Override
     public Set<PyObject> keySet() {
-        return new LinkedHashSet<>(PyLib.pyDictKeys(pyObject.getPointer()).asList());
+        try (final PyObject pyObj = PyLib.pyDictKeys(this.pyObject.getPointer())) {
+            return new LinkedHashSet<>(pyObj.asList());
+        }
     }
 
     /**
@@ -130,7 +174,9 @@ public class PyDictWrapper implements Map<PyObject, PyObject> {
      */
     @Override
     public Collection<PyObject> values() {
-        return PyLib.pyDictValues(pyObject.getPointer()).asList();
+        try (final PyObject pyObj = PyLib.pyDictValues(this.pyObject.getPointer())) {
+            return pyObj.asList();
+        }
     }
 
     /**
@@ -145,11 +191,13 @@ public class PyDictWrapper implements Map<PyObject, PyObject> {
         // https://docs.python.org/3/c-api/dict.html#c.PyDict_Next
         // but that method signature is a bit weird on the java <-> python jni layer with PyObject
         // reference return values...
-        return PyLib.pyDictKeys(pyObject.getPointer())
-            .asList()
-            .stream()
-            .map(p -> new SimpleImmutableEntry<>(p, get(p)))
-            .collect(Collectors.toCollection(LinkedHashSet::new));
+        try (final PyObject pyObj = PyLib.pyDictKeys(this.pyObject.getPointer())) {
+            return pyObj
+                .asList()
+                .stream()
+                .map(p -> new SimpleImmutableEntry<>(p, get(p)))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        }
     }
 
     /**

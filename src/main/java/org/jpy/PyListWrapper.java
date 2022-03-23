@@ -24,6 +24,7 @@ import java.util.*;
  * A simple wrapper around a Python List object that implements a java List of PyObjects.
  */
 class PyListWrapper implements List<PyObject> {
+    // todo: https://docs.python.org/3/c-api/list.html vs https://docs.python.org/3/c-api/sequence.html
     private PyObject pyObject;
 
     PyListWrapper(PyObject pyObject) {
@@ -32,7 +33,9 @@ class PyListWrapper implements List<PyObject> {
 
     @Override
     public int size() {
-        return pyObject.callMethod("__len__").getIntValue();
+        try (final PyObject len = this.pyObject.callMethod("__len__")) {
+            return len.getIntValue();
+        }
     }
 
     @Override
@@ -100,14 +103,20 @@ class PyListWrapper implements List<PyObject> {
 
     @Override
     public boolean add(PyObject pyObject) {
-        pyObject.callMethod("append", pyObject);
+        //noinspection EmptyTryBlock
+        try (final PyObject obj = pyObject.callMethod("append", pyObject)) {
+
+        }
         return true;
     }
 
     @Override
     public boolean remove(Object o) {
         try {
-            pyObject.callMethod("remove", pyObject);
+            //noinspection EmptyTryBlock
+            try (final PyObject obj = pyObject.callMethod("remove", o)) {
+
+            }
             return true;
         } catch (Exception e) {
             return false;
@@ -145,22 +154,38 @@ class PyListWrapper implements List<PyObject> {
 
     @Override
     public void clear() {
-        pyObject.callMethod("clear");
+        //noinspection EmptyTryBlock
+        try (final PyObject obj = pyObject.callMethod("clear")) {
+
+        }
     }
 
     @Override
     public PyObject get(int index) {
+        // todo https://docs.python.org/3/c-api/list.html#c.PyList_GetItem
         return pyObject.callMethod("__getitem__", index);
     }
 
     @Override
     public PyObject set(int index, PyObject element) {
-        return pyObject.callMethod("__setitem__", index, element);
+        final PyObject existing = get(index);
+        setItem(index, element);
+        return existing;
+    }
+
+    public void setItem(int index, PyObject element) {
+        //noinspection EmptyTryBlock
+        try (final PyObject obj = pyObject.callMethod("__setitem__", index, element)) {
+
+        }
     }
 
     @Override
     public void add(int index, PyObject element) {
-        pyObject.callMethod("insert", index, element);
+        //noinspection EmptyTryBlock
+        try (final PyObject obj = pyObject.callMethod("insert", index, element)) {
+
+        }
     }
 
     @Override

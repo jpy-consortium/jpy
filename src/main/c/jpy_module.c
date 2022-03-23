@@ -782,7 +782,7 @@ int initGlobalPyObjectVars(JNIEnv* jenv)
         JPy_PyObject_JClass = JPy_JPyObject->classRef;
         DEFINE_METHOD(JPy_PyObject_GetPointer_MID, JPy_PyObject_JClass, "getPointer", "()J");
         DEFINE_STATIC_METHOD(JPy_PyObject_UnwrapProxy_SMID, JPy_PyObject_JClass, "unwrapProxy", "(Ljava/lang/Object;)Lorg/jpy/PyObject;");
-        DEFINE_METHOD(JPy_PyObject_Init_MID, JPy_PyObject_JClass, "<init>", "(J)V");
+        DEFINE_METHOD(JPy_PyObject_Init_MID, JPy_PyObject_JClass, "<init>", "(JZ)V");
     }
 
     JPy_JPyModule = JType_GetTypeForName(jenv, "org.jpy.PyModule", JNI_FALSE);

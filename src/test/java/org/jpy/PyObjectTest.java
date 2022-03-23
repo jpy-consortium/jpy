@@ -206,13 +206,16 @@ public class PyObjectTest {
         // >>> myobj.a
         // 'Tut tut!'
         //
-        PyModule imp = PyModule.importModule("imp");
-        // Call imp.new_module('') module
-        PyObject myobj = imp.call("new_module", "myobj");
-        myobj.setAttribute("a", "Tut tut!");
-        Assert.assertEquals("Tut tut!", myobj.getAttribute("a", String.class));
-        PyObject a = myobj.getAttribute("a");
-        Assert.assertEquals("Tut tut!", a.getStringValue());
+        try (
+            final PyModule imp = PyModule.importModule("imp");
+            final PyObject myobj = imp.call("new_module", "myobj")) {
+            // Call imp.new_module('') module
+            myobj.setAttribute("a", "Tut tut!");
+            Assert.assertEquals("Tut tut!", myobj.getAttribute("a", String.class));
+            try (final PyObject a = myobj.getAttribute("a")) {
+                Assert.assertEquals("Tut tut!", a.getStringValue());
+            }
+        }
     }
     
     private boolean hasKey(Map<PyObject, PyObject> dict, String key) {
@@ -626,5 +629,19 @@ public class PyObjectTest {
         PyObject result = obj.callMethod("__hash__");
         assertTrue(result.isInt());
         assertEquals(-1, obj.getIntValue());
+    }
+
+    @Test
+    public void closeIsIdempotent() {
+        PyObject obj = SPECIAL_METHODS.call("Simple", 1);
+        obj.close();
+        obj.close();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void errorIfUsageAfterClose() {
+        PyObject obj = SPECIAL_METHODS.call("Simple", 1);
+        obj.close();
+        obj.getPointer();
     }
 }

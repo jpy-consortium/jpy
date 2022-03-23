@@ -55,6 +55,8 @@ typedef struct JPy_JType
 }
 JPy_JType;
 
+#define JTYPE_AS_PYTYPE(T)  ((PyTypeObject*) T)
+
 /**
  * The 'JType' singleton.
  */
@@ -118,7 +120,7 @@ JPy_ParamDescriptor;
 
 int JType_Check(PyObject* obj);
 
-JPy_JType* JType_GetTypeForObject(JNIEnv* jenv, jobject objectRef);
+JPy_JType* JType_GetTypeForObject(JNIEnv* jenv, jobject objectRef, jboolean resolve);
 JPy_JType* JType_GetTypeForName(JNIEnv* jenv, const char* typeName, jboolean resolve);
 JPy_JType* JType_GetType(JNIEnv* jenv, jclass classRef, jboolean resolve);
 

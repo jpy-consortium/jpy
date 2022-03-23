@@ -19,13 +19,14 @@
 
 package org.jpy;
 
+import static org.jpy.PyLib.assertPythonRuns;
+
+import java.io.FileNotFoundException;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.util.List;
-import java.io.FileNotFoundException;
 import java.util.Objects;
-
-import static org.jpy.PyLib.assertPythonRuns;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Represents a Python object (of Python/C API type {@code PyObject*}) in the Python interpreter.
@@ -33,19 +34,68 @@ import static org.jpy.PyLib.assertPythonRuns;
  * @author Norman Fomferra
  * @since 0.7
  */
-public class PyObject {
+public class PyObject implements AutoCloseable {
 
-    /**
-     * The value of the Python/C API {@code PyObject*} which this class represents.
-     */
-    private final long pointer;
+    // Having this static is less than optimal (would be much better to have it attached to the
+    // running python instance) - but that's a lot harder to do.
+    private static final PyObjectReferences REFERENCES = new PyObjectReferences();
+
+    private static final AtomicReference<Thread> CLEANUP_THREAD = new AtomicReference<>();
+
+    private static final boolean CLEANUP_ON_INIT = Boolean.parseBoolean(System.getProperty("PyObject.cleanup_on_init", "true"));
+
+    private static final boolean CLEANUP_ON_THREAD = Boolean.parseBoolean(System.getProperty("PyObject.cleanup_on_thread", "true"));
+
+    private static void startCleanupThread() {
+        if (CLEANUP_THREAD.get() == null) {
+            final Thread thread = REFERENCES.createCleanupThread("PyObject-cleanup");
+            thread.setDaemon(true);
+            if (!CLEANUP_THREAD.compareAndSet(null, thread)) {
+                return;
+            }
+            thread.start();
+        }
+    }
+
+    public static int cleanup() {
+        return REFERENCES.asProxy().cleanupOnlyUseFromGIL();
+    }
+
+    private final PyObjectState state;
 
     PyObject(long pointer) {
-        if (pointer == 0) {
-            throw new IllegalArgumentException("pointer == 0");
+        this(pointer, false);
+    }
+
+    @SuppressWarnings("WeakerAccess")
+    PyObject(long pointer, boolean fromJNI) {
+        state = new PyObjectState(pointer);
+        if (fromJNI) {
+            if (CLEANUP_ON_INIT && PyLib.hasGil()) {
+                REFERENCES.cleanupOnlyUseFromGIL(); // only performs *one* cleanup
+            }
+            if (CLEANUP_ON_THREAD) {
+                // ensures that we've only started after python has been started, and we know there is something to cleanup
+                startCleanupThread();
+            }
         }
-        PyLib.incRef(pointer);
-        this.pointer = pointer;
+        registerSelfInto(REFERENCES);
+    }
+
+    final void registerSelfInto(PyObjectReferences references) {
+        references.register(this);
+    }
+
+    final PyObjectState getState() {
+        return state;
+    }
+
+    /**
+     * Decreases the reference count of {@code this} on first invocation.
+     */
+    @Override
+    public final void close() {
+        state.close();
     }
 
     /**
@@ -109,25 +159,10 @@ public class PyObject {
     }
 
     /**
-     * Decrements the reference count of the Python object which this class represents.
-     *
-     * @throws Throwable If any error occurs.
-     */
-    @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
-        // Don't remove this check. 'pointer == 0' really occurred, don't ask me how!
-        if (pointer == 0) {
-            throw new IllegalStateException("pointer == 0");
-        }
-        PyLib.decRef(getPointer());
-    }
-
-    /**
      * @return A unique pointer to the wrapped Python object.
      */
     public final long getPointer() {
-        return pointer;
+        return state.borrowPointer();
     }
 
     /**
@@ -231,6 +266,21 @@ public class PyObject {
     public boolean isCallable() {
         assertPythonRuns();
         return PyLib.pyCallableCheck(getPointer());
+    }
+
+    public boolean isFunction() {
+        assertPythonRuns();
+        return PyLib.pyFunctionCheck(getPointer());
+    }
+
+    public boolean isModule() {
+        assertPythonRuns();
+        return PyLib.pyModuleCheck(getPointer());
+    }
+
+    public boolean isTuple() {
+        assertPythonRuns();
+        return PyLib.pyTupleCheck(getPointer());
     }
 
     public boolean isString() {
@@ -400,6 +450,42 @@ public class PyObject {
         return pointer != 0 ? new PyObject(pointer) : null;
     }
 
+    public <T> T call(Class<T> returnType, String name, Class<?>[] paramTypes, Object[] args) {
+        Objects.requireNonNull(returnType, "returnType must not be null");
+        Objects.requireNonNull(name, "name must not be null");
+        Objects.requireNonNull(paramTypes, "paramTypes must not be null");
+        Objects.requireNonNull(args, "args must not be null");
+        if (paramTypes.length != args.length) {
+            throw new IllegalArgumentException("paramTypes and args must be of equal length");
+        }
+        for (int i = 0; i < args.length; ++i) {
+            // Let's be defensive here right now - we can loosen this in the future if necessary.
+            Objects.requireNonNull(paramTypes[i], "paramTypes items must be non null");
+            Objects.requireNonNull(args[i], "args items must be non null");
+            if (!paramTypes[i].isAssignableFrom(args[i].getClass())) {
+                throw new IllegalArgumentException(String.format(
+                    "Argument %d of type '%s' is not assignable to type '%s'",
+                    i,
+                    args[i].getClass(),
+                    paramTypes[i]));
+            }
+        }
+        assertPythonRuns();
+        return PyLib.callAndReturnValue(getPointer(), false, name, args.length, args, paramTypes, returnType);
+    }
+
+    public <T, A0> T call(Class<T> returnType, String name, Class<A0> clazz0, A0 arg0) {
+        return call(returnType, name, new Class[] { clazz0 }, new Object[] { arg0 });
+    }
+
+    public <T, A0, A1> T call(Class<T> returnType, String name, Class<A0> clazz0, A0 arg0, Class<A1> clazz1, A1 arg1) {
+        return call(returnType, name, new Class[] { clazz0, clazz1 }, new Object[] { arg0, arg1 });
+    }
+
+    public <T, A0, A1, A2> T call(Class<T> returnType, String name, Class<A0> clazz0, A0 arg0, Class<A1> clazz1, A1 arg1, Class<A2> clazz2, A2 arg2) {
+        return call(returnType, name, new Class[] { clazz0, clazz1, clazz2 }, new Object[] { arg0, arg1, arg2 });
+    }
+
     /**
      * Create a Java proxy instance of this Python object which contains compatible methods to the ones provided in the
      * interface given by the {@code type} parameter.
@@ -466,7 +552,7 @@ public class PyObject {
      * @see #getPointer()
      */
     public final String repr() {
-	    return PyLib.repr(pointer);
+	    return PyLib.repr(getPointer());
     }
 
     /**
@@ -474,7 +560,7 @@ public class PyObject {
      * @return The String representation of this object.
      */
     public final String str() {
-        return PyLib.str(pointer);
+        return PyLib.str(getPointer());
     }
 
     /**
@@ -482,11 +568,11 @@ public class PyObject {
      * @return The hash.
      */
     public final long hash() {
-        return PyLib.hash(pointer);
+        return PyLib.hash(getPointer());
     }
 
     public final boolean eq(Object other) {
-        return PyLib.eq(pointer, other);
+        return PyLib.eq(getPointer(), other);
     }
 
     /**
@@ -505,7 +591,7 @@ public class PyObject {
             return false;
         }
         PyObject pyObject = (PyObject) o;
-        return pointer == pyObject.pointer;
+        return getPointer() == pyObject.getPointer();
     }
 
     /**
@@ -516,6 +602,7 @@ public class PyObject {
      */
     @Override
     public final int hashCode() {
+        final long pointer = getPointer();
         return (int) (pointer ^ (pointer >>> 32));
     }
 }

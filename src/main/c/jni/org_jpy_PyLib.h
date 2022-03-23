@@ -17,27 +17,27 @@ JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_isPythonRunning
 
 /*
  * Class:     org_jpy_PyLib
+ * Method:    startPython0
+ * Signature: ([Ljava/lang/String;)Z
+ */
+JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_startPython0
+  (JNIEnv *, jclass, jobjectArray);
+
+/*
+ * Class:     org_jpy_PyLib
  * Method:    setPythonHome
  * Signature: (Ljava/lang/String;)Z
  */
-JNIEXPORT jint JNICALL Java_org_jpy_PyLib_setPythonHome
-  (JNIEnv* jenv, jclass jLibClass, jstring jPythonHome);
+JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_setPythonHome
+  (JNIEnv *, jclass, jstring);
 
 /*
  * Class:     org_jpy_PyLib
  * Method:    setProgramName
  * Signature: (Ljava/lang/String;)Z
  */
-JNIEXPORT jint JNICALL Java_org_jpy_PyLib_setProgramName
-  (JNIEnv* jenv, jclass jLibClass, jstring jProgramName);
-
-/*
- * Class:     org_jpy_PyLib
- * Method:    startPython0
- * Signature: ([Ljava/lang/String;)Z
- */
-JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_startPython0
-  (JNIEnv *, jclass, jobjectArray);
+JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_setProgramName
+  (JNIEnv *, jclass, jstring);
 
 /*
  * Class:     org_jpy_PyLib
@@ -89,18 +89,18 @@ JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_getMainGlobals
 
 /*
  * Class:     org_jpy_PyLib
- * Method:    getCurrentLocals
- * Signature: ()Lorg/jpy/PyObject;
- */
-JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_getCurrentLocals
-  (JNIEnv *, jclass);
-
-/*
- * Class:     org_jpy_PyLib
  * Method:    getCurrentGlobals
  * Signature: ()Lorg/jpy/PyObject;
  */
 JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_getCurrentGlobals
+  (JNIEnv *, jclass);
+
+/*
+ * Class:     org_jpy_PyLib
+ * Method:    getCurrentLocals
+ * Signature: ()Lorg/jpy/PyObject;
+ */
+JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_getCurrentLocals
   (JNIEnv *, jclass);
 
 /*
@@ -126,6 +126,14 @@ JNIEXPORT void JNICALL Java_org_jpy_PyLib_incRef
  */
 JNIEXPORT void JNICALL Java_org_jpy_PyLib_decRef
   (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     org_jpy_PyLib
+ * Method:    decRefs
+ * Signature: ([JI)V
+ */
+JNIEXPORT void JNICALL Java_org_jpy_PyLib_decRefs
+  (JNIEnv *, jclass, jlongArray, jint);
 
 /*
  * Class:     org_jpy_PyLib
@@ -257,6 +265,30 @@ JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_pyCallableCheck
 
 /*
  * Class:     org_jpy_PyLib
+ * Method:    pyFunctionCheck
+ * Signature: (J)Z
+ */
+JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_pyFunctionCheck
+  (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     org_jpy_PyLib
+ * Method:    pyModuleCheck
+ * Signature: (J)Z
+ */
+JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_pyModuleCheck
+  (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     org_jpy_PyLib
+ * Method:    pyTupleCheck
+ * Signature: (J)Z
+ */
+JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_pyTupleCheck
+  (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     org_jpy_PyLib
  * Method:    getType
  * Signature: (J)J
  */
@@ -382,6 +414,14 @@ JNIEXPORT void JNICALL Java_org_jpy_PyLib_delAttribute
  */
 JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_hasAttribute
   (JNIEnv *, jclass, jlong, jstring);
+
+/*
+ * Class:     org_jpy_PyLib
+ * Method:    hasGil
+ * Signature: ()Z
+ */
+JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_hasGil
+  (JNIEnv *, jclass);
 
 /*
  * Class:     org_jpy_PyLib
