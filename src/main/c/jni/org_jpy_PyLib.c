@@ -166,9 +166,9 @@ JNIEXPORT jint JNICALL Java_org_jpy_PyLib_setPythonHome
             else {
                 PyMem_RawFree(pythonHome);
             }
-               
+
         }
-          
+
         #elif defined(JPY_COMPAT_27)
         pythonHome = nonWidePythonHome;
         if (strlen(pythonHome) < MAX_PYTHON_HOME) {
@@ -176,10 +176,10 @@ JNIEXPORT jint JNICALL Java_org_jpy_PyLib_setPythonHome
             result = 1;
         }
         #endif
-        
+
         if (result) {
             Py_SetPythonHome(staticPythonHome);
-    
+
             #if defined(JPY_COMPAT_35P)
             PyMem_RawFree(pythonHome);
             #endif
@@ -539,6 +539,56 @@ JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_getMainGlobals
 
     return objectRef;
 }
+
+JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_getCurrentGlobals
+        (JNIEnv *jenv, jclass libClass) {
+    jobject objectRef;
+    PyObject *globals;
+
+    JPy_BEGIN_GIL_STATE
+
+    globals = PyEval_GetGlobals();
+
+    if (globals == NULL) {
+        objectRef = NULL;
+        goto error;
+    }
+
+    if (JType_ConvertPythonToJavaObject(jenv, JPy_JPyObject, globals, &objectRef, JNI_FALSE) < 0) {
+        objectRef = NULL;
+        goto error;
+    }
+
+error:
+    JPy_END_GIL_STATE
+
+    return objectRef;
+}
+
+JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_getCurrentLocals
+        (JNIEnv *jenv, jclass libClass) {
+    PyObject *locals;
+    jobject objectRef;
+
+    JPy_BEGIN_GIL_STATE
+
+    locals = PyEval_GetLocals();
+    if (locals == NULL) {
+        objectRef = NULL;
+        goto error;
+    }
+
+    if (JType_ConvertPythonToJavaObject(jenv, JPy_JPyObject, locals, &objectRef, JNI_FALSE) < 0) {
+        objectRef = NULL;
+        goto error;
+    }
+
+error:
+    JPy_END_GIL_STATE
+
+    return objectRef;
+}
+
 
 JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_copyDict
         (JNIEnv *jenv, jclass libClass, jlong pyPointer) {
