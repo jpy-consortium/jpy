@@ -33,6 +33,9 @@ extern "C" {
 #if PY_MINOR_VERSION >= 5
 #define JPY_COMPAT_35P 1
 #endif
+#if PY_MINOR_VERSION >= 9
+#define JPY_COMPAT_39P 1
+#endif
 #undef JPY_COMPAT_27
 #else
 #error JPY_VERSION_ERROR
