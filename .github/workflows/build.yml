@@ -8,39 +8,14 @@ on:
 
 jobs:
   bdist-wheel:
-    runs-on: ${{ matrix.info.machine }}
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
-        info:
-          - { machine: 'ubuntu-18.04', python: '3.4',  pythonArchitecture: 'x64', arch: 'amd64' }
-          - { machine: 'ubuntu-20.04', python: '3.5',  pythonArchitecture: 'x64', arch: 'amd64' }
-          - { machine: 'ubuntu-20.04', python: '3.6',  pythonArchitecture: 'x64', arch: 'amd64' }
-          - { machine: 'ubuntu-20.04', python: '3.7',  pythonArchitecture: 'x64', arch: 'amd64' }
-          - { machine: 'ubuntu-20.04', python: '3.8',  pythonArchitecture: 'x64', arch: 'amd64' }
-          - { machine: 'ubuntu-20.04', python: '3.9',  pythonArchitecture: 'x64', arch: 'amd64' }
-          - { machine: 'ubuntu-20.04', python: '3.10', pythonArchitecture: 'x64', arch: 'amd64' }
-          # Can't get 3.4 win build
-          #- { machine: 'windows-2016', python: '3.4', pythonArchitecture: 'x64', arch: 'amd64' }
-          - { machine: 'windows-2019', python: '3.5',  pythonArchitecture: 'x64', arch: 'amd64' }
-          - { machine: 'windows-2022', python: '3.6',  pythonArchitecture: 'x64', arch: 'amd64' }
-          - { machine: 'windows-2022', python: '3.7',  pythonArchitecture: 'x64', arch: 'amd64' }
-          - { machine: 'windows-2022', python: '3.8',  pythonArchitecture: 'x64', arch: 'amd64' }
-          - { machine: 'windows-2022', python: '3.9',  pythonArchitecture: 'x64', arch: 'amd64' }
-          - { machine: 'windows-2022', python: '3.10', pythonArchitecture: 'x64', arch: 'amd64' }
-          # Produces wheels compatible with 10.15+
-          - { machine: 'macos-11', python: '3.7', pythonArchitecture: 'x64', arch: 'amd64' }
-          - { machine: 'macos-11', python: '3.8', pythonArchitecture: 'x64', arch: 'amd64' }
-          - { machine: 'macos-11', python: '3.9', pythonArchitecture: 'x64', arch: 'amd64' }
-          - { machine: 'macos-11', python: '3.10', pythonArchitecture: 'x64', arch: 'amd64' }
+        os: [ubuntu-20.04, windows-2022, macos-11]
 
     steps:
       - uses: actions/checkout@v3
-
-      - uses: actions/setup-python@v3
-        with:
-          python-version: ${{ matrix.info.python }}
-          architecture: ${{ matrix.info.pythonArchitecture }}
 
       - uses: actions/setup-java@v3
         id: setup-java
@@ -48,27 +23,11 @@ jobs:
           distribution: 'temurin'
           java-version: '8'
 
-      - run: pip install -r .github/requirements.txt
-
-      - run: python setup.py bdist_wheel
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.6.0
 
       - uses: actions/upload-artifact@v3
         with:
-          name: build-${{ matrix.info.python }}-${{ matrix.info.machine }}-${{ matrix.info.arch }}
-          path: dist/*.whl
+          path: wheelhouse/*.whl
           retention-days: 1
 
-  collect-wheels:
-    runs-on: 'ubuntu-20.04'
-    needs: ['bdist-wheel']
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/download-artifact@v3
-        with:
-          path: download-wheels
-      - name: collect-wheels.sh
-        run: .github/scripts/collect-wheels.sh
-      - uses: actions/upload-artifact@v2
-        with:
-          name: jpy
-          path: collect-wheels

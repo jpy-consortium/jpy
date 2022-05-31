@@ -317,6 +317,7 @@ class JpyInstall(install):
 
 
 setup(name='jpy',
+      python_requires=">=3.7",
       description='Bi-directional Python-Java bridge',
       long_description=_read('README.md') + '\n\n' + _read('CHANGES.md'),
       version=__version__,
@@ -363,11 +364,8 @@ setup(name='jpy',
                    # Pick your license as you wish (should match "license" above)
                    'License :: OSI Approved :: Apache Software License',
 
-                   # Specify the Python versions you support here. In particular, ensure
-                   # that you indicate whether you support Python 2, Python 3 or both.
-                   'Programming Language :: Python :: 3.4',
-                   'Programming Language :: Python :: 3.5',
-                   'Programming Language :: Python :: 3.6',
                    'Programming Language :: Python :: 3.7',
-                   'Programming Language :: Python :: 3.8'
+                   'Programming Language :: Python :: 3.8',
+                   'Programming Language :: Python :: 3.9',
+                   'Programming Language :: Python :: 3.10'
                    ])
