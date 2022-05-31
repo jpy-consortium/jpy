@@ -13,6 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         info:
+          # Linux amd64
           - { machine: 'ubuntu-18.04', python: '3.4',  pythonArchitecture: 'x64', arch: 'amd64' }
           - { machine: 'ubuntu-20.04', python: '3.5',  pythonArchitecture: 'x64', arch: 'amd64' }
           - { machine: 'ubuntu-20.04', python: '3.6',  pythonArchitecture: 'x64', arch: 'amd64' }
@@ -20,6 +21,14 @@ jobs:
           - { machine: 'ubuntu-20.04', python: '3.8',  pythonArchitecture: 'x64', arch: 'amd64' }
           - { machine: 'ubuntu-20.04', python: '3.9',  pythonArchitecture: 'x64', arch: 'amd64' }
           - { machine: 'ubuntu-20.04', python: '3.10', pythonArchitecture: 'x64', arch: 'amd64' }
+
+          # Linux x86
+          - { machine: 'ubuntu-20.04', python: '3.7',  pythonArchitecture: 'x86', arch: 'x86' }
+          - { machine: 'ubuntu-20.04', python: '3.8',  pythonArchitecture: 'x86', arch: 'x86' }
+          - { machine: 'ubuntu-20.04', python: '3.9',  pythonArchitecture: 'x86', arch: 'x86' }
+          - { machine: 'ubuntu-20.04', python: '3.10', pythonArchitecture: 'x86', arch: 'x86' }
+
+          # Windows amd64
           # Can't get 3.4 win build
           #- { machine: 'windows-2016', python: '3.4', pythonArchitecture: 'x64', arch: 'amd64' }
           - { machine: 'windows-2019', python: '3.5',  pythonArchitecture: 'x64', arch: 'amd64' }
@@ -28,6 +37,12 @@ jobs:
           - { machine: 'windows-2022', python: '3.8',  pythonArchitecture: 'x64', arch: 'amd64' }
           - { machine: 'windows-2022', python: '3.9',  pythonArchitecture: 'x64', arch: 'amd64' }
           - { machine: 'windows-2022', python: '3.10', pythonArchitecture: 'x64', arch: 'amd64' }
+
+          # Windows x86
+          - { machine: 'windows-2022', python: '3.7',  pythonArchitecture: 'x86', arch: 'x86' }
+          - { machine: 'windows-2022', python: '3.8',  pythonArchitecture: 'x86', arch: 'x86' }
+          - { machine: 'windows-2022', python: '3.9',  pythonArchitecture: 'x86', arch: 'x86' }
+          - { machine: 'windows-2022', python: '3.10', pythonArchitecture: 'x86', arch: 'x86' }
           # macos-11 gcc errors
 
     steps:
