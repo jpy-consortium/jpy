@@ -66,6 +66,8 @@ static PyMethodDef JPy_Functions[] = {
     {NULL, NULL, 0, NULL} /*Sentinel*/
 };
 
+void JPy_free_ptr(void* unused);
+
 #define JPY_MODULE_NAME "jpy"
 #define JPY_MODULE_DOC  "Bi-directional Python-Java Bridge"
 
