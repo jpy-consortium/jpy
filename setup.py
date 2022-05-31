@@ -42,6 +42,7 @@ base_dir = os.path.dirname(os.path.relpath(__file__))
 src_main_c_dir = os.path.join(base_dir, 'src', 'main', 'c')
 src_test_py_dir = os.path.join(base_dir, 'src', 'test', 'python')
 
+is_ci = os.environ.get('CI') == 'true'
 
 sources = [
     os.path.join(src_main_c_dir, 'jpy_module.c'),
@@ -219,6 +220,10 @@ def _write_jpy_config(target_dir=None, install_dir=None):
     Write out a well-formed jpyconfig.properties file for easier Java
     integration in a given location.
     """
+    if is_ci:
+        # We don't want to publish the properties for the CI build system.
+        return None
+
     if not target_dir:
         target_dir = _build_dir()
 
