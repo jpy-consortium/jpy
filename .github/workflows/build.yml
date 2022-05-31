@@ -66,3 +66,18 @@ jobs:
         with:
           name: build-${{ matrix.info.python }}-${{ matrix.info.machine }}-${{ matrix.info.arch }}
           path: dist/*.whl
+          retention-days: 1
+
+  collect-wheels:
+    runs-on: 'ubuntu-20.04'
+    needs: ['bdist-wheel']
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          path: download-wheels
+      - name: collect-wheels.sh
+        run: .github/scripts/collect-wheels.sh
+      - uses: actions/upload-artifact@v2
+        with:
+          name: jpy
+          path: collect-wheels
