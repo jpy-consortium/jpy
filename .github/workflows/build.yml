@@ -28,7 +28,21 @@ jobs:
           - { machine: 'windows-2022', python: '3.8',  pythonArchitecture: 'x64', arch: 'amd64' }
           - { machine: 'windows-2022', python: '3.9',  pythonArchitecture: 'x64', arch: 'amd64' }
           - { machine: 'windows-2022', python: '3.10', pythonArchitecture: 'x64', arch: 'amd64' }
-          # macos-11 gcc errors
+          
+          - { machine: 'macos-10.15', python: '3.7', pythonArchitecture: 'x64', arch: 'amd64' }
+          - { machine: 'macos-10.15', python: '3.8', pythonArchitecture: 'x64', arch: 'amd64' }
+          - { machine: 'macos-10.15', python: '3.9', pythonArchitecture: 'x64', arch: 'amd64' }
+          - { machine: 'macos-10.15', python: '3.10', pythonArchitecture: 'x64', arch: 'amd64' }
+
+          - { machine: 'macos-11', python: '3.7', pythonArchitecture: 'x64', arch: 'amd64' }
+          - { machine: 'macos-11', python: '3.8', pythonArchitecture: 'x64', arch: 'amd64' }
+          - { machine: 'macos-11', python: '3.9', pythonArchitecture: 'x64', arch: 'amd64' }
+          - { machine: 'macos-11', python: '3.10', pythonArchitecture: 'x64', arch: 'amd64' }
+
+          - { machine: 'macos-12', python: '3.7', pythonArchitecture: 'x64', arch: 'amd64' }
+          - { machine: 'macos-12', python: '3.8', pythonArchitecture: 'x64', arch: 'amd64' }
+          - { machine: 'macos-12', python: '3.9', pythonArchitecture: 'x64', arch: 'amd64' }
+          - { machine: 'macos-12', python: '3.10', pythonArchitecture: 'x64', arch: 'amd64' }
 
     steps:
       - uses: actions/checkout@v3

@@ -66,7 +66,7 @@ static PyMethodDef JPy_Functions[] = {
     {NULL, NULL, 0, NULL} /*Sentinel*/
 };
 
-void JPy_free(void* unused);
+void JPy_free_ptr(void* unused);
 
 #define JPY_MODULE_NAME "jpy"
 #define JPY_MODULE_DOC  "Bi-directional Python-Java Bridge"
@@ -79,10 +79,10 @@ static struct PyModuleDef JPy_ModuleDef =
     JPY_MODULE_DOC,    /* Module documentation */
     -1,                /* Size of per-interpreter state of the JPy_Module, or -1 if the JPy_Module keeps state in global variables. */
     JPy_Functions,     /* Structure containing global jpy-functions */
-    NULL,     // m_reload
-    NULL,     // m_traverse
-    NULL,     // m_clear
-    JPy_free  // m_free
+    NULL,         // m_reload
+    NULL,         // m_traverse
+    NULL,         // m_clear
+    JPy_free_ptr  // m_free
 };
 #endif
 
@@ -1284,7 +1284,7 @@ void JPy_HandleJavaException(JNIEnv* jenv)
     }
 }
 
-void JPy_free(void* unused)
+void JPy_free()
 {
     JPy_DIAG_PRINT(JPy_DIAG_F_ALL, "JPy_free: freeing module data...\n");
     JPy_ClearGlobalVars(NULL);
@@ -1298,3 +1298,7 @@ void JPy_free(void* unused)
     JPy_DIAG_PRINT(JPy_DIAG_F_ALL, "JPy_free: done freeing module data\n");
 }
 
+void JPy_free_ptr(void* unused)
+{
+    JPy_free();
+}
