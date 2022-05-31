@@ -1,6 +1,10 @@
 name: Build JPY wheels
 
-on: push
+on:
+  pull_request:
+    branches: [ 'master' ]
+  push:
+    branches: [ 'master' ]
 
 jobs:
   bdist-wheel:
@@ -48,4 +52,3 @@ jobs:
         with:
           name: build-${{ matrix.info.python }}-${{ matrix.info.machine }}-${{ matrix.info.arch }}
           path: dist/*.whl
-          retention-days: 1
