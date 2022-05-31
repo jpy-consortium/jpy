@@ -81,6 +81,8 @@ JNIEnv* JPy_GetJNIEnv(void);
 int JPy_InitGlobalVars(JNIEnv* jenv);
 void JPy_ClearGlobalVars(JNIEnv* jenv);
 
+void JPy_free(void* unused);
+
 /**
  * Gets the current JNI environment pointer JENV. If this is NULL, it returns the given RET_VALUE.
  * Warning: This method may immediately return, so make sure there will be no memory leaks in this case.
