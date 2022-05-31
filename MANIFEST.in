@@ -1,5 +1,6 @@
 include *.txt
 include *.xml
+include *.md
 include doc/make.bat
 include doc/Makefile
 include lib/*.jar
