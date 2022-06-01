@@ -65,17 +65,17 @@ jobs:
           path: dist/*.whl
           retention-days: 1
 
-  collect-wheels:
+  collect-artifacts:
     runs-on: 'ubuntu-20.04'
-    needs: ['bdist-wheel']
+    needs: ['sdist', 'bdist-wheel']
     steps:
       - uses: actions/checkout@v3
       - uses: actions/download-artifact@v3
         with:
-          path: download-wheels
-      - name: collect-wheels.sh
-        run: .github/scripts/collect-wheels.sh
+          path: download-artifacts
+      - name: collect-artifacts.sh
+        run: .github/scripts/collect-artifacts.sh
       - uses: actions/upload-artifact@v2
         with:
           name: jpy
-          path: collect-wheels
+          path: collect-artifacts
