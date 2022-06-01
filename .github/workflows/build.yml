@@ -13,26 +13,18 @@ jobs:
       fail-fast: false
       matrix:
         info:
-          - { machine: 'ubuntu-18.04', python: '3.4',  pythonArchitecture: 'x64', arch: 'amd64' }
-          - { machine: 'ubuntu-20.04', python: '3.5',  pythonArchitecture: 'x64', arch: 'amd64' }
-          - { machine: 'ubuntu-20.04', python: '3.6',  pythonArchitecture: 'x64', arch: 'amd64' }
-          - { machine: 'ubuntu-20.04', python: '3.7',  pythonArchitecture: 'x64', arch: 'amd64' }
-          - { machine: 'ubuntu-20.04', python: '3.8',  pythonArchitecture: 'x64', arch: 'amd64' }
-          - { machine: 'ubuntu-20.04', python: '3.9',  pythonArchitecture: 'x64', arch: 'amd64' }
-          - { machine: 'ubuntu-20.04', python: '3.10', pythonArchitecture: 'x64', arch: 'amd64' }
-          # Can't get 3.4 win build
-          #- { machine: 'windows-2016', python: '3.4', pythonArchitecture: 'x64', arch: 'amd64' }
-          - { machine: 'windows-2019', python: '3.5',  pythonArchitecture: 'x64', arch: 'amd64' }
-          - { machine: 'windows-2022', python: '3.6',  pythonArchitecture: 'x64', arch: 'amd64' }
-          - { machine: 'windows-2022', python: '3.7',  pythonArchitecture: 'x64', arch: 'amd64' }
-          - { machine: 'windows-2022', python: '3.8',  pythonArchitecture: 'x64', arch: 'amd64' }
-          - { machine: 'windows-2022', python: '3.9',  pythonArchitecture: 'x64', arch: 'amd64' }
-          - { machine: 'windows-2022', python: '3.10', pythonArchitecture: 'x64', arch: 'amd64' }
-          # Produces wheels compatible with 10.15+
-          - { machine: 'macos-11', python: '3.7', pythonArchitecture: 'x64', arch: 'amd64' }
-          - { machine: 'macos-11', python: '3.8', pythonArchitecture: 'x64', arch: 'amd64' }
-          - { machine: 'macos-11', python: '3.9', pythonArchitecture: 'x64', arch: 'amd64' }
-          - { machine: 'macos-11', python: '3.10', pythonArchitecture: 'x64', arch: 'amd64' }
+          - { machine: 'ubuntu-20.04', python: '3.7',  pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/Linux/bdist-wheel.sh' }
+          - { machine: 'ubuntu-20.04', python: '3.8',  pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/Linux/bdist-wheel.sh' }
+          - { machine: 'ubuntu-20.04', python: '3.9',  pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/Linux/bdist-wheel.sh' }
+          - { machine: 'ubuntu-20.04', python: '3.10', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/Linux/bdist-wheel.sh' }
+          - { machine: 'windows-2022', python: '3.7',  pythonArchitecture: 'x64', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.8',  pythonArchitecture: 'x64', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.9',  pythonArchitecture: 'x64', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.10', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'macos-11', python: '3.7', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-11', python: '3.8', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-11', python: '3.9', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-11', python: '3.10', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
 
     steps:
       - uses: actions/checkout@v3
@@ -48,9 +40,7 @@ jobs:
           distribution: 'temurin'
           java-version: '8'
 
-      - run: pip install -r .github/requirements.txt
-
-      - run: python setup.py bdist_wheel
+      - run: ${{ matrix.info.cmd }}
 
       - uses: actions/upload-artifact@v3
         with:
