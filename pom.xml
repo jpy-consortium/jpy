@@ -42,7 +42,7 @@
         </license>
     </licenses>
 
-    <url>https://github.com/bcdev/jpy</url>
+    <url>https://github.com/jpy-consortium/jpy</url>
     <inceptionYear>2014</inceptionYear>
 
     <organization>
@@ -76,14 +76,14 @@
     </contributors>
 
     <scm>
-        <connection>scm:git:git@github.com:bcdev/jpy.git</connection>
-        <developerConnection>scm:git:git@github.com:bcdev/jpy.git</developerConnection>
-        <url>git@github.com:bcdev/jpy.git</url>
+        <connection>scm:git:git@github.com:jpy-consortium/jpy.git</connection>
+        <developerConnection>scm:git:git@github.com:jpy-consortium/jpy.git</developerConnection>
+        <url>git@github.com:jpy-consortium/jpy.git</url>
     </scm>
 
     <issueManagement>
         <system>GitHub</system>
-        <url>https://github.com/bcdev/jpy/issues</url>
+        <url>https://github.com/jpy-consortium/jpy/issues</url>
     </issueManagement>
 
     <dependencies>

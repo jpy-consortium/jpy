@@ -1,6 +1,4 @@
-[![Build Status](https://ci.appveyor.com/api/projects/status/ywkcey4nlt0avasf?svg=true)](https://ci.appveyor.com/project/bcdev/jpy)
-[![Documentation Status](https://readthedocs.org/projects/jpy/badge/?version=latest)](http://jpy.readthedocs.org/en/latest/?badge=latest)
-
+![Build Status](https://github.com/jpy-consortium/jpy/actions/workflows/build.yml/badge.svg?branch=master)
 
 
 jpy - a Python-Java Bridge
@@ -39,8 +37,8 @@ extension code must be able to call back into the Java APIs.
 For more information please have a look into jpy's
 
 * [documentation](http://jpy.readthedocs.org/en/latest/)
-* [source repository](https://github.com/bcdev/jpy)
-* [issue tracker](https://github.com/bcdev/jpy/issues?state=open)
+* [source repository](https://github.com/jpy-consortium/jpy)
+* [issue tracker](https://github.com/jpy-consortium/jpy/issues?state=open)
 
 How to build wheels for Linux and Mac
 -------------------------------------
