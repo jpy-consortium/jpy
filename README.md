@@ -38,7 +38,7 @@ For more information please have a look into jpy's
 
 * [documentation](http://jpy.readthedocs.org/en/latest/)
 * [source repository](https://github.com/jpy-consortium/jpy)
-* [issue tracker](https://github.com/consortium/jpy/issues?state=open)
+* [issue tracker](https://github.com/jpy-consortium/jpy/issues?state=open)
 
 How to build wheels for Linux and Mac
 -------------------------------------
