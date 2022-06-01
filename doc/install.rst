@@ -15,13 +15,13 @@ After successful installation you will be able
 Getting the Sources
 *******************
 
-The first step is to clone the jpy repository or download the sources from the `jpy Project page <https://github.com/bcdev/jpy>`_.
+The first step is to clone the jpy repository or download the sources from the `jpy Project page <https://github.com/jpy-consortium/jpy>`_.
 We recommend you clone the repository using the `git <http://git-scm.com/>`_ tool::
 
-    git clone https://github.com/bcdev/jpy.git
+    git clone https://github.com/jpy-consortium/jpy.git
 
 If you don't want to use git, you can also download stable source releases from the
-`jpy releases page <https://github.com/bcdev/jpy/releases>`_ on GitHub.
+`jpy releases page <https://github.com/jpy-consortium/jpy/releases>`_ on GitHub.
 
 In the following it is assumed that the jpy sources are either checked out or unpacked into a directory named ``jpy``.
 

@@ -6,8 +6,8 @@ Tutorial
 Sorry, the jpy tutorial is not yet written. Meanwhile please refer to jpy's Python and Java unit-level tests
 in order to learn how to use jpy. They are located at
 
-* `src/test/python <https://github.com/bcdev/jpy/tree/master/src/test/python>`_
-* `src/test/java <https://github.com/bcdev/jpy/tree/master/src/test/java>`_
+* `src/test/python <https://github.com/jpy-consortium/jpy/tree/master/src/test/python>`_
+* `src/test/java <https://github.com/jpy-consortium/jpy/tree/master/src/test/java>`_
 
 
 *********************
