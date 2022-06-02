@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [ 'master' ]
   push:
-    branches: [ 'master' ]
+    branches: [ 'master', 'release/v*' ]
 
 jobs:
   sdist:
@@ -79,3 +79,18 @@ jobs:
         with:
           name: jpy
           path: collect-artifacts
+
+  release-artifacts:
+    if: ${{ startsWith(github.ref, 'refs/heads/release/v') }}
+    runs-on: 'ubuntu-20.04'
+    needs: ['collect-artifacts']
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: jpy
+          path: dist
+      - name: Publish package to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
