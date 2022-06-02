@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [ 'master' ]
   push:
-    branches: [ 'master' ]
+    branches: [ 'master', 'release/v*' ]
 
 jobs:
   sdist:
@@ -81,6 +81,7 @@ jobs:
           path: collect-artifacts
 
   release-artifacts:
+    if: ${{ startsWith(github.ref, 'refs/heads/release/v') }}
     runs-on: 'ubuntu-20.04'
     needs: ['collect-artifacts']
     steps:
@@ -88,9 +89,8 @@ jobs:
         with:
           name: jpy
           path: dist
-      - name: Publish package to TestPyPI
+      - name: Publish package to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           user: __token__
-          password: pypi-AgENdGVzdC5weXBpLm9yZwIkNzUyYjBiYmYtYjk3Ni00NDk2LTllNGItZmIwYjZmMDU5OWU3AAI0eyJwZXJtaXNzaW9ucyI6IHsicHJvamVjdHMiOiBbImpweSJdfSwgInZlcnNpb24iOiAxfQAABiCD0gnnlb1CozN8sDSUK7fkRbAuiSUq8Raus4B2XEui3A
-          repository_url: https://test.pypi.org/legacy/
+          password: ${{ secrets.PYPI_API_TOKEN }}
