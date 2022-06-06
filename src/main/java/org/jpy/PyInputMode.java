@@ -16,15 +16,13 @@
 
 package org.jpy;
 
-import java.util.Map;
-
 /**
  * Source code input modes for compiling/executing Python source code.
  *
  * @author Norman Fomferra
  * @since 0.8
  * @see PyObject#executeCode(String, PyInputMode)
- * @see PyObject#executeCode(String, PyInputMode, Map, Map)
+ * @see PyObject#executeCode(String, PyInputMode, Object, Object)
  */
 public enum PyInputMode {
     /**
