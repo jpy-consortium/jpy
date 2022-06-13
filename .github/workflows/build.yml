@@ -15,7 +15,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '8'
-      - run: mvn package javadoc:jar source:jar-no-fork
+      - run: mvn jar:jar javadoc:jar source:jar-no-fork
       - uses: actions/upload-artifact@v3
         with:
           name: jars
