@@ -444,13 +444,17 @@ def init_jvm(java_home=None,
                                       config=config)
         logger.debug('Creating JVM with options %s' % repr(jvm_options))
         jpy.create_jvm(options=jvm_options)
-
-        py_lib_initializer = jpy.get_type('org.jpy.PyLibInitializer')
-        py_lib_initializer.initPyLib(
-            _find_python_dll_file(fail=True),
-            _get_module_path('jpy', fail=True),
-            _get_module_path('jdl', fail=True)
-        )
+        try:
+            py_lib_initializer = jpy.get_type('org.jpy.PyLibInitializer')
+            py_lib_initializer.initPyLib(
+                _find_python_dll_file(fail=True),
+                _get_module_path('jpy', fail=True),
+                _get_module_path('jdl', fail=True)
+            )
+        except ValueError:
+            # It's valid to not have jpy.jar on the classpath if you don't expect java to call into python
+            logger.debug("Unable to find org.jpy.PyLibInitializer on classpath")
+            pass
     else:
         jvm_options = None
 
