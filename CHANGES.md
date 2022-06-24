@@ -1,6 +1,11 @@
 # jpy Changelog
 
-## Version 0.10 (in development)
+## Version 0.11.0
+* Publish artifacts to [PyPi](https://pypi.org/project/jpy/). Source tarball and binary wheels for Python 3.6 - 3.10 for Linux, Mac, and Windows (x86_64).
+* Publish release to Maven Central with group id `org.jpyconsortium` and artifact id `jpy`. Java-8 compatible jars.
+* Many more changes.
+
+## Version 0.10
 
 * Add the ability to pass properties and options to write_config_files. These values get passed 
   to the jvm when it is initialized.
