@@ -124,3 +124,9 @@ Contributing
 ------------
 
 For instructions on contributing, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+
+Notes
+-----
+
+Some of the details on this README are out of date. Efforts to improve them will be made in the future.
