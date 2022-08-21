@@ -1,5 +1,7 @@
 # jpy Changelog
 
+## Version 0.11.1.dev0 (in development)
+
 ## Version 0.11.0
 * Publish artifacts to [PyPi](https://pypi.org/project/jpy/). Source tarball and binary wheels for Python 3.6 - 3.10 for Linux, Mac, and Windows (x86_64).
 * Publish release to Maven Central with group id `org.jpyconsortium` and artifact id `jpy`. Java-8 compatible jars.
