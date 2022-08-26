@@ -1,6 +1,6 @@
 # jpy Changelog
 
-## Version 0.11.1.dev0 (in development)
+## Version 0.11.1
 * [#79](https://github.com/jpy-consortium/jpy/issues/79) Produce usable / distributable macosx wheels
 
 ## Version 0.11.0
