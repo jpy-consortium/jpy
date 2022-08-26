@@ -134,9 +134,16 @@ elif platform.system() == 'Linux':
     extra_link_args += ['-Xlinker', '-rpath', jvm_dll_dir]
 elif platform.system() == 'Darwin':
     include_dirs += [os.path.join(jdk_home_dir, 'include', 'darwin')]
-    library_dirs += [os.path.join(sys.exec_prefix, 'lib')]
-    extra_link_args += ['-Xlinker', '-rpath', jvm_dll_dir]
-
+    if is_ci:
+        # This has the effect of removing the non-portable LC_LOAD_DYLIB and LC_RPATH directives for libjvm.dylib from the .so files.
+        # See https://github.com/jpy-consortium/jpy/issues/79 for details.
+        libraries = None
+        library_dirs = None
+    else:
+        # Remove local build workaround for non-portable macOS wheels
+        # TODO: https://github.com/jpy-consortium/jpy/issues/80
+        library_dirs += [os.path.join(sys.exec_prefix, 'lib')]
+        extra_link_args += ['-Xlinker', '-rpath', jvm_dll_dir]
 
 # ----------- Functions -------------
 def _build_dir():

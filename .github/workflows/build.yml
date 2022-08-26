@@ -2,7 +2,7 @@ name: Build JPY distributions
 
 on:
   pull_request:
-    branches: [ 'master' ]
+    branches: [ 'master', 'release/v*' ]
   push:
     branches: [ 'master', 'release/v*' ]
 
