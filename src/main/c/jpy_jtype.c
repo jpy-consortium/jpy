@@ -1938,13 +1938,6 @@ int JType_ConvertVarArgPyArgToJObjectArg(JNIEnv* jenv, JPy_ParamDescriptor* para
             }
 
             itemCount = pyBuffer->len / pyBuffer->itemsize;
-            if (itemCount <= 0) {
-                PyBuffer_Release(pyBuffer);
-                PyMem_Del(pyBuffer);
-                JPy_DECREF(pyArg);
-                PyErr_Format(PyExc_ValueError, "illegal buffer argument: not a positive item count: %ld", itemCount);
-                return -1;
-            }
 
             if (paramComponentType == JPy_JBoolean) {
                 jArray = (*jenv)->NewBooleanArray(jenv, itemCount);
@@ -2281,12 +2274,6 @@ int JType_ConvertPyArgToJObjectArg(JNIEnv* jenv, JPy_ParamDescriptor* paramDescr
             }
 
             itemCount = pyBuffer->len / pyBuffer->itemsize;
-            if (itemCount <= 0) {
-                PyBuffer_Release(pyBuffer);
-                PyMem_Del(pyBuffer);
-                PyErr_Format(PyExc_ValueError, "illegal buffer argument: not a positive item count: %ld", itemCount);
-                return -1;
-            }
 
             if (paramComponentType == JPy_JBoolean) {
                 jArray = (*jenv)->NewBooleanArray(jenv, itemCount);
