@@ -142,6 +142,8 @@ int JType_ResolveType(JNIEnv* jenv, JPy_JType* type);
 
 int JType_AddClassAttribute(JNIEnv* jenv, JPy_JType* type);
 
+#define call_static_method_single_arg(TYPE, METHOD_ID, VALUE) Py_BEGIN_ALLOW_THREADS; *objectRef = (*jenv)->CallStaticObjectMethodA(jenv, TYPE, METHOD_ID, VALUE); Py_END_ALLOW_THREADS; if (*objectRef == NULL) { PyErr_NoMemory(); return -1; } JPy_ON_JAVA_EXCEPTION_RETURN(-1); return 0;
+
 #ifdef __cplusplus
 }  /* extern "C" */
 #endif

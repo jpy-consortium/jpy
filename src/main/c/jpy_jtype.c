@@ -401,61 +401,59 @@ int JType_CreateJavaObject_2(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg, jcl
     return 0;
 }
 
-int JType_CreateJavaBoxedObject(JNIEnv* jenv, jclass boxedType, jmethodID valueOfSMID, jvalue* value, jobject* objectRef)
-{
-    Py_BEGIN_ALLOW_THREADS;
-    *objectRef = (*jenv)->CallStaticObjectMethodA(jenv, boxedType, valueOfSMID, value);
-    Py_END_ALLOW_THREADS;
-    if (*objectRef == NULL) {
-        PyErr_NoMemory();
-        return -1;
-    }
-    JPy_ON_JAVA_EXCEPTION_RETURN(-1);
+#define JType_CallStaticObjectMethodPrimitiveArgAndReturn(TARGET_TYPE, STATIC_METHOD_ID, VALUE, JOBJECT_PTR) \
+    Py_BEGIN_ALLOW_THREADS; \
+    *JOBJECT_PTR = (*jenv)->CallStaticObjectMethod(jenv, TARGET_TYPE, STATIC_METHOD_ID, VALUE); \
+    Py_END_ALLOW_THREADS; \
+    if (*objectRef == NULL) { \
+        PyErr_NoMemory(); \
+        return -1; \
+    } \
+    JPy_ON_JAVA_EXCEPTION_RETURN(-1); \
     return 0;
-}
 
 int JType_CreateJavaBooleanObject(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg, jobject* objectRef)
 {
-    jvalue value;
+    jboolean value;
     if (PyBool_Check(pyArg) || JPy_IS_CLONG(pyArg)) {
-        value.z = JPy_AS_JBOOLEAN(pyArg);
+        value = JPy_AS_JBOOLEAN(pyArg);
     } else {
         return JType_PythonToJavaConversionError(type, pyArg);
     }
-    return JType_CreateJavaBoxedObject(jenv, JPy_Boolean_JClass, JPy_Boolean_ValueOf_SMID, &value, objectRef);
+    JType_CallStaticObjectMethodPrimitiveArgAndReturn(JPy_Boolean_JClass, JPy_Boolean_ValueOf_SMID, value, objectRef);
 }
 
 int JType_CreateJavaCharacterObject(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg, jobject* objectRef)
 {
-    jvalue value;
+    jchar value;
     if (JPy_IS_CLONG(pyArg)) {
-        value.c = JPy_AS_JCHAR(pyArg);
+        value = JPy_AS_JCHAR(pyArg);
     } else {
         return JType_PythonToJavaConversionError(type, pyArg);
     }
-    return JType_CreateJavaBoxedObject(jenv, JPy_Character_JClass, JPy_Character_ValueOf_SMID, &value, objectRef);
+    JType_CallStaticObjectMethodPrimitiveArgAndReturn(JPy_Character_JClass, JPy_Character_ValueOf_SMID, value, objectRef);
 }
 
 int JType_CreateJavaByteObject(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg, jobject* objectRef)
 {
-    jvalue value;
+    jbyte value;
     if (JPy_IS_CLONG(pyArg)) {
-        value.b = JPy_AS_JBYTE(pyArg);
+        value = JPy_AS_JBYTE(pyArg);
     } else {
         return JType_PythonToJavaConversionError(type, pyArg);
     }
-    return JType_CreateJavaBoxedObject(jenv, JPy_Byte_JClass, JPy_Byte_ValueOf_SMID, &value, objectRef);
+    JType_CallStaticObjectMethodPrimitiveArgAndReturn(JPy_Byte_JClass, JPy_Byte_ValueOf_SMID, value, objectRef);
 }
 
 int JType_CreateJavaShortObject(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg, jobject* objectRef)
 {
-    jvalue value;
+    jshort value;
     if (JPy_IS_CLONG(pyArg)) {
-        value.s = JPy_AS_JSHORT(pyArg);
+        value = JPy_AS_JSHORT(pyArg);
     } else {
         return JType_PythonToJavaConversionError(type, pyArg);
     }
-    return JType_CreateJavaBoxedObject(jenv, JPy_Short_JClass, JPy_Short_ValueOf_SMID, &value, objectRef);
+    JType_CallStaticObjectMethodPrimitiveArgAndReturn(JPy_Short_JClass, JPy_Short_ValueOf_SMID, value, objectRef);
 }
 
 int JType_CreateJavaNumberFromPythonInt(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg, jobject* objectRef)
@@ -472,66 +470,66 @@ int JType_CreateJavaNumberFromPythonInt(JNIEnv* jenv, JPy_JType* type, PyObject*
 
     if (i != j) {
         value.j = j;
-        return JType_CreateJavaBoxedObject(jenv, JPy_Long_JClass, JPy_Long_ValueOf_SMID, &value, objectRef);
+        JType_CallStaticObjectMethodPrimitiveArgAndReturn(JPy_Long_JClass, JPy_Long_ValueOf_SMID, value.j, objectRef);
     }
     if (s != i) {
         value.i = i;
-        return JType_CreateJavaBoxedObject(jenv, JPy_Integer_JClass, JPy_Integer_ValueOf_SMID, &value, objectRef);
+        JType_CallStaticObjectMethodPrimitiveArgAndReturn(JPy_Integer_JClass, JPy_Integer_ValueOf_SMID, value.i, objectRef);
     }
     if (b != s) {
         value.s = s;
-        return JType_CreateJavaBoxedObject(jenv, JPy_Short_JClass, JPy_Short_ValueOf_SMID, &value, objectRef);
+        JType_CallStaticObjectMethodPrimitiveArgAndReturn(JPy_Short_JClass, JPy_Short_ValueOf_SMID, value.s, objectRef);
     }
     value.b = b;
-    return JType_CreateJavaBoxedObject(jenv, JPy_Byte_JClass, JPy_Byte_ValueOf_SMID, &value, objectRef);
+    JType_CallStaticObjectMethodPrimitiveArgAndReturn(JPy_Byte_JClass, JPy_Byte_ValueOf_SMID, value.b, objectRef);
 }
 
 int JType_CreateJavaIntegerObject(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg, jobject* objectRef)
 {
-    jvalue value;
+    jint value;
     if (JPy_IS_CLONG(pyArg)) {
-        value.i = JPy_AS_JINT(pyArg);
+        value = JPy_AS_JINT(pyArg);
     } else {
         return JType_PythonToJavaConversionError(type, pyArg);
     }
-    return JType_CreateJavaBoxedObject(jenv, JPy_Integer_JClass, JPy_Integer_ValueOf_SMID, &value, objectRef);
+    JType_CallStaticObjectMethodPrimitiveArgAndReturn(JPy_Integer_JClass, JPy_Integer_ValueOf_SMID, value, objectRef);
 }
 
 int JType_CreateJavaLongObject(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg, jobject* objectRef)
 {
-    jvalue value;
+    jlong value;
     if (JPy_IS_CLONG(pyArg)) {
-        value.j = JPy_AS_JLONG(pyArg);
+        value = JPy_AS_JLONG(pyArg);
     } else {
         return JType_PythonToJavaConversionError(type, pyArg);
     }
-    return JType_CreateJavaBoxedObject(jenv, JPy_Long_JClass, JPy_Long_ValueOf_SMID, &value, objectRef);
+    JType_CallStaticObjectMethodPrimitiveArgAndReturn(JPy_Long_JClass, JPy_Long_ValueOf_SMID, value, objectRef);
 }
 
 int JType_CreateJavaFloatObject(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg, jobject* objectRef)
 {
-    jvalue value;
+    jfloat value;
     if (JPy_IS_CLONG(pyArg)) {
-        value.f = (jfloat) JPy_AS_JLONG(pyArg);
+        value = (jfloat) JPy_AS_JLONG(pyArg);
     } else if (PyFloat_Check(pyArg)) {
-        value.f = JPy_AS_JFLOAT(pyArg);
+        value = JPy_AS_JFLOAT(pyArg);
     } else {
         return JType_PythonToJavaConversionError(type, pyArg);
     }
-    return JType_CreateJavaBoxedObject(jenv, JPy_Float_JClass, JPy_Float_ValueOf_SMID, &value, objectRef);
+    JType_CallStaticObjectMethodPrimitiveArgAndReturn(JPy_Float_JClass, JPy_Float_ValueOf_SMID, value, objectRef);
 }
 
 int JType_CreateJavaDoubleObject(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg, jobject* objectRef)
 {
-    jvalue value;
+    jdouble value;
     if (JPy_IS_CLONG(pyArg)) {
-        value.d = (jdouble) JPy_AS_JLONG(pyArg);
+        value = (jdouble) JPy_AS_JLONG(pyArg);
     } else if (PyFloat_Check(pyArg)) {
-        value.d = JPy_AS_JDOUBLE(pyArg);
+        value = JPy_AS_JDOUBLE(pyArg);
     } else {
         return JType_PythonToJavaConversionError(type, pyArg);
     }
-    return JType_CreateJavaBoxedObject(jenv, JPy_Double_JClass, JPy_Double_ValueOf_SMID, &value, objectRef);
+    JType_CallStaticObjectMethodPrimitiveArgAndReturn(JPy_Double_JClass, JPy_Double_ValueOf_SMID, value, objectRef);
 }
 
 int JType_CreateJavaPyObject(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg, jobject* objectRef)
