@@ -38,6 +38,7 @@ PyObject* JPy_create_jvm(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* JPy_destroy_jvm(PyObject* self, PyObject* args);
 PyObject* JPy_get_type(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* JPy_cast(PyObject* self, PyObject* args);
+PyObject* JPy_as_jobj(PyObject* self, PyObject* args);
 PyObject* JPy_array(PyObject* self, PyObject* args);
 PyObject* JPy_byte_buffer(PyObject* self, PyObject* args);
 
@@ -60,6 +61,11 @@ static PyMethodDef JPy_Functions[] = {
     {"cast",        JPy_cast, METH_VARARGS,
                     "cast(obj, type) - Cast the given Java object to the given Java type (type name or type object). "
                     "Returns None if the cast is not possible."},
+
+    {"as_jobj",     JPy_as_jobj, METH_VARARGS,
+                    "as_jobj(obj, type) - Convert the given Python object to the given Java type (type name or type object). "
+                    "Returns None if the conversion is not possible. If the Java type is a primitive, the returned object "
+                    "will be of the corresponding boxed type."},
 
     {"array",       JPy_array, METH_VARARGS,
                     "array(name, init) - Return a new Java array of given Java type (type name or type object) and initializer (array length or sequence). "
@@ -592,6 +598,48 @@ PyObject* JPy_cast_internal(JNIEnv* jenv, PyObject* self, PyObject* args)
 PyObject* JPy_cast(PyObject* self, PyObject* args)
 {
     JPy_FRAME(PyObject*, NULL, JPy_cast_internal(jenv, self, args), 16)
+}
+
+PyObject* JPy_as_jobj_internal(JNIEnv* jenv, PyObject* self, PyObject* args)
+{
+    PyObject* obj;
+    PyObject* objType;
+    JPy_JType* type;
+
+    jobject objectRef;
+
+    if (!PyArg_ParseTuple(args, "OO:as_jobj", &obj, &objType)) {
+        return NULL;
+    }
+
+    if (obj == Py_None) {
+        return Py_BuildValue("");
+    }
+
+    obj = (JPy_JObj*) PyObject_New(JPy_JObj, JTYPE_AS_PYTYPE(type));
+    if (obj == NULL) {
+        return NULL;
+    }
+
+    if (JPy_AsJObjectWithType(jenv,  obj, &objectRef, type) < 0) {
+        return NULL;
+    }
+
+    objectRef = (*jenv)->NewGlobalRef(jenv, objectRef);
+    if (objectRef == NULL) {
+        PyErr_NoMemory();
+        return NULL;
+    }
+
+    ((JPy_JObj*) obj)->objectRef = objectRef;
+
+    return (PyObject*) obj;
+}
+
+
+PyObject* JPy_as_jobj(PyObject* self, PyObject* args)
+{
+    JPy_FRAME(PyObject*, NULL, JPy_as_jobj_internal(jenv, self, args), 16)
 }
 
 PyObject* JPy_array_internal(JNIEnv* jenv, PyObject* self, PyObject* args)
