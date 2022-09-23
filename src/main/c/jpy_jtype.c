@@ -531,7 +531,6 @@ int JType_CreateJavaDoubleObject(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg,
     } else {
         return JType_PythonToJavaConversionError(type, pyArg);
     }
-
     return JType_CreateJavaBoxedObject(jenv, JPy_Double_JClass, JPy_Double_ValueOf_SMID, &value, objectRef);
 }
 
