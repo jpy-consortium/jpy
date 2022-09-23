@@ -194,29 +194,37 @@ jclass JPy_StopIteration_JClass = NULL;
 // java.lang.Boolean
 jclass JPy_Boolean_JClass = NULL;
 jmethodID JPy_Boolean_Init_MID = NULL;
+jmethodID JPy_Boolean_ValueOf_SMID = NULL;
 jmethodID JPy_Boolean_BooleanValue_MID = NULL;
 
 jclass JPy_Character_JClass = NULL;
 jmethodID JPy_Character_Init_MID;
+jmethodID JPy_Character_ValueOf_SMID;
 jmethodID JPy_Character_CharValue_MID = NULL;
 
 jclass JPy_Byte_JClass = NULL;
 jmethodID JPy_Byte_Init_MID = NULL;
+jmethodID JPy_Byte_ValueOf_SMID = NULL;
 
 jclass JPy_Short_JClass = NULL;
 jmethodID JPy_Short_Init_MID = NULL;
+jmethodID JPy_Short_ValueOf_SMID = NULL;
 
 jclass JPy_Integer_JClass = NULL;
 jmethodID JPy_Integer_Init_MID = NULL;
+jmethodID JPy_Integer_ValueOf_SMID = NULL;
 
 jclass JPy_Long_JClass = NULL;
 jmethodID JPy_Long_Init_MID = NULL;
+jmethodID JPy_Long_ValueOf_SMID = NULL;
 
 jclass JPy_Float_JClass = NULL;
 jmethodID JPy_Float_Init_MID = NULL;
+jmethodID JPy_Float_ValueOf_SMID = NULL;
 
 jclass JPy_Double_JClass = NULL;
 jmethodID JPy_Double_Init_MID = NULL;
+jmethodID JPy_Double_ValueOf_SMID = NULL;
 
 // java.lang.Number
 jclass JPy_Number_JClass = NULL;
@@ -891,31 +899,39 @@ int JPy_InitGlobalVars(JNIEnv* jenv)
 
     DEFINE_CLASS(JPy_Boolean_JClass, "java/lang/Boolean");
     DEFINE_METHOD(JPy_Boolean_Init_MID, JPy_Boolean_JClass, "<init>", "(Z)V");
+    DEFINE_STATIC_METHOD(JPy_Boolean_ValueOf_SMID, JPy_Boolean_JClass, "valueOf", "(Z)Ljava/lang/Boolean;");
     DEFINE_METHOD(JPy_Boolean_BooleanValue_MID, JPy_Boolean_JClass, "booleanValue", "()Z");
 
     DEFINE_CLASS(JPy_Character_JClass, "java/lang/Character");
     DEFINE_METHOD(JPy_Character_Init_MID, JPy_Character_JClass, "<init>", "(C)V");
+    DEFINE_STATIC_METHOD(JPy_Character_ValueOf_SMID, JPy_Character_JClass, "valueOf", "(C)Ljava/lang/Character;");
     DEFINE_METHOD(JPy_Character_CharValue_MID, JPy_Character_JClass, "charValue", "()C");
 
     DEFINE_CLASS(JPy_Number_JClass, "java/lang/Number");
 
     DEFINE_CLASS(JPy_Byte_JClass, "java/lang/Byte");
     DEFINE_METHOD(JPy_Byte_Init_MID, JPy_Byte_JClass, "<init>", "(B)V");
+    DEFINE_STATIC_METHOD(JPy_Byte_ValueOf_SMID, JPy_Byte_JClass, "valueOf", "(B)Ljava/lang/Byte;");
 
     DEFINE_CLASS(JPy_Short_JClass, "java/lang/Short");
     DEFINE_METHOD(JPy_Short_Init_MID, JPy_Short_JClass, "<init>", "(S)V");
+    DEFINE_STATIC_METHOD(JPy_Short_ValueOf_SMID, JPy_Short_JClass, "valueOf", "(S)Ljava/lang/Short;");
 
     DEFINE_CLASS(JPy_Integer_JClass, "java/lang/Integer");
     DEFINE_METHOD(JPy_Integer_Init_MID, JPy_Integer_JClass, "<init>", "(I)V");
+    DEFINE_STATIC_METHOD(JPy_Integer_ValueOf_SMID, JPy_Integer_JClass, "valueOf", "(I)Ljava/lang/Integer;");
 
     DEFINE_CLASS(JPy_Long_JClass, "java/lang/Long");
     DEFINE_METHOD(JPy_Long_Init_MID, JPy_Long_JClass, "<init>", "(J)V");
+    DEFINE_STATIC_METHOD(JPy_Long_ValueOf_SMID, JPy_Long_JClass, "valueOf", "(J)Ljava/lang/Long;");
 
     DEFINE_CLASS(JPy_Float_JClass, "java/lang/Float");
     DEFINE_METHOD(JPy_Float_Init_MID, JPy_Float_JClass, "<init>", "(F)V");
+    DEFINE_STATIC_METHOD(JPy_Float_ValueOf_SMID, JPy_Float_JClass, "valueOf", "(F)Ljava/lang/Float;");
 
     DEFINE_CLASS(JPy_Double_JClass, "java/lang/Double");
     DEFINE_METHOD(JPy_Double_Init_MID, JPy_Double_JClass, "<init>", "(D)V");
+    DEFINE_STATIC_METHOD(JPy_Double_ValueOf_SMID, JPy_Double_JClass, "valueOf", "(D)Ljava/lang/Double;");
 
     DEFINE_CLASS(JPy_Number_JClass, "java/lang/Number");
     DEFINE_METHOD(JPy_Number_IntValue_MID, JPy_Number_JClass, "intValue", "()I");
@@ -1037,8 +1053,10 @@ void JPy_ClearGlobalVars(JNIEnv* jenv)
     JPy_Field_GetModifiers_MID = NULL;
     JPy_Field_GetType_MID = NULL;
     JPy_Boolean_Init_MID = NULL;
+    JPy_Boolean_ValueOf_SMID = NULL;
     JPy_Boolean_BooleanValue_MID = NULL;
     JPy_Character_Init_MID = NULL;
+    JPy_Character_ValueOf_SMID = NULL;
     JPy_Character_CharValue_MID = NULL;
     JPy_Byte_Init_MID = NULL;
     JPy_Short_Init_MID = NULL;
@@ -1046,6 +1064,12 @@ void JPy_ClearGlobalVars(JNIEnv* jenv)
     JPy_Long_Init_MID = NULL;
     JPy_Float_Init_MID = NULL;
     JPy_Double_Init_MID = NULL;
+    JPy_Byte_ValueOf_SMID = NULL;
+    JPy_Short_ValueOf_SMID = NULL;
+    JPy_Integer_ValueOf_SMID = NULL;
+    JPy_Long_ValueOf_SMID = NULL;
+    JPy_Float_ValueOf_SMID = NULL;
+    JPy_Double_ValueOf_SMID = NULL;
     JPy_Number_IntValue_MID = NULL;
     JPy_Number_LongValue_MID = NULL;
     JPy_Number_DoubleValue_MID = NULL;
