@@ -401,7 +401,7 @@ int JType_CreateJavaObject_2(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg, jcl
     return 0;
 }
 
-#define JType_CallStaticObjectMethodPrimitiveArgAndReturn(TARGET_TYPE, STATIC_METHOD_ID, VALUE, JOBJECT_PTR) \
+#define JType_CALL_STATIC_OBJECT_METHOD_PRIMITIVE_ARG_AND_RETURN(TARGET_TYPE, STATIC_METHOD_ID, VALUE, JOBJECT_PTR) \
     Py_BEGIN_ALLOW_THREADS; \
     *JOBJECT_PTR = (*jenv)->CallStaticObjectMethod(jenv, TARGET_TYPE, STATIC_METHOD_ID, VALUE); \
     Py_END_ALLOW_THREADS; \
@@ -420,7 +420,7 @@ int JType_CreateJavaBooleanObject(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg
     } else {
         return JType_PythonToJavaConversionError(type, pyArg);
     }
-    JType_CallStaticObjectMethodPrimitiveArgAndReturn(JPy_Boolean_JClass, JPy_Boolean_ValueOf_SMID, value, objectRef);
+    JType_CALL_STATIC_OBJECT_METHOD_PRIMITIVE_ARG_AND_RETURN(JPy_Boolean_JClass, JPy_Boolean_ValueOf_SMID, value, objectRef);
 }
 
 int JType_CreateJavaCharacterObject(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg, jobject* objectRef)
@@ -431,7 +431,7 @@ int JType_CreateJavaCharacterObject(JNIEnv* jenv, JPy_JType* type, PyObject* pyA
     } else {
         return JType_PythonToJavaConversionError(type, pyArg);
     }
-    JType_CallStaticObjectMethodPrimitiveArgAndReturn(JPy_Character_JClass, JPy_Character_ValueOf_SMID, value, objectRef);
+    JType_CALL_STATIC_OBJECT_METHOD_PRIMITIVE_ARG_AND_RETURN(JPy_Character_JClass, JPy_Character_ValueOf_SMID, value, objectRef);
 }
 
 int JType_CreateJavaByteObject(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg, jobject* objectRef)
@@ -442,7 +442,7 @@ int JType_CreateJavaByteObject(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg, j
     } else {
         return JType_PythonToJavaConversionError(type, pyArg);
     }
-    JType_CallStaticObjectMethodPrimitiveArgAndReturn(JPy_Byte_JClass, JPy_Byte_ValueOf_SMID, value, objectRef);
+    JType_CALL_STATIC_OBJECT_METHOD_PRIMITIVE_ARG_AND_RETURN(JPy_Byte_JClass, JPy_Byte_ValueOf_SMID, value, objectRef);
 }
 
 int JType_CreateJavaShortObject(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg, jobject* objectRef)
@@ -453,12 +453,11 @@ int JType_CreateJavaShortObject(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg, 
     } else {
         return JType_PythonToJavaConversionError(type, pyArg);
     }
-    JType_CallStaticObjectMethodPrimitiveArgAndReturn(JPy_Short_JClass, JPy_Short_ValueOf_SMID, value, objectRef);
+    JType_CALL_STATIC_OBJECT_METHOD_PRIMITIVE_ARG_AND_RETURN(JPy_Short_JClass, JPy_Short_ValueOf_SMID, value, objectRef);
 }
 
 int JType_CreateJavaNumberFromPythonInt(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg, jobject* objectRef)
 {
-    jvalue value;
     signed char b;
     short s;
     long i;
@@ -469,19 +468,15 @@ int JType_CreateJavaNumberFromPythonInt(JNIEnv* jenv, JPy_JType* type, PyObject*
     b = (signed char) j;
 
     if (i != j) {
-        value.j = j;
-        JType_CallStaticObjectMethodPrimitiveArgAndReturn(JPy_Long_JClass, JPy_Long_ValueOf_SMID, value.j, objectRef);
+        JType_CALL_STATIC_OBJECT_METHOD_PRIMITIVE_ARG_AND_RETURN(JPy_Long_JClass, JPy_Long_ValueOf_SMID, j, objectRef);
     }
     if (s != i) {
-        value.i = i;
-        JType_CallStaticObjectMethodPrimitiveArgAndReturn(JPy_Integer_JClass, JPy_Integer_ValueOf_SMID, value.i, objectRef);
+        JType_CALL_STATIC_OBJECT_METHOD_PRIMITIVE_ARG_AND_RETURN(JPy_Integer_JClass, JPy_Integer_ValueOf_SMID, i, objectRef);
     }
     if (b != s) {
-        value.s = s;
-        JType_CallStaticObjectMethodPrimitiveArgAndReturn(JPy_Short_JClass, JPy_Short_ValueOf_SMID, value.s, objectRef);
+        JType_CALL_STATIC_OBJECT_METHOD_PRIMITIVE_ARG_AND_RETURN(JPy_Short_JClass, JPy_Short_ValueOf_SMID, s, objectRef);
     }
-    value.b = b;
-    JType_CallStaticObjectMethodPrimitiveArgAndReturn(JPy_Byte_JClass, JPy_Byte_ValueOf_SMID, value.b, objectRef);
+    JType_CALL_STATIC_OBJECT_METHOD_PRIMITIVE_ARG_AND_RETURN(JPy_Byte_JClass, JPy_Byte_ValueOf_SMID, b, objectRef);
 }
 
 int JType_CreateJavaIntegerObject(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg, jobject* objectRef)
@@ -492,7 +487,7 @@ int JType_CreateJavaIntegerObject(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg
     } else {
         return JType_PythonToJavaConversionError(type, pyArg);
     }
-    JType_CallStaticObjectMethodPrimitiveArgAndReturn(JPy_Integer_JClass, JPy_Integer_ValueOf_SMID, value, objectRef);
+    JType_CALL_STATIC_OBJECT_METHOD_PRIMITIVE_ARG_AND_RETURN(JPy_Integer_JClass, JPy_Integer_ValueOf_SMID, value, objectRef);
 }
 
 int JType_CreateJavaLongObject(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg, jobject* objectRef)
@@ -503,7 +498,7 @@ int JType_CreateJavaLongObject(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg, j
     } else {
         return JType_PythonToJavaConversionError(type, pyArg);
     }
-    JType_CallStaticObjectMethodPrimitiveArgAndReturn(JPy_Long_JClass, JPy_Long_ValueOf_SMID, value, objectRef);
+    JType_CALL_STATIC_OBJECT_METHOD_PRIMITIVE_ARG_AND_RETURN(JPy_Long_JClass, JPy_Long_ValueOf_SMID, value, objectRef);
 }
 
 int JType_CreateJavaFloatObject(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg, jobject* objectRef)
@@ -516,7 +511,7 @@ int JType_CreateJavaFloatObject(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg, 
     } else {
         return JType_PythonToJavaConversionError(type, pyArg);
     }
-    JType_CallStaticObjectMethodPrimitiveArgAndReturn(JPy_Float_JClass, JPy_Float_ValueOf_SMID, value, objectRef);
+    JType_CALL_STATIC_OBJECT_METHOD_PRIMITIVE_ARG_AND_RETURN(JPy_Float_JClass, JPy_Float_ValueOf_SMID, value, objectRef);
 }
 
 int JType_CreateJavaDoubleObject(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg, jobject* objectRef)
@@ -529,7 +524,7 @@ int JType_CreateJavaDoubleObject(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg,
     } else {
         return JType_PythonToJavaConversionError(type, pyArg);
     }
-    JType_CallStaticObjectMethodPrimitiveArgAndReturn(JPy_Double_JClass, JPy_Double_ValueOf_SMID, value, objectRef);
+    JType_CALL_STATIC_OBJECT_METHOD_PRIMITIVE_ARG_AND_RETURN(JPy_Double_JClass, JPy_Double_ValueOf_SMID, value, objectRef);
 }
 
 int JType_CreateJavaPyObject(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg, jobject* objectRef)
