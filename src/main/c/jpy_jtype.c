@@ -412,18 +412,6 @@ int JType_CreateJavaObject_2(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg, jcl
     JPy_ON_JAVA_EXCEPTION_RETURN(-1); \
     return 0;
 
-#define JType_CREATE_JAVA_OBJECT_1_AND_RETURN(TARGET_TYPE, INIT_METHOD_ID, ARG, JOBJECT_PTR) \
-    Py_BEGIN_ALLOW_THREADS; \
-    *JOBJECT_PTR = (*jenv)->NewObject(jenv, TARGET_TYPE, INIT_METHOD_ID, ARG); \
-    Py_END_ALLOW_THREADS; \
-    if (*JOBJECT_PTR == NULL) { \
-        PyErr_NoMemory(); \
-        return -1; \
-    } \
-    JPy_ON_JAVA_EXCEPTION_RETURN(-1); \
-    return 0;
-
-
 int JType_CreateJavaBooleanObject(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg, jobject* objectRef)
 {
     jboolean value;
@@ -479,17 +467,14 @@ int JType_CreateJavaNumberFromPythonInt(JNIEnv* jenv, JPy_JType* type, PyObject*
     s = (short) j;
     b = (signed char) j;
 
-    // always create new objects for long/int/short; any values assigned
-    // assigned to those types will be outside the default JVM cache
-    // range of [-128, 127].
     if (i != j) {
-        JType_CREATE_JAVA_OBJECT_1_AND_RETURN(JPy_Long_JClass, JPy_Long_Init_MID, j, objectRef);
+        JType_CALL_STATIC_OBJECT_METHOD_1_AND_RETURN(JPy_Long_JClass, JPy_Long_ValueOf_SMID, j, objectRef);
     }
     if (s != i) {
-        JType_CREATE_JAVA_OBJECT_1_AND_RETURN(JPy_Integer_JClass, JPy_Integer_Init_MID, i, objectRef);
+        JType_CALL_STATIC_OBJECT_METHOD_1_AND_RETURN(JPy_Integer_JClass, JPy_Integer_ValueOf_SMID, i, objectRef);
     }
     if (b != s) {
-        JType_CREATE_JAVA_OBJECT_1_AND_RETURN(JPy_Short_JClass, JPy_Short_Init_MID, s, objectRef);
+        JType_CALL_STATIC_OBJECT_METHOD_1_AND_RETURN(JPy_Short_JClass, JPy_Short_ValueOf_SMID, s, objectRef);
     }
     JType_CALL_STATIC_OBJECT_METHOD_1_AND_RETURN(JPy_Byte_JClass, JPy_Byte_ValueOf_SMID, b, objectRef);
 }

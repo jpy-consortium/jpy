@@ -215,39 +215,31 @@ extern jclass JPy_KeyError_JClass;
 extern jclass JPy_StopIteration_JClass;
 
 extern jclass JPy_Boolean_JClass;
-extern jmethodID JPy_Boolean_Init_MID;
 extern jmethodID JPy_Boolean_ValueOf_SMID;
 extern jmethodID JPy_Boolean_BooleanValue_MID;
 
 extern jclass JPy_Character_JClass;
-extern jmethodID JPy_Character_Init_MID;
 extern jmethodID JPy_Character_ValueOf_SMID;
 extern jmethodID JPy_Character_CharValue_MID;
 
 extern jclass JPy_Number_JClass;
 
 extern jclass JPy_Byte_JClass;
-extern jmethodID JPy_Byte_Init_MID;
 extern jmethodID JPy_Byte_ValueOf_SMID;
 
 extern jclass JPy_Short_JClass;
-extern jmethodID JPy_Short_Init_MID;
 extern jmethodID JPy_Short_ValueOf_SMID;
 
 extern jclass JPy_Integer_JClass;
-extern jmethodID JPy_Integer_Init_MID;
 extern jmethodID JPy_Integer_ValueOf_SMID;
 
 extern jclass JPy_Long_JClass;
-extern jmethodID JPy_Long_Init_MID;
 extern jmethodID JPy_Long_ValueOf_SMID;
 
 extern jclass JPy_Float_JClass;
-extern jmethodID JPy_Float_Init_MID;
 extern jmethodID JPy_Float_ValueOf_SMID;
 
 extern jclass JPy_Double_JClass;
-extern jmethodID JPy_Double_Init_MID;
 extern jmethodID JPy_Double_ValueOf_SMID;
 
 extern jclass JPy_Number_JClass;
