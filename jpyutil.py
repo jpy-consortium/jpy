@@ -160,6 +160,16 @@ def find_jdk_home_dir():
 
     return None
 
+def _java_process_java_home():
+    logger.debug('Checking Java for JAVA_HOME...')
+    try:
+        from java_utilities import lookup_property
+        return lookup_property('java.home', use_env=False)
+    except ImportError:
+        logger.debug("java_utilities not found, skipping java process check")
+    except Exception as e:
+        logger.debug(e, exc_info=True)
+    return None
 
 def find_jvm_dll_file(java_home_dir=None, fail=False):
     """
@@ -187,6 +197,12 @@ def find_jvm_dll_file(java_home_dir=None, fail=False):
             jvm_dll_path = _find_jvm_dll_file(java_home_dir)
             if jvm_dll_path:
                 return jvm_dll_path
+
+    java_home_dir = _java_process_java_home()
+    if java_home_dir:
+        jvm_dll_path = _find_jvm_dll_file(java_home_dir)
+        if jvm_dll_path:
+            return jvm_dll_path
 
     jvm_dll_path = ctypes.util.find_library(JVM_LIB_NAME)
     if jvm_dll_path:
