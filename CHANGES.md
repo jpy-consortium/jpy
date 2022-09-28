@@ -1,5 +1,7 @@
 # jpy Changelog
 
+## Version 0.13.0 (in development)
+
 ## Version 0.12.0
 * [#88](https://github.com/jpy-consortium/jpy/pull/88) Use valueOf() to box primitive values instead of creating new objects every time
 * [#89](https://github.com/jpy-consortium/jpy/pull/89) Add Java process lookup for 'java.home' in find_jvm_dll_file()
