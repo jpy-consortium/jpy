@@ -2485,13 +2485,12 @@ void PyLib_HandlePythonException(JNIEnv* jenv)
         pyTraceback = pyTraceback->tb_next;
 
     if (pyTraceback != NULL) {
-        PyObject* pyFrame = NULL;
-        PyObject* pyCode = NULL;
+        PyFrameObject* pyFrame = NULL;
+        PyCodeObject* pyCode = NULL;
         linenoChars = PyLib_ObjToChars(PyObject_GetAttrString(pyTraceback, "tb_lineno"), &pyLinenoUtf8);
-        // todo: come back to this
         pyFrame = PyObject_GetAttrString(pyTraceback, "tb_frame");
         if (pyFrame != NULL) {
-            pyCode = PyObject_GetAttrString(pyFrame, "f_code");
+            pyCode = PyFrame_GetCode(pyFrame);
             if (pyCode != NULL) {
                 filenameChars = PyLib_ObjToChars(PyObject_GetAttrString(pyCode, "co_filename"), &pyFilenameUtf8);
                 namespaceChars = PyLib_ObjToChars(PyObject_GetAttrString(pyCode, "co_name"), &pyNamespaceUtf8);
