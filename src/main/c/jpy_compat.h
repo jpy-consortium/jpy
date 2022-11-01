@@ -95,6 +95,15 @@ static inline void _Py_SET_SIZE(PyVarObject *ob, Py_ssize_t size)
 #define Py_SET_SIZE(ob, size) _Py_SET_SIZE((PyVarObject*)(ob), size)
 #endif
 
+// As recommended by https://docs.python.org/3.11/whatsnew/3.11.html#pyframeobject-3-11-hiding
+#if PY_VERSION_HEX < 0x030900B1
+static inline PyCodeObject* PyFrame_GetCode(PyFrameObject *frame)
+{
+    Py_INCREF(frame->f_code);
+    return frame->f_code;
+}
+#endif
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
