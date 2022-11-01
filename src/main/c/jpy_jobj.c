@@ -719,13 +719,13 @@ int JType_InitSlots(JPy_JType* type)
         Py_REFCNT(typeObj) = 1;
     #endif
     Py_SET_TYPE(typeObj, NULL);
-    Py_SIZE(typeObj) = 0;
+    Py_SET_SIZE(typeObj, 0);
     // todo: The following lines are actually correct, but setting Py_TYPE(type) = &JType_Type results in an interpreter crash. Why?
     // This is still a problem because all the JType slots are actually never called (especially JType_getattro is
     // needed to resolve unresolved JTypes and to recognize static field and methods access)
     //JPy_INCREF(&JType_Type);
     //Py_SET_TYPE(type, &JType_Type);
-    //Py_SIZE(type) = sizeof (JPy_JType);
+    //Py_SET_SIZE(type, sizeof (JPy_JType));
 
     typeObj->tp_basicsize = isPrimitiveArray ? sizeof (JPy_JArray) : sizeof (JPy_JObj);
     typeObj->tp_itemsize = 0;

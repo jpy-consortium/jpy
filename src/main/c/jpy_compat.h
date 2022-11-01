@@ -88,6 +88,13 @@ static inline void _Py_SET_TYPE(PyObject *ob, PyTypeObject *type)
 #define Py_SET_TYPE(ob, type) _Py_SET_TYPE((PyObject*)(ob), type)
 #endif
 
+// As recommended by https://docs.python.org/3.11/whatsnew/3.11.html#whatsnew311-c-api-porting
+#if PY_VERSION_HEX < 0x030900A4 && !defined(Py_SET_SIZE)
+static inline void _Py_SET_SIZE(PyVarObject *ob, Py_ssize_t size)
+{ ob->ob_size = size; }
+#define Py_SET_SIZE(ob, size) _Py_SET_SIZE((PyVarObject*)(ob), size)
+#endif
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
