@@ -44,7 +44,7 @@ jobs:
       fail-fast: false
       matrix:
         info:
-          - { machine: 'ubuntu-20.04', python: '3.11', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/Linux/bdist-wheel.sh' }
+          - { machine: 'ubuntu-22.04', python: '3.11', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/Linux/bdist-wheel.sh' }
           - { machine: 'windows-2022', python: '3.11', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
           - { machine: 'macos-11', python: '3.11', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
 
