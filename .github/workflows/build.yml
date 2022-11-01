@@ -44,8 +44,23 @@ jobs:
       fail-fast: false
       matrix:
         info:
+          - { machine: 'ubuntu-20.04', python: '3.6',  pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/Linux/bdist-wheel.sh' }
+          - { machine: 'ubuntu-20.04', python: '3.7',  pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/Linux/bdist-wheel.sh' }
+          - { machine: 'ubuntu-20.04', python: '3.8',  pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/Linux/bdist-wheel.sh' }
+          - { machine: 'ubuntu-20.04', python: '3.9',  pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/Linux/bdist-wheel.sh' }
+          - { machine: 'ubuntu-20.04', python: '3.10', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/Linux/bdist-wheel.sh' }
           - { machine: 'ubuntu-20.04', python: '3.11', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/Linux/bdist-wheel.sh' }
+          - { machine: 'windows-2022', python: '3.6',  pythonArchitecture: 'x64', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.7',  pythonArchitecture: 'x64', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.8',  pythonArchitecture: 'x64', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.9',  pythonArchitecture: 'x64', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.10', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
           - { machine: 'windows-2022', python: '3.11', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'macos-11', python: '3.6', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-11', python: '3.7', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-11', python: '3.8', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-11', python: '3.9', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-11', python: '3.10', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
           - { machine: 'macos-11', python: '3.11', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
 
     steps:
