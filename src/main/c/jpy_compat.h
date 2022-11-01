@@ -81,6 +81,12 @@ wchar_t* JPy_AsWideCharString_PriorToPy33(PyObject *unicode, Py_ssize_t *size);
 
 #endif
 
+// As recommended by https://docs.python.org/3.11/whatsnew/3.11.html#whatsnew311-c-api-porting
+#if PY_VERSION_HEX < 0x030900A4 && !defined(Py_SET_TYPE)
+static inline void _Py_SET_TYPE(PyObject *ob, PyTypeObject *type)
+{ ob->ob_type = type; }
+#define Py_SET_TYPE(ob, type) _Py_SET_TYPE((PyObject*)(ob), type)
+#endif
 
 #ifdef __cplusplus
 } /* extern "C" */
