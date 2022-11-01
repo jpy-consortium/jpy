@@ -22,6 +22,7 @@ extern "C" {
 #endif
 
 #include <Python.h>
+#include "frameobject.h"
 
 #define JPY_VERSION_ERROR "jpy requires either Python 2.7 or Python 3.3+"
 
