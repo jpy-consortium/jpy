@@ -22,6 +22,7 @@ extern "C" {
 #endif
 
 #include <Python.h>
+#include "frameobject.h"
 
 #define JPY_VERSION_ERROR "jpy requires either Python 2.7 or Python 3.3+"
 
@@ -81,6 +82,28 @@ wchar_t* JPy_AsWideCharString_PriorToPy33(PyObject *unicode, Py_ssize_t *size);
 
 #endif
 
+// As recommended by https://docs.python.org/3.11/whatsnew/3.11.html#whatsnew311-c-api-porting
+#if PY_VERSION_HEX < 0x030900A4 && !defined(Py_SET_TYPE)
+static inline void _Py_SET_TYPE(PyObject *ob, PyTypeObject *type)
+{ ob->ob_type = type; }
+#define Py_SET_TYPE(ob, type) _Py_SET_TYPE((PyObject*)(ob), type)
+#endif
+
+// As recommended by https://docs.python.org/3.11/whatsnew/3.11.html#whatsnew311-c-api-porting
+#if PY_VERSION_HEX < 0x030900A4 && !defined(Py_SET_SIZE)
+static inline void _Py_SET_SIZE(PyVarObject *ob, Py_ssize_t size)
+{ ob->ob_size = size; }
+#define Py_SET_SIZE(ob, size) _Py_SET_SIZE((PyVarObject*)(ob), size)
+#endif
+
+// As recommended by https://docs.python.org/3.11/whatsnew/3.11.html#pyframeobject-3-11-hiding
+#if PY_VERSION_HEX < 0x030900B1
+static inline PyCodeObject* PyFrame_GetCode(PyFrameObject *frame)
+{
+    Py_INCREF(frame->f_code);
+    return frame->f_code;
+}
+#endif
 
 #ifdef __cplusplus
 } /* extern "C" */

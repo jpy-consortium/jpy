@@ -2485,12 +2485,12 @@ void PyLib_HandlePythonException(JNIEnv* jenv)
         pyTraceback = pyTraceback->tb_next;
 
     if (pyTraceback != NULL) {
-        PyObject* pyFrame = NULL;
-        PyObject* pyCode = NULL;
+        PyFrameObject* pyFrame = NULL;
+        PyCodeObject* pyCode = NULL;
         linenoChars = PyLib_ObjToChars(PyObject_GetAttrString(pyTraceback, "tb_lineno"), &pyLinenoUtf8);
         pyFrame = PyObject_GetAttrString(pyTraceback, "tb_frame");
         if (pyFrame != NULL) {
-            pyCode = PyObject_GetAttrString(pyFrame, "f_code");
+            pyCode = PyFrame_GetCode(pyFrame);
             if (pyCode != NULL) {
                 filenameChars = PyLib_ObjToChars(PyObject_GetAttrString(pyCode, "co_filename"), &pyFilenameUtf8);
                 namespaceChars = PyLib_ObjToChars(PyObject_GetAttrString(pyCode, "co_name"), &pyNamespaceUtf8);
@@ -2739,31 +2739,37 @@ static int format_python_traceback(PyTracebackObject *tb, char **buf, int *bufLe
         tb = tb->tb_next;
     }
     while (tb != NULL && err == 0) {
+        PyCodeObject* co = PyFrame_GetCode(tb->tb_frame);
         if (last_file == NULL ||
-            tb->tb_frame->f_code->co_filename != last_file ||
+            co->co_filename != last_file ||
             last_line == -1 || tb->tb_lineno != last_line ||
-            last_name == NULL || tb->tb_frame->f_code->co_name != last_name) {
+            last_name == NULL || co->co_name != last_name) {
             if (cnt >  PYLIB_RECURSIVE_CUTOFF) {
                 pyObjUtf8 = format_line_repeated(cnt);
                 err = append_to_java_message(pyObjUtf8, buf, bufLen);
-                if (err != 0) 
-                        return err;
+                if (err != 0) {
+                    JPy_DECREF(co);
+                    return err;
+                }
             }
-            last_file = tb->tb_frame->f_code->co_filename;
+            last_file = co->co_filename;
             last_line = tb->tb_lineno;
-            last_name = tb->tb_frame->f_code->co_name;
+            last_name = co->co_name;
             cnt = 0;
         }
         cnt++;
         if (err == 0 && cnt <= PYLIB_RECURSIVE_CUTOFF) {
             pyObjUtf8 = format_displayline( 
-                                 tb->tb_frame->f_code->co_filename,
+                                 co->co_filename,
                                  tb->tb_lineno,
-                                 tb->tb_frame->f_code->co_name);
+                                 co->co_name);
             err = append_to_java_message(pyObjUtf8, buf, bufLen);
-            if (err != 0) 
+            if (err != 0) {
+                JPy_DECREF(co);
                 return err;
+            }
         }
+        JPy_DECREF(co);
         tb = tb->tb_next;
     }
     if (err == 0 && cnt > PYLIB_RECURSIVE_CUTOFF) {
