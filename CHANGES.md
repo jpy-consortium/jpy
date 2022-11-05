@@ -1,5 +1,7 @@
 # jpy Changelog
 
+## Version 0.14.0 (in development)
+
 ## Version 0.13.0
 * [#96](https://github.com/jpy-consortium/jpy/pull/96) Python 3.11 compatibility
 
