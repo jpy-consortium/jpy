@@ -97,7 +97,7 @@ class TestMethodOverloads(unittest.TestCase):
 
     def test_numbersAsNumber(self):
         fixture = self.Fixture()
-        self.assertEqual(fixture.join3(1, 2), 'Integer(1),Integer(2)')
+        self.assertEqual(fixture.join3(1, 2), 'Byte(1),Integer(2)')
         self.assertEqual(fixture.join3(1.1, 2), 'Double(1.1),Integer(2)')
 
     def test_numbersAsComparable(self):
@@ -137,7 +137,8 @@ class TestVarArgs(unittest.TestCase):
         self.assertEqual(fixture.joinChar("Prefix", 65, 66), 'String(Prefix),char[](A,B)')
 
         self.assertEqual(fixture.joinBoolean("Prefix", True, False), 'String(Prefix),boolean[](true,false)')
-        self.assertEqual(fixture.joinObjects("Prefix", True, "A String", 3), 'String(Prefix),Object[](Boolean(true),String(A String),Integer(3))')
+        self.assertEqual(fixture.joinObjects("Prefix", True, "A String", 3), 'String(Prefix),Object[](Boolean(true),String(A String),Byte(3))')
+        self.assertEqual(fixture.joinObjects("Prefix", True, 0, 127, 128, 32767, 32768, 2147483647, 2147483648), 'String(Prefix),Object[](Boolean(true),Byte(0),Byte(127),Short(128),Short(32767),Integer(32768),Integer(2147483647),Long(2147483648))')
 
     def test_fixedArity(self):
         fixture = self.Fixture()

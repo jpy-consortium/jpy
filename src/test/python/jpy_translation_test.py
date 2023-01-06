@@ -28,7 +28,7 @@ class TestTypeTranslation(unittest.TestCase):
         fixture = self.Fixture()
         thing = fixture.makeThing(7)
         self.assertEqual(thing.getValue(), 7)
-        self.assertEquals(repr(type(thing)), "<class 'org.jpy.fixtures.Thing'>")
+        self.assertEqual(repr(type(thing)), "<class 'org.jpy.fixtures.Thing'>")
 
         jpy.type_translations['org.jpy.fixtures.Thing'] = make_wrapper
         thing = fixture.makeThing(8)

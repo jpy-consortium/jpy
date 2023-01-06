@@ -16,7 +16,7 @@ class TestTypeConversions(unittest.TestCase):
 
     def test_ToObjectConversion(self):
         fixture = self.Fixture()
-        self.assertEqual(fixture.stringifyObjectArg(12), 'Integer(12)')
+        self.assertEqual(fixture.stringifyObjectArg(12), 'Byte(12)')
         self.assertEqual(fixture.stringifyObjectArg(0.34), 'Double(0.34)')
         self.assertEqual(fixture.stringifyObjectArg('abc'), 'String(abc)')
 
@@ -48,8 +48,8 @@ class TestTypeConversions(unittest.TestCase):
     def test_ToObjectArrayConversion(self):
         fixture = self.Fixture()
 
-        self.assertEqual(fixture.stringifyObjectArrayArg(('A', 12, 3.4)), 'Object[](String(A),Integer(12),Double(3.4))')
-        self.assertEqual(fixture.stringifyObjectArrayArg(['A', 12, 3.4]), 'Object[](String(A),Integer(12),Double(3.4))')
+        self.assertEqual(fixture.stringifyObjectArrayArg(('A', 12, 3.4)), 'Object[](String(A),Byte(12),Double(3.4))')
+        self.assertEqual(fixture.stringifyObjectArrayArg(['A', 12, 3.4]), 'Object[](String(A),Byte(12),Double(3.4))')
 
         self.assertEqual(fixture.stringifyStringArrayArg(('A', 'B', 'C')), 'String[](String(A),String(B),String(C))')
         self.assertEqual(fixture.stringifyStringArrayArg(['A', 'B', 'C']), 'String[](String(A),String(B),String(C))')
