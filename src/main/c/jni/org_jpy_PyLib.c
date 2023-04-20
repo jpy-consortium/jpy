@@ -1196,6 +1196,11 @@ JNIEXPORT jint JNICALL Java_org_jpy_PyLib_getIntValue
 
     pyObject = (PyObject*) objId;
     value = (jint) JPy_AS_CLONG(pyObject);
+    // Note: we are not handling the overflow case, but there might be a need to have getIntValueSafe() in the future
+    if (value == -1 && PyErr_Occurred()) {
+        JPy_DIAG_PRINT(JPy_DIAG_F_ALL, "Java_org_jpy_PyLib_getIntValue: error: failed to convert Python object to Java int\n");
+        PyLib_HandlePythonException(jenv);
+    }
 
     JPy_END_GIL_STATE
 
@@ -1217,7 +1222,10 @@ JNIEXPORT jlong JNICALL Java_org_jpy_PyLib_getLongValue
 
     pyObject = (PyObject*) objId;
     value = JPy_AS_CLONG(pyObject);
-
+    if (value == -1 && PyErr_Occurred()) {
+        JPy_DIAG_PRINT(JPy_DIAG_F_ALL, "Java_org_jpy_PyLib_getLongValue: error: failed to convert Python object to Java long\n");
+        PyLib_HandlePythonException(jenv);
+    }
     JPy_END_GIL_STATE
 
     return value;
@@ -1262,6 +1270,10 @@ JNIEXPORT jdouble JNICALL Java_org_jpy_PyLib_getDoubleValue
 
     pyObject = (PyObject*) objId;
     value = (jdouble) PyFloat_AsDouble(pyObject);
+    if (value == -1.0 && PyErr_Occurred()) {
+        JPy_DIAG_PRINT(JPy_DIAG_F_ALL, "Java_org_jpy_PyLib_getDoubleValue: error: failed to convert Python object to Java double\n");
+        PyLib_HandlePythonException(jenv);
+    }
 
     JPy_END_GIL_STATE
 
