@@ -174,7 +174,7 @@ public class PyDictWrapper implements Map<PyObject, PyObject>, AutoCloseable {
      */
     @Override
     public Collection<PyObject> values() {
-        return PyLib.pyDictValues(this.pyObject.getPointer()).asList()
+        return PyLib.pyDictValues(this.pyObject.getPointer()).asList();
     }
 
     /**
