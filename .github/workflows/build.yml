@@ -62,6 +62,12 @@ jobs:
           - { machine: 'macos-11', python: '3.9', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
           - { machine: 'macos-11', python: '3.10', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
           - { machine: 'macos-11', python: '3.11', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-12', python: '3.6', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-12', python: '3.7', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-12', python: '3.8', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-12', python: '3.9', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-12', python: '3.10', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-12', python: '3.11', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
 
     steps:
       - uses: actions/checkout@v3
