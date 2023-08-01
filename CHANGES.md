@@ -1,6 +1,8 @@
 # jpy Changelog
 
-## Version 0.14.0 (in development)
+## Version 0.14.0
+* [#99](https://github.com/jpy-consortium/jpy/pull/99) Check for exception in getInt/Long/DoubleValue()
+* [#104](https://github.com/jpy-consortium/jpy/pull/104) PyDictWrapper.values() incorrectly close the underlying PyObject while it is still referenced
 
 ## Version 0.13.0
 * [#96](https://github.com/jpy-consortium/jpy/pull/96) Python 3.11 compatibility
