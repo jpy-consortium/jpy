@@ -108,7 +108,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: build-linux-arm64
-          path: /tmp/dist/dist/*.whl
+          path: /tmp/dist/*.whl
           retention-days: 1
 
   collect-artifacts:

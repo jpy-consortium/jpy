@@ -33,4 +33,4 @@ RUN \
   .github/env/Linux/bdist-wheel.sh
 
 FROM scratch
-COPY --link --from=build /jpy/dist /dist
+COPY --link --from=build /jpy/dist/* .
