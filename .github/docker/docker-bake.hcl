@@ -13,8 +13,18 @@ variable "DEBIAN_BASE" {
     default = "bullseye"
 }
 
+variable "GITHUB_ACTIONS" {
+    default = false
+}
+
 target "shared" {
     dockerfile = ".github/docker/Dockerfile"
+    cache-from = [
+        GITHUB_ACTIONS ? "type=gha,scope=jpy-build" : ""
+    ]
+    cache-to = [
+        GITHUB_ACTIONS ? "type=gha,mode=max,scope=jpy-build" : ""
+    ]
 }
 
 target "python-36-linux" {
