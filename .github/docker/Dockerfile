@@ -15,7 +15,7 @@ RUN \
     wget --no-hsts -O /usr/share/keyrings/adoptium.asc https://packages.adoptium.net/artifactory/api/gpg/key/public; \
     echo "deb [signed-by=/usr/share/keyrings/adoptium.asc] https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" | tee /etc/apt/sources.list.d/adoptium.list; \
     apt-get -qq update; \
-    apt-get -qq -y --no-install-recommends  install temurin-8-jdk maven
+    apt-get -qq -y --no-install-recommends install temurin-8-jdk maven
 RUN \
     --mount=type=cache,target=/root/.cache/pip,sharing=locked \
     set -eux; \
