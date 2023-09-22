@@ -156,6 +156,7 @@ extern struct JPy_JType* JPy_JClass;
 extern struct JPy_JType* JPy_JString;
 extern struct JPy_JType* JPy_JPyObject;
 extern struct JPy_JType* JPy_JPyModule;
+extern struct JPy_JType* JPy_JByteBuffer;
 
 // java.lang.Comparable
 extern jclass JPy_Comparable_JClass;
