@@ -697,12 +697,14 @@ PyObject* JPy_byte_buffer_internal(JNIEnv* jenv, PyObject* self, PyObject* args)
 
     byteBufferRef = (*jenv)->NewDirectByteBuffer(jenv, pyBuffer->buf, pyBuffer->len);
     if (byteBufferRef == NULL) {
+        PyBuffer_Release(pyBuffer);
         PyMem_Free(pyBuffer);
         return PyErr_NoMemory();
     }
 
     newPyObj = JObj_New(jenv, byteBufferRef);
     if (newPyObj == NULL) {
+        PyBuffer_Release(pyBuffer);
         PyMem_Free(pyBuffer);
         return NULL;
     }
