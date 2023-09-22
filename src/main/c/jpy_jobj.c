@@ -716,7 +716,6 @@ int JType_InitSlots(JPy_JType* type)
 
     isArray = type->componentType != NULL;
     isPrimitiveArray = isArray && type->componentType->isPrimitive;
-    isByteBuffer = type == JPy_JByteBuffer;
 
     typeObj = JTYPE_AS_PYTYPE(type);
 
@@ -734,7 +733,13 @@ int JType_InitSlots(JPy_JType* type)
     //Py_SET_TYPE(type, &JType_Type);
     //Py_SET_SIZE(type, sizeof (JPy_JType));
 
-    typeObj->tp_basicsize = isPrimitiveArray ? sizeof (JPy_JArray) : (isByteBuffer ? sizeof(JPy_JByteBufferWrapper) : sizeof (JPy_JObj));
+    if (isPrimitiveArray) {
+        typeObj->tp_basicsize = sizeof(JPy_JArray);
+    } else if (type == JPy_JByteBuffer) {
+        typeObj->tp_basicsize = sizeof(JPy_JByteBufferWrapper);
+    } else {
+        typeObj->tp_basicsize = sizeof(JPy_JObj);
+    }
     typeObj->tp_itemsize = 0;
     typeObj->tp_base = type->superType != NULL ? JTYPE_AS_PYTYPE(type->superType) : &JType_Type;
     //typeObj->tp_base = (PyTypeObject*) type->superType;

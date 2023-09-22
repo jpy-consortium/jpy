@@ -691,16 +691,19 @@ PyObject* JPy_byte_buffer_internal(JNIEnv* jenv, PyObject* self, PyObject* args)
 
     if (PyObject_GetBuffer(pyObj, pyBuffer, PyBUF_SIMPLE | PyBUF_C_CONTIGUOUS) != 0) {
         PyErr_SetString(PyExc_ValueError, "byte_buffer: the Python object failed to return a contiguous buffer.");
+        PyMem_Free(pyBuffer);
         return NULL;
     }
 
     byteBufferRef = (*jenv)->NewDirectByteBuffer(jenv, pyBuffer->buf, pyBuffer->len);
     if (byteBufferRef == NULL) {
+        PyMem_Free(pyBuffer);
         return PyErr_NoMemory();
     }
 
     newPyObj = JObj_New(jenv, byteBufferRef);
     if (newPyObj == NULL) {
+        PyMem_Free(pyBuffer);
         return NULL;
     }
     byteBufferWrapper = (JPy_JByteBufferWrapper *) newPyObj;
