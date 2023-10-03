@@ -62,6 +62,8 @@ jobs:
           - { machine: 'macos-11', python: '3.9', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
           - { machine: 'macos-11', python: '3.10', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
           - { machine: 'macos-11', python: '3.11', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          # Add M1 powered runners when available
+          # https://github.com/jpy-consortium/jpy/issues/110
 
     steps:
       - uses: actions/checkout@v4
@@ -85,9 +87,35 @@ jobs:
           path: dist/*.whl
           retention-days: 1
 
+  bdist-wheels-linux-arm64:
+    runs-on: 'ubuntu-22.04'
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Bake
+        uses: docker/bake-action@v3.1.0
+        with:
+          files: .github/docker/docker-bake.hcl
+          pull: true
+          set: |
+            *.platform=linux/arm64/v8
+            *.output=type=local,dest=/tmp/dist
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: bdist-wheels-linux-arm64
+          path: /tmp/dist/*.whl
+          retention-days: 1
+
   collect-artifacts:
     runs-on: ubuntu-22.04
-    needs: ['sdist', 'bdist-wheel']
+    needs: ['sdist', 'bdist-wheel', 'bdist-wheels-linux-arm64']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v3
@@ -95,7 +123,7 @@ jobs:
           path: download-artifacts
       - name: collect-artifacts.sh
         run: .github/scripts/collect-artifacts.sh
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: jpy
           path: collect-artifacts

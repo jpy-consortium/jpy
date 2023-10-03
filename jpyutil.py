@@ -214,19 +214,20 @@ def find_jvm_dll_file(java_home_dir=None, fail=False):
 
 
 def _get_jvm_lib_dirs(java_home_dir):
-    arch = 'amd64' if PYTHON_64BIT else 'i386'
+    machine = platform.machine()
+    arch_dir_name = 'aarch64' if machine == 'aarch64' else 'amd64' if PYTHON_64BIT else 'i386'
     return (os.path.join(java_home_dir, 'bin'),
             os.path.join(java_home_dir, 'bin', 'server'),
             os.path.join(java_home_dir, 'bin', 'client'),
-            os.path.join(java_home_dir, 'bin', arch),
-            os.path.join(java_home_dir, 'bin', arch, 'server'),
-            os.path.join(java_home_dir, 'bin', arch, 'client'),
+            os.path.join(java_home_dir, 'bin', arch_dir_name),
+            os.path.join(java_home_dir, 'bin', arch_dir_name, 'server'),
+            os.path.join(java_home_dir, 'bin', arch_dir_name, 'client'),
             os.path.join(java_home_dir, 'lib'),
             os.path.join(java_home_dir, 'lib', 'server'),
             os.path.join(java_home_dir, 'lib', 'client'),
-            os.path.join(java_home_dir, 'lib', arch),
-            os.path.join(java_home_dir, 'lib', arch, 'server'),
-            os.path.join(java_home_dir, 'lib', arch, 'client'),
+            os.path.join(java_home_dir, 'lib', arch_dir_name),
+            os.path.join(java_home_dir, 'lib', arch_dir_name, 'server'),
+            os.path.join(java_home_dir, 'lib', arch_dir_name, 'client'),
             )
 
 
