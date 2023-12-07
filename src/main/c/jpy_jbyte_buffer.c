@@ -19,5 +19,6 @@
 #include "jpy_jarray.h"
 #include "jpy_jbyte_buffer.h"
 
-/* This file for now is just a place-holder for future JPy_ByteBufferWrapper specific functions.
+/* 
+ * This file for now is just a place-holder for future JPy_ByteBufferWrapper specific functions.
  */
