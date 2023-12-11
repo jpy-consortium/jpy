@@ -133,7 +133,6 @@ JPy_JType* JPy_JThrowable = NULL;
 JPy_JType* JPy_JStackTraceElement = NULL;
 JPy_JType* JPy_JByteBuffer = NULL;
 
-
 // java.lang.Comparable
 jclass JPy_Comparable_JClass = NULL;
 jmethodID JPy_Comparable_CompareTo_MID = NULL;
@@ -235,6 +234,7 @@ jclass JPy_String_JClass = NULL;
 jclass JPy_PyObject_JClass = NULL;
 jclass JPy_PyDictWrapper_JClass = NULL;
 jclass JPy_ByteBuffer_JClass = NULL;
+jmethodID JPy_ByteBuffer_AsReadOnlyBuffer_MID = NULL;
 
 jmethodID JPy_PyObject_GetPointer_MID = NULL;
 jmethodID JPy_PyObject_UnwrapProxy_SMID = NULL;
@@ -684,34 +684,22 @@ PyObject* JPy_byte_buffer_internal(JNIEnv* jenv, PyObject* self, PyObject* args)
         return NULL;
     }
 
-    pyBuffer = (Py_buffer *)PyMem_Malloc(sizeof(Py_buffer));
-    if (pyBuffer == NULL) {
-        return PyErr_NoMemory();
-    }
-
-    if (PyObject_GetBuffer(pyObj, pyBuffer, PyBUF_SIMPLE | PyBUF_C_CONTIGUOUS) != 0) {
-        PyErr_SetString(PyExc_ValueError, "byte_buffer: the Python object failed to return a contiguous buffer.");
-        PyMem_Free(pyBuffer);
+    if (JPy_AsJByteBuffer(jenv, pyObj, &pyBuffer, &byteBufferRef) == -1) {
         return NULL;
-    }
-
-    byteBufferRef = (*jenv)->NewDirectByteBuffer(jenv, pyBuffer->buf, pyBuffer->len);
-    if (byteBufferRef == NULL) {
-        PyBuffer_Release(pyBuffer);
-        PyMem_Free(pyBuffer);
-        return PyErr_NoMemory();
     }
 
     newPyObj = JObj_New(jenv, byteBufferRef);
     if (newPyObj == NULL) {
+        PyErr_SetString(PyExc_RuntimeError, "jpy: internal error: failed to create a ByteBufferWrapper instance.");
         PyBuffer_Release(pyBuffer);
         PyMem_Free(pyBuffer);
+        JPy_DELETE_LOCAL_REF(byteBufferRef);
         return NULL;
     }
+
     byteBufferWrapper = (JPy_JByteBufferWrapper *) newPyObj;
     byteBufferWrapper->pyBuffer = pyBuffer;
     return (PyObject *)byteBufferWrapper;
-
 }
 
 PyObject* JPy_byte_buffer(PyObject* self, PyObject* args)
@@ -987,6 +975,8 @@ int JPy_InitGlobalVars(JNIEnv* jenv)
     DEFINE_CLASS(JPy_Throwable_JClass, "java/lang/Throwable");
     DEFINE_CLASS(JPy_StackTraceElement_JClass, "java/lang/StackTraceElement");
     DEFINE_CLASS(JPy_ByteBuffer_JClass, "java/nio/ByteBuffer");
+    DEFINE_METHOD(JPy_ByteBuffer_AsReadOnlyBuffer_MID, JPy_ByteBuffer_JClass, "asReadOnlyBuffer", "()Ljava/nio/ByteBuffer;");
+
 
     // Non-Object types: Primitive types and void.
     DEFINE_NON_OBJECT_TYPE(JPy_JBoolean, JPy_Boolean_JClass);
@@ -1115,6 +1105,7 @@ void JPy_ClearGlobalVars(JNIEnv* jenv)
     JPy_Number_DoubleValue_MID = NULL;
     JPy_PyObject_GetPointer_MID = NULL;
     JPy_PyObject_UnwrapProxy_SMID = NULL;
+    JPy_ByteBuffer_AsReadOnlyBuffer_MID = NULL;
 
     JPy_XDECREF(JPy_JBoolean);
     JPy_XDECREF(JPy_JChar);

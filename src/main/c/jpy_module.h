@@ -251,6 +251,9 @@ extern jmethodID JPy_Number_DoubleValue_MID;
 extern jclass JPy_String_JClass;
 extern jclass JPy_Void_JClass;
 
+extern jclass JPy_ByteBuffer_JClass;
+extern jmethodID JPy_ByteBuffer_AsReadOnlyBuffer_MID;
+
 extern jclass JPy_PyObject_JClass;
 extern jmethodID JPy_PyObject_GetPointer_MID;
 extern jmethodID JPy_PyObject_UnwrapProxy_SMID;

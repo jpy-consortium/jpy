@@ -712,7 +712,6 @@ int JType_InitSlots(JPy_JType* type)
     PyTypeObject* typeObj;
     jboolean isArray;
     jboolean isPrimitiveArray;
-    jboolean isByteBuffer;
 
     isArray = type->componentType != NULL;
     isPrimitiveArray = isArray && type->componentType->isPrimitive;
