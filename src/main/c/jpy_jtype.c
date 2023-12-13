@@ -23,6 +23,7 @@
 #include "jpy_jfield.h"
 #include "jpy_jmethod.h"
 #include "jpy_jobj.h"
+#include "jpy_jbyte_buffer.h"
 #include "jpy_conv.h"
 #include "jpy_compat.h"
 
@@ -42,7 +43,7 @@ void JType_InitMethodParamDescriptorFunctions(JPy_JType* type, JPy_JMethod* meth
 int JType_ProcessField(JNIEnv* jenv, JPy_JType* declaringType, PyObject* fieldKey, const char* fieldName, jclass fieldClassRef, jboolean isStatic, jboolean isFinal, jfieldID fid);
 void JType_DisposeLocalObjectRefArg(JNIEnv* jenv, jvalue* value, void* data);
 void JType_DisposeReadOnlyBufferArg(JNIEnv* jenv, jvalue* value, void* data);
-void JType_DisposeReadOnlyByteBufferArg(JNIEnv* jenv, jvalue* value, void* data);
+void JType_DisposeByteBufferArg(JNIEnv* jenv, jvalue* value, void* data);
 void JType_DisposeWritableBufferArg(JNIEnv* jenv, jvalue* value, void* data);
 
 
@@ -1663,19 +1664,76 @@ int JType_MatchPyArgAsJByteBufferParam(JNIEnv* jenv, JPy_ParamDescriptor* paramD
     if (PyObject_CheckBuffer(pyArg) == 1) {
         return 100;
     }
-    return 0;
+
+    return JType_MatchPyArgAsJObject(jenv, paramDescriptor->type, pyArg);
+}
+
+PyObject* JType_CreateJavaByteBufferWrapper(JNIEnv* jenv, PyObject* pyObj)
+{
+    jobject byteBufferRef, tmpByteBufferRef;
+    Py_buffer *pyBuffer;
+
+    pyBuffer = (Py_buffer *)PyMem_Malloc(sizeof(Py_buffer));
+    if (pyBuffer == NULL) {
+        PyErr_NoMemory();
+        return NULL;
+    }
+
+    if (PyObject_GetBuffer(pyObj, pyBuffer, PyBUF_SIMPLE | PyBUF_C_CONTIGUOUS) != 0) {
+        PyErr_SetString(PyExc_ValueError, "byte_buffer: the Python object failed to return a contiguous buffer.");
+        PyMem_Free(pyBuffer);
+        return NULL;
+    }
+
+    tmpByteBufferRef = (*jenv)->NewDirectByteBuffer(jenv, pyBuffer->buf, pyBuffer->len);
+    if (tmpByteBufferRef == NULL) {
+        PyBuffer_Release(pyBuffer);
+        PyMem_Free(pyBuffer);
+        PyErr_NoMemory();
+        return NULL;
+    }
+
+    byteBufferRef = (*jenv)->CallObjectMethod(jenv, tmpByteBufferRef, JPy_ByteBuffer_AsReadOnlyBuffer_MID);
+    if (byteBufferRef == NULL) {
+        PyBuffer_Release(pyBuffer);
+        PyMem_Free(pyBuffer);
+        JPy_DELETE_LOCAL_REF(tmpByteBufferRef);
+        PyErr_SetString(PyExc_RuntimeError, "jpy: internal error: failed to create a read-only ByteBuffer instance.");
+        return NULL;
+    }
+    JPy_DELETE_LOCAL_REF(tmpByteBufferRef);
+
+    PyObject *newPyObj = JObj_New(jenv, byteBufferRef);
+    if (newPyObj == NULL) {
+        PyErr_SetString(PyExc_RuntimeError, "jpy: internal error: failed to create a ByteBufferWrapper instance.");
+        PyBuffer_Release(pyBuffer);
+        PyMem_Free(pyBuffer);
+        JPy_DELETE_LOCAL_REF(byteBufferRef);
+        return NULL;
+    }
+    JPy_DELETE_LOCAL_REF(byteBufferRef);
+
+    JPy_JByteBufferWrapper* byteBufferWrapper = (JPy_JByteBufferWrapper *) newPyObj;
+    byteBufferWrapper->pyBuffer = pyBuffer;
+    return (PyObject *)byteBufferWrapper;
 }
 
 int JType_ConvertPyArgToJByteBufferArg(JNIEnv* jenv, JPy_ParamDescriptor* paramDescriptor, PyObject* pyArg, jvalue* value, JPy_ArgDisposer* disposer)
 {
-    Py_buffer *pyBuffer;
-    int ret;
-
-    ret = JPy_AsJByteBuffer(jenv, pyArg, &pyBuffer, &value->l);
-
-    disposer->data = pyBuffer;
-    disposer->DisposeArg = JType_DisposeReadOnlyByteBufferArg;
-
+    if (PyObject_CheckBuffer(pyArg)) {
+        disposer->data = JType_CreateJavaByteBufferWrapper(jenv, pyArg);
+        disposer->DisposeArg = JType_DisposeByteBufferArg;
+        JPy_JObj* obj = (JPy_JObj*) disposer->data;
+        value->l = obj->objectRef;
+    } else if (JObj_Check(pyArg)) {
+        JPy_JObj* obj = (JPy_JObj*) pyArg;
+        value->l = obj->objectRef;
+        disposer->data = NULL;
+        disposer->DisposeArg = NULL;
+    } else {
+        return -1;
+    }
+    return 0;
 }
 
 int JType_ConvertPyArgToJPyObjectArg(JNIEnv* jenv, JPy_ParamDescriptor* paramDescriptor, PyObject* pyArg, jvalue* value, JPy_ArgDisposer* disposer)
@@ -1752,6 +1810,35 @@ int JType_MatchVarArgPyArgAsJStringParam(JNIEnv* jenv, JPy_ParamDescriptor* para
     for (ii = 0; ii < remaining; ii++) {
         PyObject *unpack = PyTuple_GetItem(pyArg, idx + ii);
         int matchValue = JType_MatchPyArgAsJStringParam(jenv, paramDescriptor, unpack);
+        if (matchValue == 0) {
+            return 0;
+        }
+        minMatch = matchValue < minMatch ? matchValue : minMatch;
+    }
+
+    return minMatch;
+}
+
+int JType_MatchVarArgPyArgAsJByteBufferParam(JNIEnv* jenv, JPy_ParamDescriptor* paramDescriptor, PyObject* pyArg, int idx)
+{
+    Py_ssize_t argCount = PyTuple_Size(pyArg);
+    Py_ssize_t remaining = (argCount - idx);
+
+    JPy_JType *componentType = paramDescriptor->type->componentType;
+    int minMatch = 100;
+    int ii;
+
+    if (componentType != JPy_JByteBuffer) {
+        return 0;
+    }
+
+    if (remaining == 0) {
+        return 10;
+    }
+
+    for (ii = 0; ii < remaining; ii++) {
+        PyObject *unpack = PyTuple_GetItem(pyArg, idx + ii);
+        int matchValue = JType_MatchPyArgAsJByteBufferParam(jenv, paramDescriptor, unpack);
         if (matchValue == 0) {
             return 0;
         }
@@ -2394,23 +2481,19 @@ void JType_DisposeLocalObjectRefArg(JNIEnv* jenv, jvalue* value, void* data)
     }
 }
 
-void JType_DisposeReadOnlyByteBufferArg(JNIEnv* jenv, jvalue* value, void* data)
+void JType_DisposeByteBufferArg(JNIEnv* jenv, jvalue* value, void* data)
 {
-    Py_buffer* pyBuffer;
-    jobject jByteBuffer;
 
-    pyBuffer = (Py_buffer*) data;
-    jByteBuffer = (jobject) value->l;
+    PyObject*  byteBufferWrapper = (PyObject*) data;
+    jobject jByteBuffer = (jobject) value->l;
 
-    JPy_DIAG_PRINT(JPy_DIAG_F_MEM, "JType_DisposeReadOnlyByteBufferArg: pyBuffer=%p, jByteBuffer=%p\n", pyBuffer, jByteBuffer);
+    JPy_DIAG_PRINT(JPy_DIAG_F_MEM, "JType_DisposeByteBufferArg: byteBufferWrapper=%p, jByteBuffer=%p\n", byteBufferWrapper, jByteBuffer);
 
-    if (pyBuffer != NULL) {
-        PyBuffer_Release(pyBuffer);
-        PyMem_Del(pyBuffer);
-    }
     if (jByteBuffer != NULL) {
         JPy_DELETE_LOCAL_REF(jByteBuffer);
     }
+
+    JPy_DECREF(byteBufferWrapper);
 }
 
 void JType_DisposeReadOnlyBufferArg(JNIEnv* jenv, jvalue* value, void* data)
@@ -2530,6 +2613,8 @@ void JType_InitParamDescriptorFunctions(JPy_ParamDescriptor* paramDescriptor, jb
             paramDescriptor->MatchVarArgPyArg = JType_MatchVarArgPyArgAsJDoubleParam;
         } else if (paramType->componentType == JPy_JString) {
             paramDescriptor->MatchVarArgPyArg = JType_MatchVarArgPyArgAsJStringParam;
+        } else if (paramType->componentType == JPy_JByteBuffer) {
+            paramDescriptor->MatchVarArgPyArg = JType_MatchVarArgPyArgAsJByteBufferParam;
         } else if (paramType->componentType == JPy_JPyObject) {
             paramDescriptor->MatchVarArgPyArg = JType_MatchVarArgPyArgAsJPyObjectParam;
         } else {

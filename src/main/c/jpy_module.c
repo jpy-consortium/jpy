@@ -684,22 +684,7 @@ PyObject* JPy_byte_buffer_internal(JNIEnv* jenv, PyObject* self, PyObject* args)
         return NULL;
     }
 
-    if (JPy_AsJByteBuffer(jenv, pyObj, &pyBuffer, &byteBufferRef) == -1) {
-        return NULL;
-    }
-
-    newPyObj = JObj_New(jenv, byteBufferRef);
-    if (newPyObj == NULL) {
-        PyErr_SetString(PyExc_RuntimeError, "jpy: internal error: failed to create a ByteBufferWrapper instance.");
-        PyBuffer_Release(pyBuffer);
-        PyMem_Free(pyBuffer);
-        JPy_DELETE_LOCAL_REF(byteBufferRef);
-        return NULL;
-    }
-
-    byteBufferWrapper = (JPy_JByteBufferWrapper *) newPyObj;
-    byteBufferWrapper->pyBuffer = pyBuffer;
-    return (PyObject *)byteBufferWrapper;
+    return JType_CreateJavaByteBufferWrapper(jenv, pyObj);
 }
 
 PyObject* JPy_byte_buffer(PyObject* self, PyObject* args)

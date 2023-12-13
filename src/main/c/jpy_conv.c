@@ -293,39 +293,3 @@ error:
 
     return 0;
 }
-
-int JPy_AsJByteBuffer(JNIEnv* jenv, PyObject* pyObj, Py_buffer** pyBuffer, jobject* byteBufferRef)
-{
-    jobject tmpByteBufferRef;
-
-    *pyBuffer = (Py_buffer *)PyMem_Malloc(sizeof(Py_buffer));
-    if (*pyBuffer == NULL) {
-        PyErr_NoMemory();
-        return -1;
-    }
-
-    if (PyObject_GetBuffer(pyObj, *pyBuffer, PyBUF_SIMPLE | PyBUF_C_CONTIGUOUS) != 0) {
-        PyErr_SetString(PyExc_ValueError, "byte_buffer: the Python object failed to return a contiguous buffer.");
-        PyMem_Free(*pyBuffer);
-        return -1;
-    }
-
-    tmpByteBufferRef = (*jenv)->NewDirectByteBuffer(jenv, (*pyBuffer)->buf, (*pyBuffer)->len);
-    if (tmpByteBufferRef == NULL) {
-        PyBuffer_Release(*pyBuffer);
-        PyMem_Free(*pyBuffer);
-        PyErr_NoMemory();
-        return -1;
-    }
-
-    *byteBufferRef = (*jenv)->CallObjectMethod(jenv, tmpByteBufferRef, JPy_ByteBuffer_AsReadOnlyBuffer_MID);
-    if (*byteBufferRef == NULL) {
-        PyBuffer_Release(*pyBuffer);
-        PyMem_Free(*pyBuffer);
-        JPy_DELETE_LOCAL_REF(tmpByteBufferRef);
-        PyErr_SetString(PyExc_RuntimeError, "jpy: internal error: failed to create a read-only ByteBuffer instance.");
-        return -1;
-    }
-
-    return 0;
-}

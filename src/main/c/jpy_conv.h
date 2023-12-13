@@ -85,11 +85,6 @@ PyObject* JPy_FromJObjectWithType(JNIEnv* jenv, jobject objectRef, JPy_JType* ty
 int JPy_AsJString(JNIEnv* jenv, PyObject* pyObj, jstring* stringRef);
 
 /**
- * Convert Python buffer object to Java ByteBuffer (direct) which shares the underlying buffer in a read-only way..
- */
-int JPy_AsJByteBuffer(JNIEnv* jenv, PyObject* pyObj, Py_buffer **pyBuffer, jobject* byteBufferRef);
-
-/**
  * Convert any Python objects to Java object.
  *
  * @param allowObjectWrapping if true, may return a PyObject for unrecognized object types
