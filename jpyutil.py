@@ -138,9 +138,8 @@ def find_jdk_home_dir():
     """
     for name in JDK_HOME_VARS:
         jdk_home_dir = os.environ.get(name, None)
-        if jdk_home_dir \
-                and os.path.exists(os.path.join(jdk_home_dir, 'include')) \
-                and (os.path.exists(os.path.join(jdk_home_dir, 'lib')) or os.path.exists(os.path.join(jdk_home_dir, 'libexec'))):
+        if jdk_home_dir:
+            logger.debug(f'JAVA_HOME set by environment variable to {jdk_home_dir}')
             return jdk_home_dir
     logger.debug('Checking Maven for JAVA_HOME...')
     try:
@@ -152,7 +151,9 @@ def find_jdk_home_dir():
             if part.startswith('Java home:'):
                 path = part.split(':')[1].strip()
                 if path.endswith('jre'):
-                    return path[0:-3]
+                    java_home = path[0:-3]
+                    logger.debug(f'JAVA_HOME set by maven to {java_home}')
+                    return java_home
                 
     except Exception:
         # maven probably isn't installed or not on PATH
