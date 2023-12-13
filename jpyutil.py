@@ -136,11 +136,37 @@ def find_jdk_home_dir():
     dedicated environment variables.
     :return: pathname if found, else None
     """
+
+    def is_jdk_dir(path):
+        rst = os.path.exists(os.path.join(path, 'include')) and os.path.exists(os.path.join(path, 'lib'))
+        logger.debug(f'Checking {path} for JDK...: {"yes" if rst else "no"}')
+        return rst
+
+    def walk_to_jdk(path):
+        if is_jdk_dir(path):
+            return path
+        
+        for root, dir_names, file_names in os.walk(path):
+            for d in dir_names:
+                p = os.path.join(path, d)
+                rst = walk_to_jdk(p)
+
+                if rst:
+                    return rst
+            
+        return None
+
     for name in JDK_HOME_VARS:
         jdk_home_dir = os.environ.get(name, None)
         if jdk_home_dir:
             logger.debug(f'JAVA_HOME set by environment variable to {jdk_home_dir}')
-            return jdk_home_dir
+            jdk_dir = walk_to_jdk(jdk_home_dir)
+
+            if jdk_dir:
+                return jdk_dir
+            else:
+                logger.debug(f'JAVA_HOME set by environment variable to {jdk_home_dir} but no JDK found.')
+                
     logger.debug('Checking Maven for JAVA_HOME...')
     try:
         output = subprocess.check_output(['mvn', '-v'])
