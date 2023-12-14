@@ -1680,7 +1680,7 @@ PyObject* JType_CreateJavaByteBufferWrapper(JNIEnv* jenv, PyObject* pyObj)
     }
 
     if (PyObject_GetBuffer(pyObj, pyBuffer, PyBUF_SIMPLE | PyBUF_C_CONTIGUOUS) != 0) {
-        PyErr_SetString(PyExc_ValueError, "byte_buffer: the Python object failed to return a contiguous buffer.");
+        PyErr_SetString(PyExc_ValueError, "JType_CreateJavaByteBufferWrapper: the Python object failed to return a contiguous buffer.");
         PyMem_Free(pyBuffer);
         return NULL;
     }
@@ -1726,11 +1726,13 @@ int JType_ConvertPyArgToJByteBufferArg(JNIEnv* jenv, JPy_ParamDescriptor* paramD
         JPy_JObj* obj = (JPy_JObj*) disposer->data;
         value->l = obj->objectRef;
     } else if (JObj_Check(pyArg)) {
+        disposer->data = NULL;
+        // If it is a wrapped Java object, it is always a global reference, so don't dispose it
+        disposer->DisposeArg = NULL;
         JPy_JObj* obj = (JPy_JObj*) pyArg;
         value->l = obj->objectRef;
-        disposer->data = NULL;
-        disposer->DisposeArg = NULL;
     } else {
+        PyErr_SetString(PyExc_RuntimeError, "jpy: internal error: Python argument incorrectly matched to Java ByteBuffer parameter.");
         return -1;
     }
     return 0;
@@ -2454,7 +2456,6 @@ void JType_DisposeLocalObjectRefArg(JNIEnv* jenv, jvalue* value, void* data)
 
 void JType_DisposeByteBufferArg(JNIEnv* jenv, jvalue* value, void* data)
 {
-
     PyObject*  byteBufferWrapper = (PyObject*) data;
     jobject jByteBuffer = (jobject) value->l;
 

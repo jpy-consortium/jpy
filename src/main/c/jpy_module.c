@@ -680,7 +680,7 @@ PyObject* JPy_byte_buffer_internal(JNIEnv* jenv, PyObject* self, PyObject* args)
     }
 
     if (PyObject_CheckBuffer(pyObj) == 0) {
-        PyErr_SetString(PyExc_ValueError, "byte_buffer: argument 1 must be a Python object that supports the buffer protocol");
+        PyErr_SetString(PyExc_ValueError, "byte_buffer: argument 1 must be a Python object that supports the buffer protocol.");
         return NULL;
     }
 
