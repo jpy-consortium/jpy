@@ -1819,35 +1819,6 @@ int JType_MatchVarArgPyArgAsJStringParam(JNIEnv* jenv, JPy_ParamDescriptor* para
     return minMatch;
 }
 
-int JType_MatchVarArgPyArgAsJByteBufferParam(JNIEnv* jenv, JPy_ParamDescriptor* paramDescriptor, PyObject* pyArg, int idx)
-{
-    Py_ssize_t argCount = PyTuple_Size(pyArg);
-    Py_ssize_t remaining = (argCount - idx);
-
-    JPy_JType *componentType = paramDescriptor->type->componentType;
-    int minMatch = 100;
-    int ii;
-
-    if (componentType != JPy_JByteBuffer) {
-        return 0;
-    }
-
-    if (remaining == 0) {
-        return 10;
-    }
-
-    for (ii = 0; ii < remaining; ii++) {
-        PyObject *unpack = PyTuple_GetItem(pyArg, idx + ii);
-        int matchValue = JType_MatchPyArgAsJByteBufferParam(jenv, paramDescriptor, unpack);
-        if (matchValue == 0) {
-            return 0;
-        }
-        minMatch = matchValue < minMatch ? matchValue : minMatch;
-    }
-
-    return minMatch;
-}
-
 int JType_MatchVarArgPyArgAsJPyObjectParam(JNIEnv* jenv, JPy_ParamDescriptor* paramDescriptor, PyObject* pyArg, int idx)
 {
     Py_ssize_t argCount = PyTuple_Size(pyArg);
@@ -2613,8 +2584,6 @@ void JType_InitParamDescriptorFunctions(JPy_ParamDescriptor* paramDescriptor, jb
             paramDescriptor->MatchVarArgPyArg = JType_MatchVarArgPyArgAsJDoubleParam;
         } else if (paramType->componentType == JPy_JString) {
             paramDescriptor->MatchVarArgPyArg = JType_MatchVarArgPyArgAsJStringParam;
-        } else if (paramType->componentType == JPy_JByteBuffer) {
-            paramDescriptor->MatchVarArgPyArg = JType_MatchVarArgPyArgAsJByteBufferParam;
         } else if (paramType->componentType == JPy_JPyObject) {
             paramDescriptor->MatchVarArgPyArg = JType_MatchVarArgPyArgAsJPyObjectParam;
         } else {
