@@ -160,13 +160,19 @@ def find_jdk_home_dir():
         jdk_home_dir = os.environ.get(name, None)
         if jdk_home_dir:
             logger.debug(f'JAVA_HOME set by environment variable to {jdk_home_dir}')
+
+            if is_jdk_dir(jdk_home_dir):
+                return jdk_home_dir
+
             jdk_dir = walk_to_jdk(jdk_home_dir)
 
             if jdk_dir:
-                return jdk_dir
+                logger.error(f'JAVA_HOME set by environment variable to {jdk_home_dir} but no no "include" or "lib" directory found.  Possibly you meant {jdk_dir}?')
             else:
-                logger.debug(f'JAVA_HOME set by environment variable to {jdk_home_dir} but no JDK found.')
-                
+                logger.error(f'JAVA_HOME set by environment variable to {jdk_home_dir} but no no "include" or "lib" directory found.  Does not appear to be a JDK directory.')
+
+            exit(1)
+
     logger.debug('Checking Maven for JAVA_HOME...')
     try:
         output = subprocess.check_output(['mvn', '-v'])
