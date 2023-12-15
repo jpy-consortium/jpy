@@ -148,11 +148,10 @@ def find_jdk_home_dir():
         
         for root, dir_names, file_names in os.walk(path):
             for d in dir_names:
-                p = os.path.join(path, d)
-                rst = walk_to_jdk(p)
+                p = os.path.join(root, d)
 
-                if rst:
-                    return rst
+                if p and is_jdk_dir(p):
+                    return p
             
         return None
 
