@@ -64,9 +64,13 @@ PyObject* JObj_FromType(JNIEnv* jenv, JPy_JType* type, jobject objectRef)
         array = (JPy_JArray*) obj;
         array->bufferExportCount = 0;
         array->buf = NULL;
+    } else if ((*jenv)->IsInstanceOf(jenv, objectRef, JPy_ByteBuffer_JClass)) {
+        JPy_JByteBufferWrapper *byteBufferWrapper = (JPy_JByteBufferWrapper *) obj;
+        byteBufferWrapper->pyBuffer = NULL;
     }
 
-    // we check the type translations dictionary for a callable for this java type name,
+
+// we check the type translations dictionary for a callable for this java type name,
     // and apply the returned callable to the wrapped object
     callable = PyDict_GetItemString(JPy_Type_Translations, type->javaName);
     if (callable != NULL) {
@@ -172,6 +176,8 @@ void JObj_dealloc(JPy_JObj* self)
     JNIEnv* jenv;
     JPy_JType* jtype;
 
+    jenv = JPy_GetJNIEnv();
+
     JPy_DIAG_PRINT(JPy_DIAG_F_MEM, "JObj_dealloc: releasing instance of %s, self->objectRef=%p\n", Py_TYPE(self)->tp_name, self->objectRef);
 
     jtype = (JPy_JType *)Py_TYPE(self);
@@ -182,14 +188,14 @@ void JObj_dealloc(JPy_JObj* self)
         if (array->buf != NULL) {
             JArray_ReleaseJavaArrayElements(array, array->javaType);
         }
-    } else if (jtype == JPy_JByteBuffer) {
-        JPy_JByteBufferWrapper* byteBufferWrapper;
-        byteBufferWrapper = (JPy_JByteBufferWrapper *) self;
-        PyBuffer_Release(byteBufferWrapper->pyBuffer);
-        PyMem_Free(byteBufferWrapper->pyBuffer);
+    } else if ((*jenv)->IsInstanceOf(jenv, self->objectRef, JPy_ByteBuffer_JClass)) {
+        JPy_JByteBufferWrapper *byteBufferWrapper = (JPy_JByteBufferWrapper *) self;
+        if (byteBufferWrapper->pyBuffer != NULL) {
+            PyBuffer_Release(byteBufferWrapper->pyBuffer);
+            PyMem_Free(byteBufferWrapper->pyBuffer);
+        }
     }
 
-    jenv = JPy_GetJNIEnv();
     if (jenv != NULL) {
         if (self->objectRef != NULL) {
             (*jenv)->DeleteGlobalRef(jenv, self->objectRef);
