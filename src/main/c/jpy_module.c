@@ -66,7 +66,8 @@ static PyMethodDef JPy_Functions[] = {
                     "Possible primitive types are 'boolean', 'byte', 'char', 'short', 'int', 'long', 'float', and 'double'."},
 
     {"byte_buffer", JPy_byte_buffer, METH_VARARGS,
-            "byte_buffer(obj) - Return a new Java direct ByteBuffer referring to the Py_buffer provided by obj via its implemented Buffer Protocol. "},
+            "byte_buffer(obj) - Return a new Java direct ByteBuffer sharing the same underlying buffer of obj via its implemented Buffer Protocol. The Java direct ByteBuffer is read-only"
+            "and is only safe to access in Java (e.g. as an argument to a Java method) when it is also referenced in Python."},
 
     {NULL, NULL, 0, NULL} /*Sentinel*/
 };

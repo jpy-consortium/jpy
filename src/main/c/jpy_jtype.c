@@ -43,7 +43,6 @@ void JType_InitMethodParamDescriptorFunctions(JPy_JType* type, JPy_JMethod* meth
 int JType_ProcessField(JNIEnv* jenv, JPy_JType* declaringType, PyObject* fieldKey, const char* fieldName, jclass fieldClassRef, jboolean isStatic, jboolean isFinal, jfieldID fid);
 void JType_DisposeLocalObjectRefArg(JNIEnv* jenv, jvalue* value, void* data);
 void JType_DisposeReadOnlyBufferArg(JNIEnv* jenv, jvalue* value, void* data);
-void JType_DisposeByteBufferArg(JNIEnv* jenv, jvalue* value, void* data);
 void JType_DisposeWritableBufferArg(JNIEnv* jenv, jvalue* value, void* data);
 
 
@@ -1661,10 +1660,6 @@ int JType_MatchPyArgAsJByteBufferParam(JNIEnv* jenv, JPy_ParamDescriptor* paramD
         return 1;
     }
 
-    if (PyObject_CheckBuffer(pyArg) == 1) {
-        return 100;
-    }
-
     return JType_MatchPyArgAsJObject(jenv, paramDescriptor->type, pyArg);
 }
 
@@ -1720,12 +1715,7 @@ PyObject* JType_CreateJavaByteBufferWrapper(JNIEnv* jenv, PyObject* pyObj)
 
 int JType_ConvertPyArgToJByteBufferArg(JNIEnv* jenv, JPy_ParamDescriptor* paramDescriptor, PyObject* pyArg, jvalue* value, JPy_ArgDisposer* disposer)
 {
-    if (PyObject_CheckBuffer(pyArg)) {
-        disposer->data = JType_CreateJavaByteBufferWrapper(jenv, pyArg);
-        disposer->DisposeArg = JType_DisposeByteBufferArg;
-        JPy_JObj* obj = (JPy_JObj*) disposer->data;
-        value->l = obj->objectRef;
-    } else if (JObj_Check(pyArg)) {
+    if (JObj_Check(pyArg)) {
         disposer->data = NULL;
         // If it is a wrapped Java object, it is always a global reference, so don't dispose it
         disposer->DisposeArg = NULL;
@@ -2452,20 +2442,6 @@ void JType_DisposeLocalObjectRefArg(JNIEnv* jenv, jvalue* value, void* data)
         JPy_DIAG_PRINT(JPy_DIAG_F_MEM, "JType_DisposeLocalObjectRefArg: objectRef=%p\n", objectRef);
         JPy_DELETE_LOCAL_REF(objectRef);
     }
-}
-
-void JType_DisposeByteBufferArg(JNIEnv* jenv, jvalue* value, void* data)
-{
-    PyObject*  byteBufferWrapper = (PyObject*) data;
-    jobject jByteBuffer = (jobject) value->l;
-
-    JPy_DIAG_PRINT(JPy_DIAG_F_MEM, "JType_DisposeByteBufferArg: byteBufferWrapper=%p, jByteBuffer=%p\n", byteBufferWrapper, jByteBuffer);
-
-    if (jByteBuffer != NULL) {
-        JPy_DELETE_LOCAL_REF(jByteBuffer);
-    }
-
-    JPy_DECREF(byteBufferWrapper);
 }
 
 void JType_DisposeReadOnlyBufferArg(JNIEnv* jenv, jvalue* value, void* data)
