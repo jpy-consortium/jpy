@@ -39,6 +39,7 @@ PyObject* JPy_destroy_jvm(PyObject* self, PyObject* args);
 PyObject* JPy_get_type(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* JPy_cast(PyObject* self, PyObject* args);
 PyObject* JPy_array(PyObject* self, PyObject* args);
+PyObject* JType_CreateJavaByteBufferWrapper(JNIEnv* jenv, PyObject* pyObj);
 PyObject* JPy_byte_buffer(PyObject* self, PyObject* args);
 
 
@@ -66,8 +67,9 @@ static PyMethodDef JPy_Functions[] = {
                     "Possible primitive types are 'boolean', 'byte', 'char', 'short', 'int', 'long', 'float', and 'double'."},
 
     {"byte_buffer", JPy_byte_buffer, METH_VARARGS,
-            "byte_buffer(obj) - Return a new Java direct ByteBuffer sharing the same underlying buffer of obj via its implemented Buffer Protocol. The Java direct ByteBuffer is read-only"
-            "and is only safe to access in Java (e.g. as an argument to a Java method) when it is also referenced in Python."},
+            "byte_buffer(obj) - Return a new Java direct ByteBuffer sharing the same underlying, contiguous buffer of obj via its implemented Buffer Protocol. The resulting PYObject must live "
+            "longer than the Java object to ensure the underlying data remains valid. In most cases, this means that java functions called in this manner must not keep any references"
+            " to the ByteBuffer"},
 
     {NULL, NULL, 0, NULL} /*Sentinel*/
 };
@@ -666,6 +668,58 @@ PyObject* JPy_array_internal(JNIEnv* jenv, PyObject* self, PyObject* args)
 PyObject* JPy_array(PyObject* self, PyObject* args)
 {
     JPy_FRAME(PyObject*, NULL, JPy_array_internal(jenv, self, args), 16)
+}
+
+PyObject* JType_CreateJavaByteBufferWrapper(JNIEnv* jenv, PyObject* pyObj)
+{
+    jobject byteBufferRef, tmpByteBufferRef;
+    Py_buffer *pyBuffer;
+    PyObject *newPyObj;
+    JPy_JByteBufferWrapper* byteBufferWrapper;
+
+    pyBuffer = (Py_buffer *)PyMem_Malloc(sizeof(Py_buffer));
+    if (pyBuffer == NULL) {
+        PyErr_NoMemory();
+        return NULL;
+    }
+
+    if (PyObject_GetBuffer(pyObj, pyBuffer, PyBUF_SIMPLE | PyBUF_C_CONTIGUOUS) != 0) {
+        PyErr_SetString(PyExc_ValueError, "JType_CreateJavaByteBufferWrapper: the Python object failed to return a contiguous buffer.");
+        PyMem_Free(pyBuffer);
+        return NULL;
+    }
+
+    tmpByteBufferRef = (*jenv)->NewDirectByteBuffer(jenv, pyBuffer->buf, pyBuffer->len);
+    if (tmpByteBufferRef == NULL) {
+        PyBuffer_Release(pyBuffer);
+        PyMem_Free(pyBuffer);
+        PyErr_NoMemory();
+        return NULL;
+    }
+
+    byteBufferRef = (*jenv)->CallObjectMethod(jenv, tmpByteBufferRef, JPy_ByteBuffer_AsReadOnlyBuffer_MID);
+    if (byteBufferRef == NULL) {
+        PyBuffer_Release(pyBuffer);
+        PyMem_Free(pyBuffer);
+        JPy_DELETE_LOCAL_REF(tmpByteBufferRef);
+        PyErr_SetString(PyExc_RuntimeError, "jpy: internal error: failed to create a read-only ByteBuffer instance.");
+        return NULL;
+    }
+    JPy_DELETE_LOCAL_REF(tmpByteBufferRef);
+
+    newPyObj = JObj_New(jenv, byteBufferRef);
+    if (newPyObj == NULL) {
+        PyErr_SetString(PyExc_RuntimeError, "jpy: internal error: failed to create a ByteBufferWrapper instance.");
+        PyBuffer_Release(pyBuffer);
+        PyMem_Free(pyBuffer);
+        JPy_DELETE_LOCAL_REF(byteBufferRef);
+        return NULL;
+    }
+    JPy_DELETE_LOCAL_REF(byteBufferRef);
+
+    byteBufferWrapper = (JPy_JByteBufferWrapper *) newPyObj;
+    byteBufferWrapper->pyBuffer = pyBuffer;
+    return (PyObject *)byteBufferWrapper;
 }
 
 PyObject* JPy_byte_buffer_internal(JNIEnv* jenv, PyObject* self, PyObject* args)

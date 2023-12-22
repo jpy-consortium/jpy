@@ -65,7 +65,9 @@ PyObject* JObj_FromType(JNIEnv* jenv, JPy_JType* type, jobject objectRef)
         array->bufferExportCount = 0;
         array->buf = NULL;
     } else if ((*jenv)->IsInstanceOf(jenv, objectRef, JPy_ByteBuffer_JClass)) {
-        JPy_JByteBufferWrapper *byteBufferWrapper = (JPy_JByteBufferWrapper *) obj;
+        JPy_JByteBufferWrapper *byteBufferWrapper;
+
+        byteBufferWrapper = (JPy_JByteBufferWrapper *) obj;
         byteBufferWrapper->pyBuffer = NULL;
     }
 
@@ -189,7 +191,8 @@ void JObj_dealloc(JPy_JObj* self)
             JArray_ReleaseJavaArrayElements(array, array->javaType);
         }
     } else if ((*jenv)->IsInstanceOf(jenv, self->objectRef, JPy_ByteBuffer_JClass)) {
-        JPy_JByteBufferWrapper *byteBufferWrapper = (JPy_JByteBufferWrapper *) self;
+        JPy_JByteBufferWrapper *byteBufferWrapper;
+        byteBufferWrapper = (JPy_JByteBufferWrapper *) self;
         if (byteBufferWrapper->pyBuffer != NULL) {
             PyBuffer_Release(byteBufferWrapper->pyBuffer);
             PyMem_Free(byteBufferWrapper->pyBuffer);

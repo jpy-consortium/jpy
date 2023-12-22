@@ -135,8 +135,6 @@ int JType_CreateJavaPyObject(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg, job
 
 int JType_CreateJavaArray(JNIEnv* jenv, JPy_JType* componentType, PyObject* pyArg, jobject* objectRef, jboolean allowObjectWrapping);
 
-PyObject* JType_CreateJavaByteBufferWrapper(JNIEnv* jenv, PyObject* pyObj);
-
 // Non-API. Defined in jpy_jobj.c
 int JType_InitSlots(JPy_JType* type);
 // Non-API. Defined in jpy_jtype.c

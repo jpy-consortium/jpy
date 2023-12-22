@@ -1653,88 +1653,12 @@ int JType_ConvertPyArgToJStringArg(JNIEnv* jenv, JPy_ParamDescriptor* paramDescr
     return JPy_AsJString(jenv, pyArg, &value->l);
 }
 
-int JType_MatchPyArgAsJByteBufferParam(JNIEnv* jenv, JPy_ParamDescriptor* paramDescriptor, PyObject* pyArg)
-{
-    if (pyArg == Py_None) {
-        // Signal it is possible, but give low priority since we cannot perform any type checks on 'None'
-        return 1;
-    }
-
-    return JType_MatchPyArgAsJObject(jenv, paramDescriptor->type, pyArg);
-}
-
-PyObject* JType_CreateJavaByteBufferWrapper(JNIEnv* jenv, PyObject* pyObj)
-{
-    jobject byteBufferRef, tmpByteBufferRef;
-    Py_buffer *pyBuffer;
-
-    pyBuffer = (Py_buffer *)PyMem_Malloc(sizeof(Py_buffer));
-    if (pyBuffer == NULL) {
-        PyErr_NoMemory();
-        return NULL;
-    }
-
-    if (PyObject_GetBuffer(pyObj, pyBuffer, PyBUF_SIMPLE | PyBUF_C_CONTIGUOUS) != 0) {
-        PyErr_SetString(PyExc_ValueError, "JType_CreateJavaByteBufferWrapper: the Python object failed to return a contiguous buffer.");
-        PyMem_Free(pyBuffer);
-        return NULL;
-    }
-
-    tmpByteBufferRef = (*jenv)->NewDirectByteBuffer(jenv, pyBuffer->buf, pyBuffer->len);
-    if (tmpByteBufferRef == NULL) {
-        PyBuffer_Release(pyBuffer);
-        PyMem_Free(pyBuffer);
-        PyErr_NoMemory();
-        return NULL;
-    }
-
-    byteBufferRef = (*jenv)->CallObjectMethod(jenv, tmpByteBufferRef, JPy_ByteBuffer_AsReadOnlyBuffer_MID);
-    if (byteBufferRef == NULL) {
-        PyBuffer_Release(pyBuffer);
-        PyMem_Free(pyBuffer);
-        JPy_DELETE_LOCAL_REF(tmpByteBufferRef);
-        PyErr_SetString(PyExc_RuntimeError, "jpy: internal error: failed to create a read-only ByteBuffer instance.");
-        return NULL;
-    }
-    JPy_DELETE_LOCAL_REF(tmpByteBufferRef);
-
-    PyObject *newPyObj = JObj_New(jenv, byteBufferRef);
-    if (newPyObj == NULL) {
-        PyErr_SetString(PyExc_RuntimeError, "jpy: internal error: failed to create a ByteBufferWrapper instance.");
-        PyBuffer_Release(pyBuffer);
-        PyMem_Free(pyBuffer);
-        JPy_DELETE_LOCAL_REF(byteBufferRef);
-        return NULL;
-    }
-    JPy_DELETE_LOCAL_REF(byteBufferRef);
-
-    JPy_JByteBufferWrapper* byteBufferWrapper = (JPy_JByteBufferWrapper *) newPyObj;
-    byteBufferWrapper->pyBuffer = pyBuffer;
-    return (PyObject *)byteBufferWrapper;
-}
-
-int JType_ConvertPyArgToJByteBufferArg(JNIEnv* jenv, JPy_ParamDescriptor* paramDescriptor, PyObject* pyArg, jvalue* value, JPy_ArgDisposer* disposer)
-{
-    if (JObj_Check(pyArg)) {
-        disposer->data = NULL;
-        // If it is a wrapped Java object, it is always a global reference, so don't dispose it
-        disposer->DisposeArg = NULL;
-        JPy_JObj* obj = (JPy_JObj*) pyArg;
-        value->l = obj->objectRef;
-    } else {
-        PyErr_SetString(PyExc_RuntimeError, "jpy: internal error: Python argument incorrectly matched to Java ByteBuffer parameter.");
-        return -1;
-    }
-    return 0;
-}
-
 int JType_ConvertPyArgToJPyObjectArg(JNIEnv* jenv, JPy_ParamDescriptor* paramDescriptor, PyObject* pyArg, jvalue* value, JPy_ArgDisposer* disposer)
 {
     disposer->data = NULL;
     disposer->DisposeArg = JType_DisposeLocalObjectRefArg;
     return JType_CreateJavaPyObject(jenv, JPy_JPyObject, pyArg, &value->l);
 }
-
 
 int JType_MatchPyArgAsJPyObjectParam(JNIEnv* jenv, JPy_ParamDescriptor* paramDescriptor, PyObject* pyArg)
 {
@@ -2527,9 +2451,6 @@ void JType_InitParamDescriptorFunctions(JPy_ParamDescriptor* paramDescriptor, jb
     } else if (paramType == JPy_JString) {
         paramDescriptor->MatchPyArg = JType_MatchPyArgAsJStringParam;
         paramDescriptor->ConvertPyArg = JType_ConvertPyArgToJStringArg;
-    } else if (paramType == JPy_JByteBuffer) {
-        paramDescriptor->MatchPyArg = JType_MatchPyArgAsJByteBufferParam;
-        paramDescriptor->ConvertPyArg = JType_ConvertPyArgToJByteBufferArg;
     //} else if (paramType == JPy_JMap) {
     //} else if (paramType == JPy_JList) {
     //} else if (paramType == JPy_JSet) {
