@@ -827,8 +827,8 @@ int JType_InitSlots(JPy_JType* type)
 
     //printf("+++++++++++++++++++++++++++++++++++++++++ typeObj->ob_type=%p\n", ((PyObject*)typeObj)->ob_type);
 
-    JPy_DIAG_PRINT(JPy_DIAG_F_TYPE, "JType_InitSlots: typeObj=%p, Py_TYPE(typeObj)=%p, typeObj->tp_name=\"%s\", typeObj->tp_base=%p, typeObj->tp_init=%p, &JType_Type=%p, &PyType_Type=%p, JObj_init=%p\n",
-                   typeObj, Py_TYPE(typeObj), typeObj->tp_name, typeObj->tp_base, typeObj->tp_init, &JType_Type, &PyType_Type, JObj_init);
+    JPy_DIAG_PRINT(JPy_DIAG_F_TYPE, "JType_InitSlots: typeObj=%p, Py_TYPE(typeObj)=%p, typeObj->tp_name=\"%s\", typeObj->tp_base=%p, typeObj->tp_init=%p, typeObj->tp_basicsize=%d, &JType_Type=%p, &PyType_Type=%p, JObj_init=%p\n",
+                   typeObj, Py_TYPE(typeObj), typeObj->tp_name, typeObj->tp_base, typeObj->tp_init, typeObj->tp_basicsize, &JType_Type, &PyType_Type, JObj_init);
 
     return 0;
 }
