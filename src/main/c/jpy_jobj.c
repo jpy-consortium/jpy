@@ -67,7 +67,8 @@ PyObject* JObj_FromType(JNIEnv* jenv, JPy_JType* type, jobject objectRef)
         array->buf = NULL;
     } else if ((*jenv)->IsInstanceOf(jenv, objectRef, JPy_ByteBuffer_JClass)) {
         JPy_JByteBufferWrapper *byteBufferWrapper;
-        JPy_DIAG_PRINT(JPy_DIAG_F_MEM, "JObj_FromType: (type->typeObj->tp_basicsize=%d), (type->javaName=%s) setting byteBufferWrapper->pyBuffer=NULL\n", type->typeObj->tp_basicsize, type->javaName);
+        // ->tp_nametype->typeObj->
+        JPy_DIAG_PRINT(JPy_DIAG_F_MEM, "JObj_FromType: (Py_TYPE(&type->typeObj)->tp_basicsize=%d), (type->javaName=%s) setting byteBufferWrapper->pyBuffer=NULL\n", Py_TYPE(&type->typeObj)->tp_basicsize, type->javaName);
         byteBufferWrapper = (JPy_JByteBufferWrapper *) obj;
         byteBufferWrapper->pyBuffer = NULL;
     }
