@@ -66,7 +66,7 @@ PyObject* JObj_FromType(JNIEnv* jenv, JPy_JType* type, jobject objectRef)
         array->buf = NULL;
     } else if ((*jenv)->IsInstanceOf(jenv, objectRef, JPy_ByteBuffer_JClass)) {
         JPy_JByteBufferWrapper *byteBufferWrapper;
-
+        JPy_DIAG_PRINT(JPy_DIAG_F_MEM, "JObj_FromType: setting byteBufferWrapper->pyBuffer=%p to NULL\n", jType->javaName, byteBufferWrapper->pyBuffer);
         byteBufferWrapper = (JPy_JByteBufferWrapper *) obj;
         byteBufferWrapper->pyBuffer = NULL;
     }
@@ -192,8 +192,10 @@ void JObj_dealloc(JPy_JObj* self)
         }
     } else if ((*jenv)->IsInstanceOf(jenv, self->objectRef, JPy_ByteBuffer_JClass)) {
         JPy_JByteBufferWrapper *byteBufferWrapper;
+        JPy_DIAG_PRINT(JPy_DIAG_F_MEM, "JObj_dealloc: assuming JPy_JByteBufferWrapper, self->objectRef=%p\n", self->objectRef);
         byteBufferWrapper = (JPy_JByteBufferWrapper *) self;
         if (byteBufferWrapper->pyBuffer != NULL) {
+            JPy_DIAG_PRINT(JPy_DIAG_F_MEM, "JObj_dealloc: releasing JPy_JByteBufferWrapper, self->objectRef=%p, byteBufferWrapper->pyBuffer=%p\n", self->objectRef, byteBufferWrapper->pyBuffer);
             PyBuffer_Release(byteBufferWrapper->pyBuffer);
             PyMem_Free(byteBufferWrapper->pyBuffer);
         }
@@ -745,6 +747,7 @@ int JType_InitSlots(JPy_JType* type)
         typeObj->tp_basicsize = sizeof(JPy_JArray);
     } else if (type == JPy_JByteBuffer) {
         typeObj->tp_basicsize = sizeof(JPy_JByteBufferWrapper);
+        JPy_DIAG_PRINT(JPy_DIAG_F_MEM, "JType_InitSlots: allocating space for JPy_JByteBufferWrapper\n");
     } else {
         typeObj->tp_basicsize = sizeof(JPy_JObj);
     }
