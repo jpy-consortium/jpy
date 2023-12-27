@@ -57,6 +57,7 @@ PyObject* JObj_FromType(JNIEnv* jenv, JPy_JType* type, jobject objectRef)
 
     obj->objectRef = objectRef;
 
+    JPy_DIAG_PRINT(JPy_DIAG_F_MEM, "JObj_FromType: (Py_TYPE(&type->typeObj)->tp_basicsize=%d), (type->javaName=%s)\n", Py_TYPE(&type->typeObj)->tp_basicsize, type->javaName);
 
     // For special treatment of primitive array refer to JType_InitSlots()
     if (type->componentType != NULL && type->componentType->isPrimitive) {
@@ -67,7 +68,6 @@ PyObject* JObj_FromType(JNIEnv* jenv, JPy_JType* type, jobject objectRef)
         array->buf = NULL;
     } else if ((*jenv)->IsInstanceOf(jenv, objectRef, JPy_ByteBuffer_JClass)) {
         JPy_JByteBufferWrapper *byteBufferWrapper;
-        // ->tp_nametype->typeObj->
         JPy_DIAG_PRINT(JPy_DIAG_F_MEM, "JObj_FromType: (Py_TYPE(&type->typeObj)->tp_basicsize=%d), (type->javaName=%s) setting byteBufferWrapper->pyBuffer=NULL\n", Py_TYPE(&type->typeObj)->tp_basicsize, type->javaName);
         byteBufferWrapper = (JPy_JByteBufferWrapper *) obj;
         byteBufferWrapper->pyBuffer = NULL;
