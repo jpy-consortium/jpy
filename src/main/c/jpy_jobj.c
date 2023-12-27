@@ -749,7 +749,7 @@ int JType_InitSlots(JPy_JType* type)
         typeObj->tp_basicsize = sizeof(JPy_JArray);
     } else if (type == JPy_JByteBuffer) {
         typeObj->tp_basicsize = sizeof(JPy_JByteBufferWrapper);
-        JPy_DIAG_PRINT(JPy_DIAG_F_MEM, "JType_InitSlots: allocating space for JPy_JByteBufferWrapper\n");
+        JPy_DIAG_PRINT(JPy_DIAG_F_TYPE, "JType_InitSlots: allocating space for JPy_JByteBufferWrapper\n");
     } else {
         typeObj->tp_basicsize = sizeof(JPy_JObj);
     }
