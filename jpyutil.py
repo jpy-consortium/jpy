@@ -136,12 +136,42 @@ def find_jdk_home_dir():
     dedicated environment variables.
     :return: pathname if found, else None
     """
+
+    def is_jdk_dir(path):
+        rst = os.path.exists(os.path.join(path, 'include')) and os.path.exists(os.path.join(path, 'lib'))
+        logger.debug(f'Checking {path} for JDK...: {"yes" if rst else "no"}')
+        return rst
+
+    def walk_to_jdk(path):
+        if is_jdk_dir(path):
+            return path
+        
+        for root, dir_names, file_names in os.walk(path):
+            for d in dir_names:
+                p = os.path.join(root, d)
+
+                if p and is_jdk_dir(p):
+                    return p
+            
+        return None
+
     for name in JDK_HOME_VARS:
         jdk_home_dir = os.environ.get(name, None)
-        if jdk_home_dir \
-                and os.path.exists(os.path.join(jdk_home_dir, 'include')) \
-                and os.path.exists(os.path.join(jdk_home_dir, 'lib')):
-            return jdk_home_dir
+        if jdk_home_dir:
+            logger.debug(f'JAVA_HOME set by environment variable to {jdk_home_dir}')
+
+            if is_jdk_dir(jdk_home_dir):
+                return jdk_home_dir
+
+            jdk_dir = walk_to_jdk(jdk_home_dir)
+
+            if jdk_dir:
+                logger.error(f'JAVA_HOME set by environment variable to {jdk_home_dir} but no no "include" or "lib" directory found.  Possibly you meant {jdk_dir}?')
+            else:
+                logger.error(f'JAVA_HOME set by environment variable to {jdk_home_dir} but no no "include" or "lib" directory found.  Does not appear to be a JDK directory.')
+
+            exit(1)
+
     logger.debug('Checking Maven for JAVA_HOME...')
     try:
         output = subprocess.check_output(['mvn', '-v'])
@@ -152,7 +182,9 @@ def find_jdk_home_dir():
             if part.startswith('Java home:'):
                 path = part.split(':')[1].strip()
                 if path.endswith('jre'):
-                    return path[0:-3]
+                    java_home = path[0:-3]
+                    logger.debug(f'JAVA_HOME set by maven to {java_home}')
+                    return java_home
                 
     except Exception:
         # maven probably isn't installed or not on PATH
@@ -214,19 +246,20 @@ def find_jvm_dll_file(java_home_dir=None, fail=False):
 
 
 def _get_jvm_lib_dirs(java_home_dir):
-    arch = 'amd64' if PYTHON_64BIT else 'i386'
+    machine = platform.machine()
+    arch_dir_name = 'aarch64' if machine == 'aarch64' else 'amd64' if PYTHON_64BIT else 'i386'
     return (os.path.join(java_home_dir, 'bin'),
             os.path.join(java_home_dir, 'bin', 'server'),
             os.path.join(java_home_dir, 'bin', 'client'),
-            os.path.join(java_home_dir, 'bin', arch),
-            os.path.join(java_home_dir, 'bin', arch, 'server'),
-            os.path.join(java_home_dir, 'bin', arch, 'client'),
+            os.path.join(java_home_dir, 'bin', arch_dir_name),
+            os.path.join(java_home_dir, 'bin', arch_dir_name, 'server'),
+            os.path.join(java_home_dir, 'bin', arch_dir_name, 'client'),
             os.path.join(java_home_dir, 'lib'),
             os.path.join(java_home_dir, 'lib', 'server'),
             os.path.join(java_home_dir, 'lib', 'client'),
-            os.path.join(java_home_dir, 'lib', arch),
-            os.path.join(java_home_dir, 'lib', arch, 'server'),
-            os.path.join(java_home_dir, 'lib', arch, 'client'),
+            os.path.join(java_home_dir, 'lib', arch_dir_name),
+            os.path.join(java_home_dir, 'lib', arch_dir_name, 'server'),
+            os.path.join(java_home_dir, 'lib', arch_dir_name, 'client'),
             )
 
 
