@@ -40,6 +40,8 @@ JPy_JObj;
 
 int JObj_Check(PyObject* arg);
 
+int JByteBuffer_Check(JPy_JType* type);
+
 PyObject* JObj_New(JNIEnv* jenv, jobject objectRef);
 PyObject* JObj_FromType(JNIEnv* jenv, JPy_JType* type, jobject objectRef);
 
