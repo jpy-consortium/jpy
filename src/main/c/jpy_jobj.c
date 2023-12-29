@@ -64,7 +64,7 @@ PyObject* JObj_FromType(JNIEnv* jenv, JPy_JType* type, jobject objectRef)
         array = (JPy_JArray*) obj;
         array->bufferExportCount = 0;
         array->buf = NULL;
-    } else if ((*jenv)->IsInstanceOf(jenv, objectRef, JPy_ByteBuffer_JClass)) {
+    } else if (JByteBuffer_Check(type)) {
         JPy_JByteBufferWrapper *byteBufferWrapper;
 
         byteBufferWrapper = (JPy_JByteBufferWrapper *) obj;
@@ -178,8 +178,6 @@ void JObj_dealloc(JPy_JObj* self)
     JNIEnv* jenv;
     JPy_JType* jtype;
 
-    jenv = JPy_GetJNIEnv();
-
     JPy_DIAG_PRINT(JPy_DIAG_F_MEM, "JObj_dealloc: releasing instance of %s, self->objectRef=%p\n", Py_TYPE(self)->tp_name, self->objectRef);
 
     jtype = (JPy_JType *)Py_TYPE(self);
@@ -190,7 +188,7 @@ void JObj_dealloc(JPy_JObj* self)
         if (array->buf != NULL) {
             JArray_ReleaseJavaArrayElements(array, array->javaType);
         }
-    } else if ((*jenv)->IsInstanceOf(jenv, self->objectRef, JPy_ByteBuffer_JClass)) {
+    } else if (JByteBuffer_Check(jtype)) {
         JPy_JByteBufferWrapper *byteBufferWrapper;
         byteBufferWrapper = (JPy_JByteBufferWrapper *) self;
         if (byteBufferWrapper->pyBuffer != NULL) {
@@ -199,6 +197,7 @@ void JObj_dealloc(JPy_JObj* self)
         }
     }
 
+    jenv = JPy_GetJNIEnv();
     if (jenv != NULL) {
         if (self->objectRef != NULL) {
             (*jenv)->DeleteGlobalRef(jenv, self->objectRef);
@@ -743,7 +742,7 @@ int JType_InitSlots(JPy_JType* type)
 
     if (isPrimitiveArray) {
         typeObj->tp_basicsize = sizeof(JPy_JArray);
-    } else if (type == JPy_JByteBuffer) {
+    } else if (JByteBuffer_Check(type)) {
         typeObj->tp_basicsize = sizeof(JPy_JByteBufferWrapper);
     } else {
         typeObj->tp_basicsize = sizeof(JPy_JObj);
@@ -842,3 +841,13 @@ int JType_Check(PyObject* arg)
     return PyType_Check(arg) && JPY_IS_JTYPE(arg);
 }
 
+int JByteBuffer_Check(JPy_JType* type) {
+    while (type != NULL) {
+        if (type == JPy_JByteBuffer || strcmp(type->javaName, "java.nio.ByteBuffer") == 0) {
+            JPy_DIAG_PRINT(JPy_DIAG_F_TYPE, "JByteBuffer_Check: java ByteBuffer or its sub-type (%s) found.\n", type->javaName);
+            return -1;
+        }
+        type = type->superType;
+    }
+    return 0;
+}

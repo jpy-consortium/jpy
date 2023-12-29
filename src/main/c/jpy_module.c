@@ -702,7 +702,7 @@ PyObject* JType_CreateJavaByteBufferWrapper(JNIEnv* jenv, PyObject* pyObj)
         PyBuffer_Release(pyBuffer);
         PyMem_Free(pyBuffer);
         JPy_DELETE_LOCAL_REF(tmpByteBufferRef);
-        PyErr_SetString(PyExc_RuntimeError, "jpy: internal error: failed to create a read-only ByteBuffer instance.");
+        PyErr_SetString(PyExc_RuntimeError, "jpy: internal error: failed to create a read-only direct ByteBuffer instance.");
         return NULL;
     }
     JPy_DELETE_LOCAL_REF(tmpByteBufferRef);
