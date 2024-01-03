@@ -26,6 +26,7 @@
 #include "jpy_jobj.h"
 #include "jpy_conv.h"
 #include "jpy_compat.h"
+#include "jpy_jbyte_buffer.h"
 
 
 #include <stdlib.h>
@@ -38,6 +39,7 @@ PyObject* JPy_destroy_jvm(PyObject* self, PyObject* args);
 PyObject* JPy_get_type(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* JPy_cast(PyObject* self, PyObject* args);
 PyObject* JPy_array(PyObject* self, PyObject* args);
+PyObject* JPy_byte_buffer(PyObject* self, PyObject* args);
 
 
 static PyMethodDef JPy_Functions[] = {
@@ -62,6 +64,11 @@ static PyMethodDef JPy_Functions[] = {
     {"array",       JPy_array, METH_VARARGS,
                     "array(name, init) - Return a new Java array of given Java type (type name or type object) and initializer (array length or sequence). "
                     "Possible primitive types are 'boolean', 'byte', 'char', 'short', 'int', 'long', 'float', and 'double'."},
+
+    {"byte_buffer", JPy_byte_buffer, METH_VARARGS,
+            "byte_buffer(obj) - Return a new Java direct ByteBuffer sharing the same underlying, contiguous buffer of obj via its implemented Buffer Protocol. The resulting PYObject must live "
+            "longer than the Java object to ensure the underlying data remains valid. In most cases, this means that java functions called in this manner must not keep any references"
+            " to the ByteBuffer"},
 
     {NULL, NULL, 0, NULL} /*Sentinel*/
 };
@@ -126,7 +133,7 @@ JPy_JType* JPy_JPyObject = NULL;
 JPy_JType* JPy_JPyModule = NULL;
 JPy_JType* JPy_JThrowable = NULL;
 JPy_JType* JPy_JStackTraceElement = NULL;
-
+JPy_JType* JPy_JByteBuffer = NULL;
 
 // java.lang.Comparable
 jclass JPy_Comparable_JClass = NULL;
@@ -228,6 +235,8 @@ jclass JPy_Void_JClass = NULL;
 jclass JPy_String_JClass = NULL;
 jclass JPy_PyObject_JClass = NULL;
 jclass JPy_PyDictWrapper_JClass = NULL;
+jclass JPy_ByteBuffer_JClass = NULL;
+jmethodID JPy_ByteBuffer_AsReadOnlyBuffer_MID = NULL;
 
 jmethodID JPy_PyObject_GetPointer_MID = NULL;
 jmethodID JPy_PyObject_UnwrapProxy_SMID = NULL;
@@ -660,6 +669,83 @@ PyObject* JPy_array(PyObject* self, PyObject* args)
     JPy_FRAME(PyObject*, NULL, JPy_array_internal(jenv, self, args), 16)
 }
 
+PyObject* JType_CreateJavaByteBufferObj(JNIEnv* jenv, PyObject* pyObj)
+{
+    jobject byteBufferRef, tmpByteBufferRef;
+    Py_buffer *pyBuffer;
+    PyObject *newPyObj;
+    JPy_JByteBufferObj* byteBuffer;
+
+    pyBuffer = (Py_buffer *)PyMem_Malloc(sizeof(Py_buffer));
+    if (pyBuffer == NULL) {
+        PyErr_NoMemory();
+        return NULL;
+    }
+
+    if (PyObject_GetBuffer(pyObj, pyBuffer, PyBUF_SIMPLE | PyBUF_C_CONTIGUOUS) != 0) {
+        PyErr_SetString(PyExc_ValueError, "JType_CreateJavaByteBufferObj: the Python object failed to return a contiguous buffer.");
+        PyMem_Free(pyBuffer);
+        return NULL;
+    }
+
+    tmpByteBufferRef = (*jenv)->NewDirectByteBuffer(jenv, pyBuffer->buf, pyBuffer->len);
+    if (tmpByteBufferRef == NULL) {
+        PyBuffer_Release(pyBuffer);
+        PyMem_Free(pyBuffer);
+        PyErr_NoMemory();
+        return NULL;
+    }
+
+    byteBufferRef = (*jenv)->CallObjectMethod(jenv, tmpByteBufferRef, JPy_ByteBuffer_AsReadOnlyBuffer_MID);
+    if (byteBufferRef == NULL) {
+        PyBuffer_Release(pyBuffer);
+        PyMem_Free(pyBuffer);
+        JPy_DELETE_LOCAL_REF(tmpByteBufferRef);
+        PyErr_SetString(PyExc_RuntimeError, "jpy: internal error: failed to create a read-only direct ByteBuffer instance.");
+        return NULL;
+    }
+    JPy_DELETE_LOCAL_REF(tmpByteBufferRef);
+
+    newPyObj = JObj_New(jenv, byteBufferRef);
+    if (newPyObj == NULL) {
+        PyErr_SetString(PyExc_RuntimeError, "jpy: internal error: failed to create a byteBuffer instance.");
+        PyBuffer_Release(pyBuffer);
+        PyMem_Free(pyBuffer);
+        JPy_DELETE_LOCAL_REF(byteBufferRef);
+        return NULL;
+    }
+    JPy_DELETE_LOCAL_REF(byteBufferRef);
+
+    byteBuffer = (JPy_JByteBufferObj *) newPyObj;
+    byteBuffer->pyBuffer = pyBuffer;
+    return (PyObject *)byteBuffer;
+}
+
+PyObject* JPy_byte_buffer_internal(JNIEnv* jenv, PyObject* self, PyObject* args)
+{
+    jobject byteBufferRef;
+    PyObject* pyObj;
+    PyObject* newPyObj;
+    Py_buffer *pyBuffer;
+    JPy_JByteBufferObj* byteBuffer;
+
+    if (!PyArg_ParseTuple(args, "O:byte_buffer", &pyObj)) {
+        return NULL;
+    }
+
+    if (PyObject_CheckBuffer(pyObj) == 0) {
+        PyErr_SetString(PyExc_ValueError, "byte_buffer: argument 1 must be a Python object that supports the buffer protocol.");
+        return NULL;
+    }
+
+    return JType_CreateJavaByteBufferObj(jenv, pyObj);
+}
+
+PyObject* JPy_byte_buffer(PyObject* self, PyObject* args)
+{
+    JPy_FRAME(PyObject*, NULL, JPy_byte_buffer_internal(jenv, self, args), 16)
+}
+
 JPy_JType* JPy_GetNonObjectJType(JNIEnv* jenv, jclass classRef)
 {
     jclass primClassRef;
@@ -927,6 +1013,9 @@ int JPy_InitGlobalVars(JNIEnv* jenv)
     DEFINE_CLASS(JPy_String_JClass, "java/lang/String");
     DEFINE_CLASS(JPy_Throwable_JClass, "java/lang/Throwable");
     DEFINE_CLASS(JPy_StackTraceElement_JClass, "java/lang/StackTraceElement");
+    DEFINE_CLASS(JPy_ByteBuffer_JClass, "java/nio/ByteBuffer");
+    DEFINE_METHOD(JPy_ByteBuffer_AsReadOnlyBuffer_MID, JPy_ByteBuffer_JClass, "asReadOnlyBuffer", "()Ljava/nio/ByteBuffer;");
+
 
     // Non-Object types: Primitive types and void.
     DEFINE_NON_OBJECT_TYPE(JPy_JBoolean, JPy_Boolean_JClass);
@@ -953,6 +1042,8 @@ int JPy_InitGlobalVars(JNIEnv* jenv)
     DEFINE_OBJECT_TYPE(JPy_JDoubleObj, JPy_Double_JClass);
     // Other objects.
     DEFINE_OBJECT_TYPE(JPy_JString, JPy_String_JClass);
+    DEFINE_OBJECT_TYPE(JPy_JByteBuffer, JPy_ByteBuffer_JClass);
+
     DEFINE_OBJECT_TYPE(JPy_JThrowable, JPy_Throwable_JClass);
     DEFINE_OBJECT_TYPE(JPy_JStackTraceElement, JPy_StackTraceElement_JClass);
     DEFINE_METHOD(JPy_Throwable_getCause_MID, JPy_Throwable_JClass, "getCause", "()Ljava/lang/Throwable;");
@@ -994,6 +1085,7 @@ void JPy_ClearGlobalVars(JNIEnv* jenv)
         (*jenv)->DeleteGlobalRef(jenv, JPy_Number_JClass);
         (*jenv)->DeleteGlobalRef(jenv, JPy_Void_JClass);
         (*jenv)->DeleteGlobalRef(jenv, JPy_String_JClass);
+        (*jenv)->DeleteGlobalRef(jenv, JPy_ByteBuffer_JClass);
     }
 
     JPy_Comparable_JClass = NULL;
@@ -1014,6 +1106,7 @@ void JPy_ClearGlobalVars(JNIEnv* jenv)
     JPy_Number_JClass = NULL;
     JPy_Void_JClass = NULL;
     JPy_String_JClass = NULL;
+    JPy_ByteBuffer_JClass = NULL;
 
     JPy_Object_ToString_MID = NULL;
     JPy_Object_HashCode_MID = NULL;
@@ -1051,6 +1144,7 @@ void JPy_ClearGlobalVars(JNIEnv* jenv)
     JPy_Number_DoubleValue_MID = NULL;
     JPy_PyObject_GetPointer_MID = NULL;
     JPy_PyObject_UnwrapProxy_SMID = NULL;
+    JPy_ByteBuffer_AsReadOnlyBuffer_MID = NULL;
 
     JPy_XDECREF(JPy_JBoolean);
     JPy_XDECREF(JPy_JChar);
@@ -1061,6 +1155,8 @@ void JPy_ClearGlobalVars(JNIEnv* jenv)
     JPy_XDECREF(JPy_JFloat);
     JPy_XDECREF(JPy_JDouble);
     JPy_XDECREF(JPy_JVoid);
+    JPy_XDECREF(JPy_JString);
+    JPy_XDECREF(JPy_JByteBuffer);
     JPy_XDECREF(JPy_JBooleanObj);
     JPy_XDECREF(JPy_JCharacterObj);
     JPy_XDECREF(JPy_JByteObj);
@@ -1082,6 +1178,7 @@ void JPy_ClearGlobalVars(JNIEnv* jenv)
     JPy_JDouble = NULL;
     JPy_JVoid = NULL;
     JPy_JString = NULL;
+    JPy_JByteBuffer = NULL;
     JPy_JBooleanObj = NULL;
     JPy_JCharacterObj = NULL;
     JPy_JByteObj = NULL;

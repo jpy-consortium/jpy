@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Brockmann Consult GmbH
+ * Copyright 2023 JPY-CONSORTIUM Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -12,13 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * This file was modified by Deephaven Data Labs.
- *
  */
 
-#ifndef JPY_JOBJ_H
-#define JPY_JOBJ_H
+#ifndef JPY_JBYTE_BUFFER_H
+#define JPY_JBYTE_BUFFER_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,28 +24,21 @@ extern "C" {
 #include "jpy_compat.h"
 
 /**
- * The Java Object representation in Python.
- * @see JPy_JArray
+ * The Java ByteBuffer representation in Python.
+ *
+ * IMPORTANT: JPy_JByteBufferObj must only differ from the JPy_JObj structure by the 'pyBuffer' member
+ * since we use the same basic type, name JPy_JType for it. DON'T ever change member positions!
+ * @see JPy_JObj
  */
-typedef struct JPy_JObj
+typedef struct JPy_JByteBufferObj
 {
     PyObject_HEAD
     jobject objectRef;
+    Py_buffer *pyBuffer;
 }
-JPy_JObj;
-
-
-int JObj_Check(PyObject* arg);
-
-int JByteBuffer_Check(JPy_JType* type);
-
-PyObject* JObj_New(JNIEnv* jenv, jobject objectRef);
-PyObject* JObj_FromType(JNIEnv* jenv, JPy_JType* type, jobject objectRef);
-
-int JObj_InitTypeSlots(PyTypeObject* type, const char* typeName, PyTypeObject* superType);
-
+JPy_JByteBufferObj;
 
 #ifdef __cplusplus
 }  /* extern "C" */
 #endif
-#endif /* !JPY_JOBJ_H */
+#endif /* !JPY_JBYTE_BUFFER_H */

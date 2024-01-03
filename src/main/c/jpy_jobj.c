@@ -20,6 +20,7 @@
 #include "jpy_module.h"
 #include "jpy_diag.h"
 #include "jpy_jarray.h"
+#include "jpy_jbyte_buffer.h"
 #include "jpy_jtype.h"
 #include "jpy_jobj.h"
 #include "jpy_jmethod.h"
@@ -63,9 +64,15 @@ PyObject* JObj_FromType(JNIEnv* jenv, JPy_JType* type, jobject objectRef)
         array = (JPy_JArray*) obj;
         array->bufferExportCount = 0;
         array->buf = NULL;
+    } else if (JByteBuffer_Check(type)) {
+        JPy_JByteBufferObj *byteBuffer;
+
+        byteBuffer = (JPy_JByteBufferObj *) obj;
+        byteBuffer->pyBuffer = NULL;
     }
 
-    // we check the type translations dictionary for a callable for this java type name,
+
+// we check the type translations dictionary for a callable for this java type name,
     // and apply the returned callable to the wrapped object
     callable = PyDict_GetItemString(JPy_Type_Translations, type->javaName);
     if (callable != NULL) {
@@ -181,8 +188,14 @@ void JObj_dealloc(JPy_JObj* self)
         if (array->buf != NULL) {
             JArray_ReleaseJavaArrayElements(array, array->javaType);
         }
-  
-    }    
+    } else if (JByteBuffer_Check(jtype)) {
+        JPy_JByteBufferObj *byteBuffer;
+        byteBuffer = (JPy_JByteBufferObj *) self;
+        if (byteBuffer->pyBuffer != NULL) {
+            PyBuffer_Release(byteBuffer->pyBuffer);
+            PyMem_Free(byteBuffer->pyBuffer);
+        }
+    }
 
     jenv = JPy_GetJNIEnv();
     if (jenv != NULL) {
@@ -727,7 +740,13 @@ int JType_InitSlots(JPy_JType* type)
     //Py_SET_TYPE(type, &JType_Type);
     //Py_SET_SIZE(type, sizeof (JPy_JType));
 
-    typeObj->tp_basicsize = isPrimitiveArray ? sizeof (JPy_JArray) : sizeof (JPy_JObj);
+    if (isPrimitiveArray) {
+        typeObj->tp_basicsize = sizeof(JPy_JArray);
+    } else if (JByteBuffer_Check(type)) {
+        typeObj->tp_basicsize = sizeof(JPy_JByteBufferObj);
+    } else {
+        typeObj->tp_basicsize = sizeof(JPy_JObj);
+    }
     typeObj->tp_itemsize = 0;
     typeObj->tp_base = type->superType != NULL ? JTYPE_AS_PYTYPE(type->superType) : &JType_Type;
     //typeObj->tp_base = (PyTypeObject*) type->superType;
@@ -822,3 +841,13 @@ int JType_Check(PyObject* arg)
     return PyType_Check(arg) && JPY_IS_JTYPE(arg);
 }
 
+int JByteBuffer_Check(JPy_JType* type) {
+    while (type != NULL) {
+        if (type == JPy_JByteBuffer || strcmp(type->javaName, "java.nio.ByteBuffer") == 0) {
+            JPy_DIAG_PRINT(JPy_DIAG_F_TYPE, "JByteBuffer_Check: java ByteBuffer or its sub-type (%s) found.\n", type->javaName);
+            return -1;
+        }
+        type = type->superType;
+    }
+    return 0;
+}

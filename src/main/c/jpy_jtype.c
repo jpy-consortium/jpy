@@ -23,6 +23,7 @@
 #include "jpy_jfield.h"
 #include "jpy_jmethod.h"
 #include "jpy_jobj.h"
+#include "jpy_jbyte_buffer.h"
 #include "jpy_conv.h"
 #include "jpy_compat.h"
 
@@ -1658,7 +1659,6 @@ int JType_ConvertPyArgToJPyObjectArg(JNIEnv* jenv, JPy_ParamDescriptor* paramDes
     disposer->DisposeArg = JType_DisposeLocalObjectRefArg;
     return JType_CreateJavaPyObject(jenv, JPy_JPyObject, pyArg, &value->l);
 }
-
 
 int JType_MatchPyArgAsJPyObjectParam(JNIEnv* jenv, JPy_ParamDescriptor* paramDescriptor, PyObject* pyArg)
 {

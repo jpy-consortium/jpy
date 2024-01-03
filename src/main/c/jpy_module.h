@@ -156,6 +156,7 @@ extern struct JPy_JType* JPy_JClass;
 extern struct JPy_JType* JPy_JString;
 extern struct JPy_JType* JPy_JPyObject;
 extern struct JPy_JType* JPy_JPyModule;
+extern struct JPy_JType* JPy_JByteBuffer;
 
 // java.lang.Comparable
 extern jclass JPy_Comparable_JClass;
@@ -249,6 +250,9 @@ extern jmethodID JPy_Number_DoubleValue_MID;
 
 extern jclass JPy_String_JClass;
 extern jclass JPy_Void_JClass;
+
+extern jclass JPy_ByteBuffer_JClass;
+extern jmethodID JPy_ByteBuffer_AsReadOnlyBuffer_MID;
 
 extern jclass JPy_PyObject_JClass;
 extern jmethodID JPy_PyObject_GetPointer_MID;
