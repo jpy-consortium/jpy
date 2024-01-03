@@ -39,7 +39,7 @@ PyObject* JPy_destroy_jvm(PyObject* self, PyObject* args);
 PyObject* JPy_get_type(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* JPy_cast(PyObject* self, PyObject* args);
 PyObject* JPy_array(PyObject* self, PyObject* args);
-PyObject* JType_CreateJavaByteBufferWrapper(JNIEnv* jenv, PyObject* pyObj);
+PyObject* JType_CreateJavaByteBufferObj(JNIEnv* jenv, PyObject* pyObj);
 PyObject* JPy_byte_buffer(PyObject* self, PyObject* args);
 
 
@@ -670,12 +670,12 @@ PyObject* JPy_array(PyObject* self, PyObject* args)
     JPy_FRAME(PyObject*, NULL, JPy_array_internal(jenv, self, args), 16)
 }
 
-PyObject* JType_CreateJavaByteBufferWrapper(JNIEnv* jenv, PyObject* pyObj)
+PyObject* JType_CreateJavaByteBufferObj(JNIEnv* jenv, PyObject* pyObj)
 {
     jobject byteBufferRef, tmpByteBufferRef;
     Py_buffer *pyBuffer;
     PyObject *newPyObj;
-    JPy_JByteBufferWrapper* byteBufferWrapper;
+    JPy_JByteBufferObj* byteBuffer;
 
     pyBuffer = (Py_buffer *)PyMem_Malloc(sizeof(Py_buffer));
     if (pyBuffer == NULL) {
@@ -684,7 +684,7 @@ PyObject* JType_CreateJavaByteBufferWrapper(JNIEnv* jenv, PyObject* pyObj)
     }
 
     if (PyObject_GetBuffer(pyObj, pyBuffer, PyBUF_SIMPLE | PyBUF_C_CONTIGUOUS) != 0) {
-        PyErr_SetString(PyExc_ValueError, "JType_CreateJavaByteBufferWrapper: the Python object failed to return a contiguous buffer.");
+        PyErr_SetString(PyExc_ValueError, "JType_CreateJavaByteBufferObj: the Python object failed to return a contiguous buffer.");
         PyMem_Free(pyBuffer);
         return NULL;
     }
@@ -709,7 +709,7 @@ PyObject* JType_CreateJavaByteBufferWrapper(JNIEnv* jenv, PyObject* pyObj)
 
     newPyObj = JObj_New(jenv, byteBufferRef);
     if (newPyObj == NULL) {
-        PyErr_SetString(PyExc_RuntimeError, "jpy: internal error: failed to create a ByteBufferWrapper instance.");
+        PyErr_SetString(PyExc_RuntimeError, "jpy: internal error: failed to create a byteBuffer instance.");
         PyBuffer_Release(pyBuffer);
         PyMem_Free(pyBuffer);
         JPy_DELETE_LOCAL_REF(byteBufferRef);
@@ -717,9 +717,9 @@ PyObject* JType_CreateJavaByteBufferWrapper(JNIEnv* jenv, PyObject* pyObj)
     }
     JPy_DELETE_LOCAL_REF(byteBufferRef);
 
-    byteBufferWrapper = (JPy_JByteBufferWrapper *) newPyObj;
-    byteBufferWrapper->pyBuffer = pyBuffer;
-    return (PyObject *)byteBufferWrapper;
+    byteBuffer = (JPy_JByteBufferObj *) newPyObj;
+    byteBuffer->pyBuffer = pyBuffer;
+    return (PyObject *)byteBuffer;
 }
 
 PyObject* JPy_byte_buffer_internal(JNIEnv* jenv, PyObject* self, PyObject* args)
@@ -728,7 +728,7 @@ PyObject* JPy_byte_buffer_internal(JNIEnv* jenv, PyObject* self, PyObject* args)
     PyObject* pyObj;
     PyObject* newPyObj;
     Py_buffer *pyBuffer;
-    JPy_JByteBufferWrapper* byteBufferWrapper;
+    JPy_JByteBufferObj* byteBuffer;
 
     if (!PyArg_ParseTuple(args, "O:byte_buffer", &pyObj)) {
         return NULL;
@@ -739,7 +739,7 @@ PyObject* JPy_byte_buffer_internal(JNIEnv* jenv, PyObject* self, PyObject* args)
         return NULL;
     }
 
-    return JType_CreateJavaByteBufferWrapper(jenv, pyObj);
+    return JType_CreateJavaByteBufferObj(jenv, pyObj);
 }
 
 PyObject* JPy_byte_buffer(PyObject* self, PyObject* args)

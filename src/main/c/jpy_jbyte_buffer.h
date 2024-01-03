@@ -26,17 +26,17 @@ extern "C" {
 /**
  * The Java ByteBuffer representation in Python.
  *
- * IMPORTANT: JPy_JByteBufferWrapper must only differ from the JPy_JObj structure by the 'pyBuffer' member
+ * IMPORTANT: JPy_JByteBufferObj must only differ from the JPy_JObj structure by the 'pyBuffer' member
  * since we use the same basic type, name JPy_JType for it. DON'T ever change member positions!
  * @see JPy_JObj
  */
-typedef struct JPy_JByteBufferWrapper
+typedef struct JPy_JByteBufferObj
 {
     PyObject_HEAD
     jobject objectRef;
     Py_buffer *pyBuffer;
 }
-JPy_JByteBufferWrapper;
+JPy_JByteBufferObj;
 
 #ifdef __cplusplus
 }  /* extern "C" */

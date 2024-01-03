@@ -65,10 +65,10 @@ PyObject* JObj_FromType(JNIEnv* jenv, JPy_JType* type, jobject objectRef)
         array->bufferExportCount = 0;
         array->buf = NULL;
     } else if (JByteBuffer_Check(type)) {
-        JPy_JByteBufferWrapper *byteBufferWrapper;
+        JPy_JByteBufferObj *byteBuffer;
 
-        byteBufferWrapper = (JPy_JByteBufferWrapper *) obj;
-        byteBufferWrapper->pyBuffer = NULL;
+        byteBuffer = (JPy_JByteBufferObj *) obj;
+        byteBuffer->pyBuffer = NULL;
     }
 
 
@@ -189,11 +189,11 @@ void JObj_dealloc(JPy_JObj* self)
             JArray_ReleaseJavaArrayElements(array, array->javaType);
         }
     } else if (JByteBuffer_Check(jtype)) {
-        JPy_JByteBufferWrapper *byteBufferWrapper;
-        byteBufferWrapper = (JPy_JByteBufferWrapper *) self;
-        if (byteBufferWrapper->pyBuffer != NULL) {
-            PyBuffer_Release(byteBufferWrapper->pyBuffer);
-            PyMem_Free(byteBufferWrapper->pyBuffer);
+        JPy_JByteBufferObj *byteBuffer;
+        byteBuffer = (JPy_JByteBufferObj *) self;
+        if (byteBuffer->pyBuffer != NULL) {
+            PyBuffer_Release(byteBuffer->pyBuffer);
+            PyMem_Free(byteBuffer->pyBuffer);
         }
     }
 
@@ -743,7 +743,7 @@ int JType_InitSlots(JPy_JType* type)
     if (isPrimitiveArray) {
         typeObj->tp_basicsize = sizeof(JPy_JArray);
     } else if (JByteBuffer_Check(type)) {
-        typeObj->tp_basicsize = sizeof(JPy_JByteBufferWrapper);
+        typeObj->tp_basicsize = sizeof(JPy_JByteBufferObj);
     } else {
         typeObj->tp_basicsize = sizeof(JPy_JObj);
     }
