@@ -39,7 +39,6 @@ PyObject* JPy_destroy_jvm(PyObject* self, PyObject* args);
 PyObject* JPy_get_type(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* JPy_cast(PyObject* self, PyObject* args);
 PyObject* JPy_array(PyObject* self, PyObject* args);
-PyObject* JType_CreateJavaByteBufferObj(JNIEnv* jenv, PyObject* pyObj);
 PyObject* JPy_byte_buffer(PyObject* self, PyObject* args);
 
 
