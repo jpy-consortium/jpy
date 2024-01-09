@@ -1,6 +1,11 @@
 # jpy Changelog
 
 ## Version 0.15.0 (in development)
+* [#112](https://github.com/jpy-consortium/jpy/pull/112) Add jpy.byte_buffer() function
+* [#119](https://github.com/jpy-consortium/jpy/pull/119) Fix Mac OSX + OpenJDK builds where `JAVA_HOME` contains `libexec` but not `lib`
+* [#121](https://github.com/jpy-consortium/jpy/pull/121) Python 3.12 build
+* [#109](https://github.com/jpy-consortium/jpy/pull/109) Add aarch64 Linux wheels to build / release workflow
+* [#113](https://github.com/jpy-consortium/jpy/pull/113) Update build.yml actions
 
 ## Version 0.14.0
 * [#99](https://github.com/jpy-consortium/jpy/pull/99) Check for exception in getInt/Long/DoubleValue()
