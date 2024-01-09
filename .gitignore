@@ -21,3 +21,4 @@ Vagrantfile
 *.so
 *.dll
 
+.vscode/
