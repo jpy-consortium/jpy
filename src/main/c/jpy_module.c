@@ -37,6 +37,7 @@ PyObject* JPy_has_jvm(PyObject* self);
 PyObject* JPy_create_jvm(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* JPy_destroy_jvm(PyObject* self, PyObject* args);
 PyObject* JPy_get_type(PyObject* self, PyObject* args, PyObject* kwds);
+PyObject* JPy_get_type_name(PyObject* self, PyObject* args);
 PyObject* JPy_cast(PyObject* self, PyObject* args);
 PyObject* JPy_as_jobj(PyObject* self, PyObject* args);
 PyObject* JPy_array(PyObject* self, PyObject* args);
@@ -57,6 +58,10 @@ static PyMethodDef JPy_Functions[] = {
     {"get_type",    (PyCFunction) JPy_get_type, METH_VARARGS|METH_KEYWORDS,
                     "get_type(name, resolve=True) - Return the Java class with the given name, e.g. 'java.io.File'. "
                     "Loads the Java class from the JVM if not already done. Optionally avoids resolving the class' methods."},
+
+    {"get_type_name",    (PyCFunction) JPy_get_type_name, METH_VARARGS,
+                    "get_type_name(obj) - Return the Java type associated with the 'obj' reference. "
+                    "This is reference's declared type (which may be a supertype), rather than the object's runtime type."},
 
     {"cast",        JPy_cast, METH_VARARGS,
                     "cast(obj, type) - Cast the given Java object to the given Java type (type name or type object). "
@@ -554,6 +559,25 @@ PyObject* JPy_get_type(PyObject* self, PyObject* args, PyObject* kwds)
     JPy_FRAME(PyObject*, NULL, JPy_get_type_internal(jenv, self, args, kwds), 16)
 }
 
+PyObject* JPy_get_type_name(PyObject* self, PyObject* args)
+{
+    PyObject* obj;
+    if (!PyArg_ParseTuple(args, "O:get_type_name", &obj)) {
+        return NULL;
+    }
+
+    if (obj == Py_None) {
+        return JPy_FROM_JNULL();
+    }
+
+    if (!JObj_Check(obj)) {
+        PyErr_SetString(PyExc_ValueError, "get_type_name: argument 1 (obj) must be a Java object");
+        return NULL;
+    }
+
+    return JPy_FROM_CSTR(obj->ob_type->tp_name);
+}
+
 PyObject* JPy_cast_internal(JNIEnv* jenv, PyObject* self, PyObject* args)
 {
     PyObject* obj;
@@ -589,7 +613,7 @@ PyObject* JPy_cast_internal(JNIEnv* jenv, PyObject* self, PyObject* args)
 
     inst = (*jenv)->IsInstanceOf(jenv, ((JPy_JObj*) obj)->objectRef, type->classRef);
     if (inst) {
-        return (PyObject*) JObj_FromType(jenv, (JPy_JType*) objType, ((JPy_JObj*) obj)->objectRef);
+        return (PyObject*) JObj_FromType(jenv, (JPy_JType*) type, ((JPy_JObj*) obj)->objectRef);
     } else {
         return JPy_FROM_JNULL();
     }
