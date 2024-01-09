@@ -576,7 +576,6 @@ def _execute_python_scripts(scripts, **kwargs):
 
     failures = 0
     for script in scripts:
-        print('Running script ' + str(script))
         exit_code = subprocess.call([sys.executable, script], **kwargs)
         if exit_code:
             failures += 1
