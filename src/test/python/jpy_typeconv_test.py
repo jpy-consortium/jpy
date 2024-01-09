@@ -40,6 +40,35 @@ class TestTypeConversions(unittest.TestCase):
         self.assertEqual(fixture.stringifyObjectArg(my_jcharseq2), 'String(testStr)')
 
 
+    def test_ToObjectConversionTyped(self):
+        fixture = self.Fixture()
+        self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, jpy.get_type('java.lang.Byte'))), 'Byte(12)')
+        self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, jpy.get_type('java.lang.Short'))), 'Short(12)')
+        self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, jpy.get_type('java.lang.Integer'))), 'Integer(12)')
+        self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, jpy.get_type('java.lang.Long'))), 'Long(12)')
+        self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, jpy.get_type('java.lang.Float'))), 'Float(12.0)')
+        self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, jpy.get_type('java.lang.Double'))), 'Double(12.0)')
+
+        self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, 'java.lang.Byte')), 'Byte(12)')
+        self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, 'java.lang.Short')), 'Short(12)')
+        self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, 'java.lang.Integer')), 'Integer(12)')
+        self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, 'java.lang.Long')), 'Long(12)')
+        self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, 'java.lang.Float')), 'Float(12.0)')
+        self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, 'java.lang.Double')), 'Double(12.0)')
+
+        self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, jpy.get_type('byte'))), 'Byte(12)')
+        self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, jpy.get_type('short'))), 'Short(12)')
+        self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, jpy.get_type('int'))), 'Integer(12)')
+        self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, jpy.get_type('long'))), 'Long(12)')
+        self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, jpy.get_type('float'))), 'Float(12.0)')
+        self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, jpy.get_type('double'))), 'Double(12.0)')
+
+        with self.assertRaises(ValueError) as e:
+            jpy.as_jobj(12, jpy.get_type('java.lang.String'))
+        actual_message = str(e.exception)
+        expected_message = "cannot convert a Python 'int' to a Java 'java.lang.String'"
+        self.assertEquals(actual_message, expected_message)
+
     def test_ToPrimitiveArrayConversion(self):
         fixture = self.Fixture()
 
