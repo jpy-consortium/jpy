@@ -161,9 +161,9 @@ public class PyObjectTest {
         assertNotNull(localMap.get("y"));
         assertNotNull(localMap.get("z"));
         
-        assertEquals(7, localMap.get("x"));
-        assertEquals(6, localMap.get("y"));
-        assertEquals(13, localMap.get("z"));
+        assertEquals((byte) 7, localMap.get("x"));
+        assertEquals((byte) 6, localMap.get("y"));
+        assertEquals((byte) 13, localMap.get("z"));
     }
     
     @Test
