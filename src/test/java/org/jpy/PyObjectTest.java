@@ -22,6 +22,7 @@ package org.jpy;
 import java.util.regex.Pattern;
 import org.junit.*;
 import org.jpy.fixtures.Processor;
+import org.junit.rules.TestRule;
 
 import java.io.File;
 import java.io.IOException;
@@ -39,6 +40,9 @@ import static org.junit.Assert.*;
 public class PyObjectTest {
 
     private PyModule SPECIAL_METHODS;
+
+    @Rule
+    public TestRule testStatePrinter = new TestStatePrinter();
 
     @Before
     public void setUp() throws Exception {
@@ -59,7 +63,7 @@ public class PyObjectTest {
         PyLib.Diag.setFlags(PyLib.Diag.F_OFF);
         PyLib.stopPython();
     }
-    
+
     @Test(expected = IllegalArgumentException.class)
     public void testNullPointer() throws Exception {
         new PyObject(0);

@@ -1,9 +1,15 @@
 package org.jpy;
 
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 
 public class LifeCycleTest {
+
+    @Rule
+    public TestRule testStatePrinter = new TestStatePrinter();
+
     private static final boolean ON_WINDOWS = System.getProperty("os.name").toLowerCase().contains("windows");
 
     @Test

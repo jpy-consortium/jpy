@@ -8,12 +8,15 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.util.regex.Pattern;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+
+import org.junit.*;
+import org.junit.rules.TestRule;
 
 public class PyProxyTest {
   private PyModule MODULE;
+
+  @Rule
+  public TestRule testStatePrinter = new TestStatePrinter();
 
   @Before
   public void setUp() throws Exception {

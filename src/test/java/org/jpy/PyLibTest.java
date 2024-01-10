@@ -27,10 +27,14 @@ import java.util.Collections;
 import java.util.Map;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 
 public class PyLibTest {
 
+    @Rule
+    public TestRule testStatePrinter = new TestStatePrinter();
     @Before
     public void setUp() throws Exception {
         //PyLib.Diag.setFlags(PyLib.Diag.F_ERR);
