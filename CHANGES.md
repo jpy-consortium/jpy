@@ -1,5 +1,7 @@
 # jpy Changelog
 
+## Version 0.16.0 (in development)
+
 ## Version 0.15.0
 * [#112](https://github.com/jpy-consortium/jpy/pull/112) Add jpy.byte_buffer() function
 * [#119](https://github.com/jpy-consortium/jpy/pull/119) Fix Mac OSX + OpenJDK builds where `JAVA_HOME` contains `libexec` but not `lib`
