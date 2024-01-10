@@ -14,30 +14,35 @@ The wheel artifacts are compatible with the table below, and released to the PyP
 | 3.9     | Linux   | x86_64 |
 | 3.10    | Linux   | x86_64 |
 | 3.11    | Linux   | x86_64 |
+| 3.12    | Linux   | x86_64 |
 | 3.6     | Linux   | arm64  |
 | 3.7     | Linux   | arm64  |
 | 3.8     | Linux   | arm64  |
 | 3.9     | Linux   | arm64  |
 | 3.10    | Linux   | arm64  |
 | 3.11    | Linux   | arm64  |
+| 3.12    | Linux   | arm64  |
 | 3.6     | MacOS   | x86_64 |
 | 3.7     | MacOS   | x86_64 |
 | 3.8     | MacOS   | x86_64 |
 | 3.9     | MacOS   | x86_64 |
 | 3.10    | MacOS   | x86_64 |
 | 3.11    | MacOS   | x86_64 |
+| 3.12    | MacOS   | x86_64 |
 | 3.6     | MacOS   | arm64  |
 | 3.7     | MacOS   | arm64  |
 | 3.8     | MacOS   | arm64  |
 | 3.9     | MacOS   | arm64  |
 | 3.10    | MacOS   | arm64  |
 | 3.11    | MacOS   | arm64  |
+| 3.12    | MacOS   | arm64  |
 | 3.6     | Windows | x86_64 |
 | 3.7     | Windows | x86_64 |
 | 3.8     | Windows | x86_64 |
 | 3.9     | Windows | x86_64 |
 | 3.10    | Windows | x86_64 |
 | 3.11    | Windows | x86_64 |
+| 3.12    | Windows | x86_64 |
 
 ## Process
 
