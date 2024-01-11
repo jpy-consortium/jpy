@@ -680,6 +680,7 @@ PyObject* JPy_as_jobj_internal(JNIEnv* jenv, PyObject* self, PyObject* args)
     // Create a PyObject (JObj) to hold the result
     resultObj = (JPy_JObj*) PyObject_New(JPy_JObj, JTYPE_AS_PYTYPE(targetTypeParsed));
     if (resultObj == NULL) {
+        (*jenv)->DeleteGlobalRef(jenv, objectRef);
         return NULL;
     }
     // Store the reference to the converted object in the result JObj
