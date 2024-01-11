@@ -63,6 +63,7 @@ jobs:
           - { machine: 'macos-12', python: '3.11', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
           - { machine: 'macos-12', python: '3.12', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
 
+
     steps:
       - uses: actions/checkout@v4
 
@@ -90,6 +91,8 @@ jobs:
   # https://github.com/actions/python-versions/pull/114
   # https://github.com/actions/python-versions/pull/175
   # https://github.com/pypa/cibuildwheel/blob/v2.16.2/cibuildwheel/macos.py#L247-L260
+  # Python 3.11+ has universal2 support
+  # https://github.com/actions/runner-images/issues/4133
   bdist-wheel-universal2-hack:
     runs-on: ${{ matrix.info.machine }}
     env:
@@ -156,7 +159,7 @@ jobs:
   collect-artifacts:
     runs-on: ubuntu-22.04
 #    needs: ['sdist', 'bdist-wheel', 'bdist-wheels-linux-arm64']
-    needs: [ 'sdist', 'bdist-wheel' ]
+    needs: [ 'sdist', 'bdist-wheel', 'bdist-wheel-universal2-hack' ]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v3
@@ -204,8 +207,3 @@ jobs:
           MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-https://github:
-  com/pypa/cibuildwheel/blob/v2:
-    16:
-      2/cibuildwheel/macos:
-        py#L247-L260:
