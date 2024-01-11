@@ -1298,6 +1298,7 @@ int JType_AddClassAttribute(JNIEnv* jenv, JPy_JType* declaringClass)
             return -1;
         }
         PyDict_SetItem(typeDict, Py_BuildValue("s", "jclass"), (PyObject*) JObj_FromType(jenv, JPy_JClass, declaringClass->classRef));
+        PyDict_SetItem(typeDict, Py_BuildValue("s", "jclassname"), (PyObject*) JPy_FROM_CSTR(declaringClass->typeObj.tp_name));
     }
     return 0;
 }

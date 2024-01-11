@@ -28,15 +28,15 @@ class TestTypeConversions(unittest.TestCase):
         fixture = self.Fixture()
 
         my_jstr = jpy.get_type('java.lang.String')('testStr')
-        self.assertEqual(jpy.get_type_name(my_jstr), 'java.lang.String')
+        self.assertEqual(type(my_jstr).jclassname, 'java.lang.String')
         self.assertEqual(fixture.stringifyObjectArg(my_jstr), 'String(testStr)')
 
         my_jcharseq1 = jpy.cast(my_jstr, 'java.lang.CharSequence')
-        self.assertEqual(jpy.get_type_name(my_jcharseq1), 'java.lang.CharSequence')
+        self.assertEqual(type(my_jcharseq1).jclassname, 'java.lang.CharSequence')
         self.assertEqual(fixture.stringifyObjectArg(my_jcharseq1), 'String(testStr)')
 
         my_jcharseq2 = jpy.cast(my_jstr, jpy.get_type('java.lang.CharSequence'))
-        self.assertEqual(jpy.get_type_name(my_jcharseq2), 'java.lang.CharSequence')
+        self.assertEqual(type(my_jcharseq2).jclassname, 'java.lang.CharSequence')
         self.assertEqual(fixture.stringifyObjectArg(my_jcharseq2), 'String(testStr)')
 
 
