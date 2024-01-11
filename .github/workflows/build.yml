@@ -87,7 +87,7 @@ jobs:
 
       - run: ${{ matrix.info.cmd }}
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v3
         with:
           name: build-${{ matrix.info.python }}-${{ matrix.info.machine }}-${{ matrix.info.arch }}
           path: dist/*.whl
