@@ -40,9 +40,6 @@ jobs:
 
   bdist-wheel:
     runs-on: ${{ matrix.info.machine }}
-    env:
-      _PYTHON_HOST_PLATFORM: macosx-10.9-universal2
-      ARCHFLAGS: -arch arm64 -arch x86_64
     strategy:
       fail-fast: false
       matrix:
@@ -61,15 +58,10 @@ jobs:
 #          - { machine: 'windows-2022', python: '3.10', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
 #          - { machine: 'windows-2022', python: '3.11', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
 #          - { machine: 'windows-2022', python: '3.12', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
-#          - { machine: 'macos-12', python: '3.6', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
-#          - { machine: 'macos-12', python: '3.7', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          - { machine: 'macos-12', python: '3.8', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          - { machine: 'macos-12', python: '3.9', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          - { machine: 'macos-12', python: '3.10', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-12', python: '3.6', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-12', python: '3.7', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
           - { machine: 'macos-12', python: '3.11', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
           - { machine: 'macos-12', python: '3.12', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          # Add M1 powered runners when available
-          # https://github.com/jpy-consortium/jpy/issues/110
 
     steps:
       - uses: actions/checkout@v4
@@ -84,10 +76,8 @@ jobs:
           distribution: 'zulu'
           java-version: '8'
 
-      - run: |
-          pip install --upgrade pip
-          pip install --upgrade setuptools
-
+      - run: pip install --upgrade pip
+      - run: pip install --upgrade setuptools
       - run: ${{ matrix.info.cmd }}
 
       - uses: actions/upload-artifact@v3
@@ -95,6 +85,47 @@ jobs:
           name: build-${{ matrix.info.python }}-${{ matrix.info.machine }}-${{ matrix.info.arch }}
           path: dist/*.whl
           retention-days: 1
+
+  # https://github.com/actions/setup-python/issues/547
+  # https://github.com/actions/python-versions/pull/114
+  # https://github.com/actions/python-versions/pull/175
+  # https://github.com/pypa/cibuildwheel/blob/v2.16.2/cibuildwheel/macos.py#L247-L260
+  bdist-wheel-universal2-hack:
+    runs-on: ${{ matrix.info.machine }}
+    env:
+      _PYTHON_HOST_PLATFORM: macosx-10.9-universal2
+      ARCHFLAGS: -arch arm64 -arch x86_64
+    strategy:
+      fail-fast: false
+      matrix:
+        info:
+          - { machine: 'macos-12', python: '3.8', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-12', python: '3.9', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-12', python: '3.10', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.info.python }}
+
+      - uses: actions/setup-java@v4
+        id: setup-java
+        with:
+          distribution: 'zulu'
+          java-version: '8'
+
+      - run: pip install --upgrade pip
+      - run: pip install --upgrade setuptools
+      - run: ${{ matrix.info.cmd }}
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: build-${{ matrix.info.python }}-${{ matrix.info.machine }}-${{ matrix.info.arch }}
+          path: dist/*.whl
+          retention-days: 1
+
 
 #  bdist-wheels-linux-arm64:
 #    runs-on: 'ubuntu-22.04'
@@ -173,3 +204,8 @@ jobs:
           MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+https://github:
+  com/pypa/cibuildwheel/blob/v2:
+    16:
+      2/cibuildwheel/macos:
+        py#L247-L260:
