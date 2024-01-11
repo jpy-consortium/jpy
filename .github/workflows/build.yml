@@ -96,7 +96,7 @@ jobs:
   bdist-wheel-universal2-hack:
     runs-on: ${{ matrix.info.machine }}
     env:
-      _PYTHON_HOST_PLATFORM: macosx-10.9-universal2
+      _PYTHON_HOST_PLATFORM: macosx-11.0-universal2
       ARCHFLAGS: -arch arm64 -arch x86_64
     strategy:
       fail-fast: false
