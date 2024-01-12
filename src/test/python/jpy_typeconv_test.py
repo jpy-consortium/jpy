@@ -7,14 +7,26 @@ import jpyutil
 jpyutil.init_jvm(jvm_maxmem='512M', jvm_classpath=['target/test-classes'])
 import jpy
 
-
 class TestTypeConversions(unittest.TestCase):
+    """
+    This test covers type conversion, including:
+
+    - Automatic conversions of Python values to Java when calling Java methods from Python
+    - jpy.cast() (See JPy_cast)
+    - jpy.as_jobj (See JPy_as_jobj_internal / JType_ConvertPythonToJavaObject)
+    """
+
+
     def setUp(self):
         self.Fixture = jpy.get_type('org.jpy.fixtures.TypeConversionTestFixture')
         self.assertTrue('org.jpy.fixtures.TypeConversionTestFixture' in jpy.types)
 
 
     def test_ToObjectConversion(self):
+        """
+        Test automatic conversion of Python values to Java objects (when passing Python values as arguments to Java methods).
+        """
+
         fixture = self.Fixture()
         self.assertEqual(fixture.stringifyObjectArg(12), 'Byte(12)')
         self.assertEqual(fixture.stringifyObjectArg(0.34), 'Double(0.34)')
@@ -24,24 +36,76 @@ class TestTypeConversions(unittest.TestCase):
             fixture.stringifyObjectArg(1 + 2j)
         self.assertEqual(str(e.exception), 'cannot convert a Python \'complex\' to a Java \'java.lang.Object\'')
 
-    def test_noOpCast(self):
+    def test_cast(self):
+        """
+        Test casts of Java objects
+        """
         fixture = self.Fixture()
 
+        # Create a test String:
         my_jstr = jpy.get_type('java.lang.String')('testStr')
         self.assertEqual(type(my_jstr).jclassname, 'java.lang.String')
         self.assertEqual(fixture.stringifyObjectArg(my_jstr), 'String(testStr)')
 
+        # Cast to String (this should be a no-op)
+        my_jcharseq1 = jpy.cast(my_jstr, 'java.lang.String')
+        self.assertTrue(fixture.isSameObject(my_jstr, my_jcharseq1))    # Should be same Java object...
+        # self.assertTrue(my_jcharseq1 is my_jstr)  # and the same Python object. (But currently a new one is returned.)
+        self.assertEqual(type(my_jcharseq1).jclassname, 'java.lang.String')
+        self.assertEqual(fixture.stringifyObjectArg(my_jcharseq1), 'String(testStr)')
+
+        # Cast to CharSequence (using class name, not explicit jpy.get_type())
         my_jcharseq1 = jpy.cast(my_jstr, 'java.lang.CharSequence')
+        self.assertTrue(fixture.isSameObject(my_jstr, my_jcharseq1))    # Should be same Java object...
+        self.assertFalse(my_jcharseq1 is my_jstr)                       # but a new Python object
         self.assertEqual(type(my_jcharseq1).jclassname, 'java.lang.CharSequence')
         self.assertEqual(fixture.stringifyObjectArg(my_jcharseq1), 'String(testStr)')
 
+        # Cast to CharSequence (using explicit jpy.get_type()):
         my_jcharseq2 = jpy.cast(my_jstr, jpy.get_type('java.lang.CharSequence'))
+        self.assertTrue(fixture.isSameObject(my_jstr, my_jcharseq2))    # Should be same Java object...
+        self.assertFalse(my_jcharseq2 is my_jstr)                       # but a new Python object
+        self.assertEqual(type(my_jcharseq2).jclassname, 'java.lang.CharSequence')
+        self.assertEqual(fixture.stringifyObjectArg(my_jcharseq2), 'String(testStr)')
+
+    def test_as_jobj_cast(self):
+        """
+        Test casts of Java objects using as_jobj
+        """
+        fixture = self.Fixture()
+
+        # Create a test String:
+        my_jstr = jpy.get_type('java.lang.String')('testStr')
+        self.assertEqual(type(my_jstr).jclassname, 'java.lang.String')
+        self.assertEqual(fixture.stringifyObjectArg(my_jstr), 'String(testStr)')
+
+        # Cast to String (this should be a no-op)
+        my_jcharseq1 = jpy.as_jobj(my_jstr, 'java.lang.String')
+        self.assertTrue(fixture.isSameObject(my_jstr, my_jcharseq1))    # Should be same Java object...
+        # self.assertTrue(my_jcharseq1 is my_jstr)  # and the same Python object. (But currently a new one is returned.)
+        self.assertEqual(type(my_jcharseq1).jclassname, 'java.lang.String')
+        self.assertEqual(fixture.stringifyObjectArg(my_jcharseq1), 'String(testStr)')
+
+        # Cast to CharSequence (using class name, not explicit jpy.get_type())
+        my_jcharseq1 = jpy.as_jobj(my_jstr, 'java.lang.CharSequence')
+        self.assertTrue(fixture.isSameObject(my_jstr, my_jcharseq1))    # Should be same Java object...
+        self.assertFalse(my_jcharseq1 is my_jstr)                       # but a new Python object.
+        self.assertEqual(type(my_jcharseq1).jclassname, 'java.lang.CharSequence')
+        self.assertEqual(fixture.stringifyObjectArg(my_jcharseq1), 'String(testStr)')
+
+        # Cast to CharSequence (using explicit jpy.get_type()):
+        my_jcharseq2 = jpy.as_jobj(my_jstr, jpy.get_type('java.lang.CharSequence'))
+        self.assertTrue(fixture.isSameObject(my_jstr, my_jcharseq2))    # Should be same Java object...
+        self.assertFalse(my_jcharseq2 is my_jstr)                       # but a new Python object.
         self.assertEqual(type(my_jcharseq2).jclassname, 'java.lang.CharSequence')
         self.assertEqual(fixture.stringifyObjectArg(my_jcharseq2), 'String(testStr)')
 
 
-    def test_ToObjectConversionTyped(self):
+    def test_AsJobjToBoxedPrimitive(self):
         fixture = self.Fixture()
+
+        # Convert Python values to boxed types explicitly (using jpy.get_type() to retrieve the boxed type):
+        self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(65, jpy.get_type('java.lang.Character'))), 'Character(A)')
         self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, jpy.get_type('java.lang.Byte'))), 'Byte(12)')
         self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, jpy.get_type('java.lang.Short'))), 'Short(12)')
         self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, jpy.get_type('java.lang.Integer'))), 'Integer(12)')
@@ -49,6 +113,8 @@ class TestTypeConversions(unittest.TestCase):
         self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, jpy.get_type('java.lang.Float'))), 'Float(12.0)')
         self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, jpy.get_type('java.lang.Double'))), 'Double(12.0)')
 
+        # Convert Python values to boxed types (using type name, not explicit jpy.get_type())
+        self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(65, 'java.lang.Character')), 'Character(A)')
         self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, 'java.lang.Byte')), 'Byte(12)')
         self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, 'java.lang.Short')), 'Short(12)')
         self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, 'java.lang.Integer')), 'Integer(12)')
@@ -56,6 +122,8 @@ class TestTypeConversions(unittest.TestCase):
         self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, 'java.lang.Float')), 'Float(12.0)')
         self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, 'java.lang.Double')), 'Double(12.0)')
 
+        # Convert Python values to boxed types (using primitive type names — but they still get boxed):
+        self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(65, jpy.get_type('char'))), 'Character(A)')
         self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, jpy.get_type('byte'))), 'Byte(12)')
         self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, jpy.get_type('short'))), 'Short(12)')
         self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, jpy.get_type('int'))), 'Integer(12)')
@@ -63,6 +131,91 @@ class TestTypeConversions(unittest.TestCase):
         self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, jpy.get_type('float'))), 'Float(12.0)')
         self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, jpy.get_type('double'))), 'Double(12.0)')
 
+
+    # def test_AsJobjToPyObject(self):
+    #     self.assertEqual(jpy.as_jobj('A', jpy.get_type('org.jpy.PyObject')), 'A')
+    #     self.assertEqual(jpy.as_jobj('ABCDE', jpy.get_type('org.jpy.PyObject')), 'ABCDE')
+    #     self.assertEqual(jpy.as_jobj(True, jpy.get_type('org.jpy.PyObject')), True)
+    #     self.assertEqual(jpy.as_jobj(False, jpy.get_type('org.jpy.PyObject')), False)
+    #     self.assertEqual(jpy.as_jobj(12, jpy.get_type('org.jpy.PyObject')), 12)
+    #     self.assertEqual(jpy.as_jobj(12.2, jpy.get_type('org.jpy.PyObject')), 12.2)
+
+
+    def test_AsJobjToJavaLangObject(self):
+        """
+        Test converting values to java.lang.Object (and letting the jpy module determine what Java type to convert
+        them to).
+        """
+        java_lang_object_type = jpy.get_type('java.lang.Object')
+
+        jobj = jpy.as_jobj('A', java_lang_object_type)
+        expected_type = jpy.get_type('java.lang.String')
+        self.assertTrue(type(jobj).jclass.equals(java_lang_object_type.jclass), f'Type is {type(jobj)}')
+        self.assertTrue(jobj.getClass().equals(expected_type.jclass), f'Type is {jobj.getClass()}')
+        self.assertEqual(jpy.cast(jobj, expected_type).toString(), 'A')
+
+        jobj = jpy.as_jobj('ABCDE', java_lang_object_type)
+        expected_type = jpy.get_type('java.lang.String')
+        self.assertTrue(type(jobj).jclass.equals(java_lang_object_type.jclass), f'Type is {type(jobj)}')
+        self.assertTrue(jobj.getClass().equals(expected_type.jclass), f'Type is {jobj.getClass()}')
+        self.assertEqual(jpy.cast(jobj, expected_type).toString(), 'ABCDE')
+
+        jobj = jpy.as_jobj(True, java_lang_object_type)
+        expected_type = jpy.get_type('java.lang.Boolean')
+        self.assertTrue(type(jobj).jclass.equals(java_lang_object_type.jclass), f'Type is {type(jobj)}')
+        self.assertTrue(jobj.getClass().equals(expected_type.jclass), f'Type is {jobj.getClass()}')
+        self.assertEqual(jpy.cast(jobj, expected_type).booleanValue(), True)
+
+        jobj = jpy.as_jobj(False, java_lang_object_type)
+        expected_type = jpy.get_type('java.lang.Boolean')
+        self.assertTrue(type(jobj).jclass.equals(java_lang_object_type.jclass), f'Type is {type(jobj)}')
+        self.assertTrue(jobj.getClass().equals(expected_type.jclass), f'Type is {jobj.getClass()}')
+        self.assertEqual(jpy.cast(jobj, expected_type).booleanValue(), False)
+
+        jobj = jpy.as_jobj(12, java_lang_object_type)
+        expected_type = jpy.get_type('java.lang.Byte')
+        self.assertTrue(type(jobj).jclass.equals(java_lang_object_type.jclass), f'Type is {type(jobj)}')
+        self.assertTrue(jobj.getClass().equals(expected_type.jclass), f'Type is {jobj.getClass()}')
+        self.assertEqual(jpy.cast(jobj, expected_type).byteValue(), 12)
+
+        jobj = jpy.as_jobj(129, java_lang_object_type)
+        expected_type = jpy.get_type('java.lang.Short')
+        self.assertTrue(type(jobj).jclass.equals(java_lang_object_type.jclass), f'Type is {type(jobj)}')
+        self.assertTrue(jobj.getClass().equals(expected_type.jclass), f'Type is {jobj.getClass()}')
+        self.assertEqual(jpy.cast(jobj, expected_type).shortValue(), 129)
+
+        jobj = jpy.as_jobj(100_000, java_lang_object_type)
+        expected_type = jpy.get_type('java.lang.Integer')
+        self.assertTrue(type(jobj).jclass.equals(java_lang_object_type.jclass), f'Type is {type(jobj)}')
+        self.assertTrue(jobj.getClass().equals(expected_type.jclass), f'Type is {jobj.getClass()}')
+        self.assertEqual(jpy.cast(jobj, expected_type).intValue(), 100_000)
+
+        jobj = jpy.as_jobj(10_000_000_000, java_lang_object_type)
+        expected_type = jpy.get_type('java.lang.Long')
+        self.assertTrue(type(jobj).jclass.equals(java_lang_object_type.jclass), f'Type is {type(jobj)}')
+        self.assertTrue(jobj.getClass().equals(expected_type.jclass), f'Type is {jobj.getClass()}')
+        self.assertEqual(jpy.cast(jobj, expected_type).longValue(), 10_000_000_000)
+
+        jobj = jpy.as_jobj(123.45, java_lang_object_type)
+        expected_type = jpy.get_type('java.lang.Double')    # TODO: these go to Double, not Float ?
+        self.assertTrue(type(jobj).jclass.equals(java_lang_object_type.jclass), f'Type is {type(jobj)}')
+        self.assertTrue(jobj.getClass().equals(expected_type.jclass), f'Type is {jobj.getClass()}')
+        self.assertEqual(jpy.cast(jobj, expected_type).doubleValue(), 123.45)
+
+        too_big_for_float = jpy.get_type('java.lang.Double').MAX_VALUE
+        jobj = jpy.as_jobj(too_big_for_float, java_lang_object_type)
+        expected_type = jpy.get_type('java.lang.Double')
+        self.assertTrue(type(jobj).jclass.equals(java_lang_object_type.jclass), f'Type is {type(jobj)}')
+        self.assertTrue(jobj.getClass().equals(expected_type.jclass), f'Type is {jobj.getClass()}')
+        self.assertEqual(jpy.cast(jobj, expected_type).doubleValue(), too_big_for_float)
+
+    def test_AsJobjToString(self):
+        jobj = jpy.as_jobj('test string', jpy.get_type('java.lang.Object'))
+        self.assertTrue(type(jobj).jclass.equals(jpy.get_type('java.lang.Object').jclass), f'Type is {type(jobj)}')
+        self.assertTrue(jobj.getClass().equals(jpy.get_type('java.lang.String').jclass), f'Type is {jobj.getClass()}')
+        self.assertEqual(jpy.cast(jobj, jpy.get_type('java.lang.String')).toString(), 'test string')
+
+        # Invalid conversion:
         with self.assertRaises(ValueError) as e:
             jpy.as_jobj(12, jpy.get_type('java.lang.String'))
         actual_message = str(e.exception)
