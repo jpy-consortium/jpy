@@ -914,19 +914,19 @@ int JType_ConvertPythonToJavaObject(JNIEnv* jenv, JPy_JType* type, PyObject* pyA
         return JType_CreateJavaDoubleObject(jenv, type, pyArg, objectRef);
     } else if (type == JPy_JPyObject) {
         return JType_CreateJavaPyObject(jenv, type, pyArg, objectRef);
-    } else if (JPy_IS_STR(pyArg) && (type == JPy_JString || type == JPy_JObject || ((*jenv)->IsAssignableFrom(jenv, JPy_JString->classRef, type->classRef)))) {
+    } else if (JPy_IS_STR(pyArg) && (type == JPy_JString || type == JPy_JObject || (*jenv)->IsAssignableFrom(jenv, JPy_JString->classRef, type->classRef))) {
         return JPy_AsJString(jenv, pyArg, objectRef);
-    } else if (PyBool_Check(pyArg) && (type == JPy_JObject || ((*jenv)->IsAssignableFrom(jenv, JPy_Boolean_JClass, type->classRef)))) {
+    } else if (PyBool_Check(pyArg) && (type == JPy_JObject || (*jenv)->IsAssignableFrom(jenv, JPy_Boolean_JClass, type->classRef))) {
         return JType_CreateJavaBooleanObject(jenv, type, pyArg, objectRef);
     } else if (JPy_IS_CLONG(pyArg) && (type == JPy_JObject || (*jenv)->IsAssignableFrom(jenv, JPy_Number_JClass, type->classRef))) {
         return JType_CreateJavaNumberFromPythonInt(jenv, type, pyArg, objectRef);
     } else if (JPy_IS_CLONG(pyArg) && ((*jenv)->IsAssignableFrom(jenv, JPy_Integer_JClass, type->classRef))) {
         return JType_CreateJavaIntegerObject(jenv, type, pyArg, objectRef);
-    } else if (JPy_IS_CLONG(pyArg) && (type == JPy_JObject || ((*jenv)->IsAssignableFrom(jenv, JPy_Long_JClass, type->classRef)))) {
+    } else if (JPy_IS_CLONG(pyArg) && (*jenv)->IsAssignableFrom(jenv, JPy_Long_JClass, type->classRef)) {
         return JType_CreateJavaLongObject(jenv, type, pyArg, objectRef);
-    } else if (PyFloat_Check(pyArg) && (type == JPy_JObject || ((*jenv)->IsAssignableFrom(jenv, JPy_Double_JClass, type->classRef)))) {
+    } else if (PyFloat_Check(pyArg) && (type == JPy_JObject || (*jenv)->IsAssignableFrom(jenv, JPy_Double_JClass, type->classRef))) {
         return JType_CreateJavaDoubleObject(jenv, type, pyArg, objectRef);
-    } else if (PyFloat_Check(pyArg) && (type == JPy_JObject || ((*jenv)->IsAssignableFrom(jenv, JPy_Float_JClass, type->classRef)))) {
+    } else if (PyFloat_Check(pyArg) && (*jenv)->IsAssignableFrom(jenv, JPy_Float_JClass, type->classRef)) {
         return JType_CreateJavaFloatObject(jenv, type, pyArg, objectRef);
     } else if (type == JPy_JObject && allowObjectWrapping) {
         return JType_CreateJavaPyObject(jenv, JPy_JPyObject, pyArg, objectRef);
