@@ -3,9 +3,9 @@ import array
 
 import jpyutil
 
-
 jpyutil.init_jvm(jvm_maxmem='512M', jvm_classpath=['target/test-classes'])
 import jpy
+
 
 class TestTypeConversions(unittest.TestCase):
     """
@@ -16,11 +16,9 @@ class TestTypeConversions(unittest.TestCase):
     - jpy.as_jobj (See JPy_as_jobj_internal / JType_ConvertPythonToJavaObject)
     """
 
-
     def setUp(self):
         self.Fixture = jpy.get_type('org.jpy.fixtures.TypeConversionTestFixture')
         self.assertTrue('org.jpy.fixtures.TypeConversionTestFixture' in jpy.types)
-
 
     def test_ToObjectConversion(self):
         """
@@ -49,22 +47,22 @@ class TestTypeConversions(unittest.TestCase):
 
         # Cast to String (this should be a no-op)
         my_jcharseq1 = jpy.cast(my_jstr, 'java.lang.String')
-        self.assertTrue(fixture.isSameObject(my_jstr, my_jcharseq1))    # Should be same Java object...
+        self.assertTrue(fixture.isSameObject(my_jstr, my_jcharseq1))  # Should be same Java object...
         # self.assertTrue(my_jcharseq1 is my_jstr)  # and the same Python object. (But currently a new one is returned.)
         self.assertEqual(type(my_jcharseq1).jclassname, 'java.lang.String')
         self.assertEqual(fixture.stringifyObjectArg(my_jcharseq1), 'String(testStr)')
 
         # Cast to CharSequence (using class name, not explicit jpy.get_type())
         my_jcharseq1 = jpy.cast(my_jstr, 'java.lang.CharSequence')
-        self.assertTrue(fixture.isSameObject(my_jstr, my_jcharseq1))    # Should be same Java object...
-        self.assertFalse(my_jcharseq1 is my_jstr)                       # but a new Python object
+        self.assertTrue(fixture.isSameObject(my_jstr, my_jcharseq1))  # Should be same Java object...
+        self.assertFalse(my_jcharseq1 is my_jstr)  # but a new Python object
         self.assertEqual(type(my_jcharseq1).jclassname, 'java.lang.CharSequence')
         self.assertEqual(fixture.stringifyObjectArg(my_jcharseq1), 'String(testStr)')
 
         # Cast to CharSequence (using explicit jpy.get_type()):
         my_jcharseq2 = jpy.cast(my_jstr, jpy.get_type('java.lang.CharSequence'))
-        self.assertTrue(fixture.isSameObject(my_jstr, my_jcharseq2))    # Should be same Java object...
-        self.assertFalse(my_jcharseq2 is my_jstr)                       # but a new Python object
+        self.assertTrue(fixture.isSameObject(my_jstr, my_jcharseq2))  # Should be same Java object...
+        self.assertFalse(my_jcharseq2 is my_jstr)  # but a new Python object
         self.assertEqual(type(my_jcharseq2).jclassname, 'java.lang.CharSequence')
         self.assertEqual(fixture.stringifyObjectArg(my_jcharseq2), 'String(testStr)')
 
@@ -81,31 +79,31 @@ class TestTypeConversions(unittest.TestCase):
 
         # Cast to String (this should be a no-op)
         my_jcharseq1 = jpy.as_jobj(my_jstr, 'java.lang.String')
-        self.assertTrue(fixture.isSameObject(my_jstr, my_jcharseq1))    # Should be same Java object...
+        self.assertTrue(fixture.isSameObject(my_jstr, my_jcharseq1))  # Should be same Java object...
         # self.assertTrue(my_jcharseq1 is my_jstr)  # and the same Python object. (But currently a new one is returned.)
         self.assertEqual(type(my_jcharseq1).jclassname, 'java.lang.String')
         self.assertEqual(fixture.stringifyObjectArg(my_jcharseq1), 'String(testStr)')
 
         # Cast to CharSequence (using class name, not explicit jpy.get_type())
         my_jcharseq1 = jpy.as_jobj(my_jstr, 'java.lang.CharSequence')
-        self.assertTrue(fixture.isSameObject(my_jstr, my_jcharseq1))    # Should be same Java object...
-        self.assertFalse(my_jcharseq1 is my_jstr)                       # but a new Python object.
+        self.assertTrue(fixture.isSameObject(my_jstr, my_jcharseq1))  # Should be same Java object...
+        self.assertFalse(my_jcharseq1 is my_jstr)  # but a new Python object.
         self.assertEqual(type(my_jcharseq1).jclassname, 'java.lang.CharSequence')
         self.assertEqual(fixture.stringifyObjectArg(my_jcharseq1), 'String(testStr)')
 
         # Cast to CharSequence (using explicit jpy.get_type()):
         my_jcharseq2 = jpy.as_jobj(my_jstr, jpy.get_type('java.lang.CharSequence'))
-        self.assertTrue(fixture.isSameObject(my_jstr, my_jcharseq2))    # Should be same Java object...
-        self.assertFalse(my_jcharseq2 is my_jstr)                       # but a new Python object.
+        self.assertTrue(fixture.isSameObject(my_jstr, my_jcharseq2))  # Should be same Java object...
+        self.assertFalse(my_jcharseq2 is my_jstr)  # but a new Python object.
         self.assertEqual(type(my_jcharseq2).jclassname, 'java.lang.CharSequence')
         self.assertEqual(fixture.stringifyObjectArg(my_jcharseq2), 'String(testStr)')
-
 
     def test_AsJobjToBoxedPrimitive(self):
         fixture = self.Fixture()
 
         # Convert Python values to boxed types explicitly (using jpy.get_type() to retrieve the boxed type):
-        self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(65, jpy.get_type('java.lang.Character'))), 'Character(A)')
+        self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(65, jpy.get_type('java.lang.Character'))),
+                         'Character(A)')
         self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, jpy.get_type('java.lang.Byte'))), 'Byte(12)')
         self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, jpy.get_type('java.lang.Short'))), 'Short(12)')
         self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, jpy.get_type('java.lang.Integer'))), 'Integer(12)')
@@ -131,7 +129,6 @@ class TestTypeConversions(unittest.TestCase):
         self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, jpy.get_type('float'))), 'Float(12.0)')
         self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, jpy.get_type('double'))), 'Double(12.0)')
 
-
     # def test_AsJobjToPyObject(self):
     #     self.assertEqual(jpy.as_jobj('A', jpy.get_type('org.jpy.PyObject')), 'A')
     #     self.assertEqual(jpy.as_jobj('ABCDE', jpy.get_type('org.jpy.PyObject')), 'ABCDE')
@@ -139,7 +136,6 @@ class TestTypeConversions(unittest.TestCase):
     #     self.assertEqual(jpy.as_jobj(False, jpy.get_type('org.jpy.PyObject')), False)
     #     self.assertEqual(jpy.as_jobj(12, jpy.get_type('org.jpy.PyObject')), 12)
     #     self.assertEqual(jpy.as_jobj(12.2, jpy.get_type('org.jpy.PyObject')), 12.2)
-
 
     def test_AsJobjToJavaLangObject(self):
         """
@@ -197,7 +193,7 @@ class TestTypeConversions(unittest.TestCase):
         self.assertEqual(jpy.cast(jobj, expected_type).longValue(), 10_000_000_000)
 
         jobj = jpy.as_jobj(123.45, java_lang_object_type)
-        expected_type = jpy.get_type('java.lang.Double')    # TODO: these go to Double, not Float ?
+        expected_type = jpy.get_type('java.lang.Double')  # TODO: these go to Double, not Float ?
         self.assertTrue(type(jobj).jclass.equals(java_lang_object_type.jclass), f'Type is {type(jobj)}')
         self.assertTrue(jobj.getClass().equals(expected_type.jclass), f'Type is {jobj.getClass()}')
         self.assertEqual(jpy.cast(jobj, expected_type).doubleValue(), 123.45)
@@ -240,7 +236,6 @@ class TestTypeConversions(unittest.TestCase):
         with self.assertRaises(RuntimeError) as e:
             fixture.stringifyIntArrayArg(1 + 2j)
         self.assertEqual(str(e.exception), 'no matching Java method overloads found')
-
 
     def test_ToObjectArrayConversion(self):
         fixture = self.Fixture()
