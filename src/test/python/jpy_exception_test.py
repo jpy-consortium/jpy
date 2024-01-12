@@ -82,7 +82,7 @@ class TestExceptions(unittest.TestCase):
         # self.hexdump(expected_message)
         # print [i for i in xrange(min(len(expected_message), len(actual_message))) if actual_message[i] != expected_message[i]]
 
-        self.assertEquals(actual_message, expected_message)
+        self.assertEqual(actual_message, expected_message)
 
         with self.assertRaises(RuntimeError) as e:
             fixture.throwNpeIfArgIsNullNested3(None)
@@ -107,7 +107,7 @@ class TestExceptions(unittest.TestCase):
         # self.hexdump(expected_message)
         # print [i for i in xrange(min(len(expected_message), len(actual_message))) if actual_message[i] != expected_message[i]]
 
-        self.assertEquals(actual_message, expected_message)
+        self.assertEqual(actual_message, expected_message)
 
         jpy.VerboseExceptions.enabled = False
 
