@@ -44,44 +44,87 @@ jobs:
       fail-fast: false
       matrix:
         info:
-          - { machine: 'ubuntu-20.04', python: '3.6',  pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/Linux/bdist-wheel.sh' }
-          - { machine: 'ubuntu-20.04', python: '3.7',  pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/Linux/bdist-wheel.sh' }
-          - { machine: 'ubuntu-20.04', python: '3.8',  pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/Linux/bdist-wheel.sh' }
-          - { machine: 'ubuntu-20.04', python: '3.9',  pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/Linux/bdist-wheel.sh' }
-          - { machine: 'ubuntu-20.04', python: '3.10', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/Linux/bdist-wheel.sh' }
-          - { machine: 'ubuntu-20.04', python: '3.11', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/Linux/bdist-wheel.sh' }
-          - { machine: 'ubuntu-20.04', python: '3.12', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/Linux/bdist-wheel.sh' }
-          - { machine: 'windows-2022', python: '3.6',  pythonArchitecture: 'x64', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
-          - { machine: 'windows-2022', python: '3.7',  pythonArchitecture: 'x64', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
-          - { machine: 'windows-2022', python: '3.8',  pythonArchitecture: 'x64', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
-          - { machine: 'windows-2022', python: '3.9',  pythonArchitecture: 'x64', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
-          - { machine: 'windows-2022', python: '3.10', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
-          - { machine: 'windows-2022', python: '3.11', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
-          - { machine: 'windows-2022', python: '3.12', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
-          - { machine: 'macos-11', python: '3.6', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          - { machine: 'macos-11', python: '3.7', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          - { machine: 'macos-11', python: '3.8', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          - { machine: 'macos-11', python: '3.9', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          - { machine: 'macos-11', python: '3.10', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          - { machine: 'macos-11', python: '3.11', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          - { machine: 'macos-11', python: '3.12', pythonArchitecture: 'x64', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          # Add M1 powered runners when available
-          # https://github.com/jpy-consortium/jpy/issues/110
+          - { machine: 'ubuntu-20.04', python: '3.6',  arch: 'amd64', cmd: '.github/env/Linux/bdist-wheel.sh' }
+          - { machine: 'ubuntu-20.04', python: '3.7',  arch: 'amd64', cmd: '.github/env/Linux/bdist-wheel.sh' }
+          - { machine: 'ubuntu-20.04', python: '3.8',  arch: 'amd64', cmd: '.github/env/Linux/bdist-wheel.sh' }
+          - { machine: 'ubuntu-20.04', python: '3.9',  arch: 'amd64', cmd: '.github/env/Linux/bdist-wheel.sh' }
+          - { machine: 'ubuntu-20.04', python: '3.10', arch: 'amd64', cmd: '.github/env/Linux/bdist-wheel.sh' }
+          - { machine: 'ubuntu-20.04', python: '3.11', arch: 'amd64', cmd: '.github/env/Linux/bdist-wheel.sh' }
+          - { machine: 'ubuntu-20.04', python: '3.12', arch: 'amd64', cmd: '.github/env/Linux/bdist-wheel.sh' }
+          - { machine: 'windows-2022', python: '3.6',  arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.7',  arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.8',  arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.9',  arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.10', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.11', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.12', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'macos-12', python: '3.6', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-12', python: '3.7', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-12', python: '3.11', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-12', python: '3.12', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
 
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.info.python }}
-          architecture: ${{ matrix.info.pythonArchitecture }}
 
-      - uses: actions/setup-java@v3
+      - uses: actions/setup-java@v4
         id: setup-java
         with:
           distribution: 'temurin'
           java-version: '8'
 
+      - run: pip install --upgrade pip
+      - run: pip install --upgrade setuptools
+      - run: ${{ matrix.info.cmd }}
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: build-${{ matrix.info.python }}-${{ matrix.info.machine }}-${{ matrix.info.arch }}
+          path: dist/*.whl
+          retention-days: 1
+
+  # Python 3.6, 3.7 doesn't support M1 support at all.
+  # Python 3.11, 3.12 builds have universal2 defaults:
+  # https://github.com/actions/runner-images/issues/4133
+  # Python 3.9 builds _had_ universal2 defaults for a short period of time before it was reverted:
+  # https://github.com/actions/python-versions/pull/114, https://github.com/actions/python-versions/pull/175
+  # Regardless, we can explicitly instruct python at compile time to create universal2 packages:
+  # https://github.com/pypa/cibuildwheel/blob/v2.16.2/cibuildwheel/macos.py#L247-L260
+  # Note: using macosx-11.0-universal2 instead of macosx-10.9-universal2, as the build warns otherwise that the version
+  # was bumped to 11.0 because the underlying python build has a minimum of 11.0.
+  # There might be a better solution for this in the future:
+  # https://github.com/actions/setup-python/issues/547
+  bdist-wheel-universal2-hack:
+    runs-on: ${{ matrix.info.machine }}
+    env:
+      _PYTHON_HOST_PLATFORM: macosx-11.0-universal2
+      ARCHFLAGS: -arch arm64 -arch x86_64
+    strategy:
+      fail-fast: false
+      matrix:
+        info:
+          - { machine: 'macos-12', python: '3.8', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-12', python: '3.9', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-12', python: '3.10', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.info.python }}
+
+      - uses: actions/setup-java@v4
+        id: setup-java
+        with:
+          distribution: 'temurin'
+          java-version: '8'
+
+      - run: pip install --upgrade pip
+      - run: pip install --upgrade setuptools
       - run: ${{ matrix.info.cmd }}
 
       - uses: actions/upload-artifact@v3
@@ -118,7 +161,7 @@ jobs:
 
   collect-artifacts:
     runs-on: ubuntu-22.04
-    needs: ['sdist', 'bdist-wheel', 'bdist-wheels-linux-arm64']
+    needs: ['sdist', 'bdist-wheel', 'bdist-wheel-universal2-hack', 'bdist-wheels-linux-arm64']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v3
