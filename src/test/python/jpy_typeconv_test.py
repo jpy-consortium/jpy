@@ -334,7 +334,7 @@ class TestTypeConversions(unittest.TestCase):
             jpy.as_jobj(12, jpy.get_type('java.lang.String'))
         actual_message = str(e.exception)
         expected_message = "cannot convert a Python 'int' to a Java 'java.lang.String'"
-        self.assertEquals(actual_message, expected_message)
+        self.assertEqual(actual_message, expected_message)
 
     def test_ToPrimitiveArrayConversion(self):
         fixture = self.Fixture()
