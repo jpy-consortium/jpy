@@ -129,13 +129,94 @@ class TestTypeConversions(unittest.TestCase):
         self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, jpy.get_type('float'))), 'Float(12.0)')
         self.assertEqual(fixture.stringifyObjectArg(jpy.as_jobj(12, jpy.get_type('double'))), 'Double(12.0)')
 
-    # def test_AsJobjToPyObject(self):
-    #     self.assertEqual(jpy.as_jobj('A', jpy.get_type('org.jpy.PyObject')), 'A')
-    #     self.assertEqual(jpy.as_jobj('ABCDE', jpy.get_type('org.jpy.PyObject')), 'ABCDE')
-    #     self.assertEqual(jpy.as_jobj(True, jpy.get_type('org.jpy.PyObject')), True)
-    #     self.assertEqual(jpy.as_jobj(False, jpy.get_type('org.jpy.PyObject')), False)
-    #     self.assertEqual(jpy.as_jobj(12, jpy.get_type('org.jpy.PyObject')), 12)
-    #     self.assertEqual(jpy.as_jobj(12.2, jpy.get_type('org.jpy.PyObject')), 12.2)
+    def test_AsJobjToPrimitiveArray(self):
+        fixture = self.Fixture()
+
+        # Convert Python values to arrays of primitive types
+
+        target_type = type(jpy.array(jpy.get_type('char'), 0))
+        jobj = jpy.as_jobj([65, 66, 67], target_type)
+        self.assertEqual(type(jobj), target_type)
+        self.assertEqual(fixture.stringifyObjectArg(jobj), 'char[](A,B,C)')
+
+        target_type = type(jpy.array(jpy.get_type('byte'), 0))
+        jobj = jpy.as_jobj([12, 13, 14], target_type)
+        self.assertEqual(type(jobj), target_type)
+        self.assertEqual(fixture.stringifyObjectArg(jobj), 'byte[](12,13,14)')
+
+        target_type = type(jpy.array(jpy.get_type('short'), 0))
+        jobj = jpy.as_jobj([12, 13, 14], target_type)
+        self.assertEqual(type(jobj), target_type)
+        self.assertEqual(fixture.stringifyObjectArg(jobj), 'short[](12,13,14)')
+
+        target_type = type(jpy.array(jpy.get_type('int'), 0))
+        jobj = jpy.as_jobj([12, 13, 14], target_type)
+        self.assertEqual(type(jobj), target_type)
+        self.assertEqual(fixture.stringifyObjectArg(jobj), 'int[](12,13,14)')
+
+        target_type = type(jpy.array(jpy.get_type('long'), 0))
+        jobj = jpy.as_jobj([12, 13, 14], target_type)
+        self.assertEqual(type(jobj), target_type)
+        self.assertEqual(fixture.stringifyObjectArg(jobj), 'long[](12,13,14)')
+
+        target_type = type(jpy.array(jpy.get_type('float'), 0))
+        jobj = jpy.as_jobj([12, 13, 14], target_type)
+        self.assertEqual(type(jobj), target_type)
+        self.assertEqual(fixture.stringifyObjectArg(jobj), 'float[](12.0,13.0,14.0)')
+
+        target_type = type(jpy.array(jpy.get_type('double'), 0))
+        jobj = jpy.as_jobj([12, 13, 14], target_type)
+        self.assertEqual(type(jobj), target_type)
+        self.assertEqual(fixture.stringifyObjectArg(jobj), 'double[](12.0,13.0,14.0)')
+
+    def test_AsJobjToBoxedPrimitiveArray(self):
+        fixture = self.Fixture()
+
+        # Convert Python values to arrays of boxed types
+
+        target_type = type(jpy.array(jpy.get_type('java.lang.Character'), 0))
+        jobj = jpy.as_jobj([65, 66, 67], target_type)
+        self.assertEqual(type(jobj), target_type)
+        self.assertEqual(fixture.stringifyObjectArg(jobj), 'Character[](Character(A),Character(B),Character(C))')
+
+        target_type = type(jpy.array(jpy.get_type('java.lang.Byte'), 0))
+        jobj = jpy.as_jobj([12, 13, 14], target_type)
+        self.assertEqual(type(jobj), target_type)
+        self.assertEqual(fixture.stringifyObjectArg(jobj), 'Byte[](Byte(12),Byte(13),Byte(14))')
+
+        target_type = type(jpy.array(jpy.get_type('java.lang.Short'), 0))
+        jobj = jpy.as_jobj([12, 13, 14], target_type)
+        self.assertEqual(type(jobj), target_type)
+        self.assertEqual(fixture.stringifyObjectArg(jobj), 'Short[](Short(12),Short(13),Short(14))')
+
+        target_type = type(jpy.array(jpy.get_type('java.lang.Integer'), 0))
+        jobj = jpy.as_jobj([12, 13, 14], target_type)
+        self.assertEqual(type(jobj), target_type)
+        self.assertEqual(fixture.stringifyObjectArg(jobj), 'Integer[](Integer(12),Integer(13),Integer(14))')
+
+        target_type = type(jpy.array(jpy.get_type('java.lang.Long'), 0))
+        jobj = jpy.as_jobj([12, 13, 14], target_type)
+        self.assertEqual(type(jobj), target_type)
+        self.assertEqual(fixture.stringifyObjectArg(jobj), 'Long[](Long(12),Long(13),Long(14))')
+
+        target_type = type(jpy.array(jpy.get_type('java.lang.Float'), 0))
+        jobj = jpy.as_jobj([12, 13, 14], target_type)
+        self.assertEqual(type(jobj), target_type)
+        self.assertEqual(fixture.stringifyObjectArg(jobj), 'Float[](Float(12.0),Float(13.0),Float(14.0))')
+
+        target_type = type(jpy.array(jpy.get_type('java.lang.Double'), 0))
+        jobj = jpy.as_jobj([12, 13, 14], target_type)
+        self.assertEqual(type(jobj), target_type)
+        self.assertEqual(fixture.stringifyObjectArg(jobj), 'Double[](Double(12.0),Double(13.0),Double(14.0))')
+
+    def test_AsJobjToPyObject(self):
+        # TODO: "Java class 'org.jpy.PyObject' not found"???
+        self.assertEqual(jpy.as_jobj('A', jpy.get_type('org.jpy.PyObject')), 'A')
+        self.assertEqual(jpy.as_jobj('ABCDE', jpy.get_type('org.jpy.PyObject')), 'ABCDE')
+        self.assertEqual(jpy.as_jobj(True, jpy.get_type('org.jpy.PyObject')), True)
+        self.assertEqual(jpy.as_jobj(False, jpy.get_type('org.jpy.PyObject')), False)
+        self.assertEqual(jpy.as_jobj(12, jpy.get_type('org.jpy.PyObject')), 12)
+        self.assertEqual(jpy.as_jobj(12.2, jpy.get_type('org.jpy.PyObject')), 12.2)
 
     def test_AsJobjToJavaLangObject(self):
         """
