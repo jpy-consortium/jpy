@@ -1447,10 +1447,10 @@ PyObject* JType_GetOverloadedMethod(JNIEnv* jenv, JPy_JType* type, PyObject* met
             } else if (type != JPy_JObject && JPy_JObject != NULL) {
                 return JType_GetOverloadedMethod(jenv, JPy_JObject, methodName, JNI_FALSE);
             } else {
-                return Py_None;
+                Py_RETURN_NONE;
             }
         } else {
-            return Py_None;
+            Py_RETURN_NONE;
         }
     }
 

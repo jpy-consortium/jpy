@@ -457,7 +457,7 @@ PyObject* JPy_create_jvm(PyObject* self, PyObject* args, PyObject* kwds)
     if (JPy_JVM != NULL) {
         JPy_DIAG_PRINT(JPy_DIAG_F_JVM + JPy_DIAG_F_ERR, "JPy_create_jvm: WARNING: Java VM is already running.\n");
         JPy_DECREF(options);
-        return JPy_PY_NONE();
+        Py_RETURN_NONE;
     }
 
     if (!PySequence_Check(options)) {
@@ -519,7 +519,7 @@ PyObject* JPy_create_jvm(PyObject* self, PyObject* args, PyObject* kwds)
         return NULL;
     }
 
-    return JPy_PY_NONE();
+    Py_RETURN_NONE;
 }
 
 PyObject* JPy_destroy_jvm(PyObject* self, PyObject* args)
@@ -532,7 +532,7 @@ PyObject* JPy_destroy_jvm(PyObject* self, PyObject* args)
         JPy_JVM = NULL;
     }
 
-    return JPy_PY_NONE();
+    Py_RETURN_NONE;
 }
 
 PyObject* JPy_get_type_internal(JNIEnv* jenv, PyObject* self, PyObject* args, PyObject* kwds)
@@ -566,7 +566,7 @@ PyObject* JPy_cast_internal(JNIEnv* jenv, PyObject* self, PyObject* args)
     }
 
     if (obj == Py_None) {
-        return JPy_PY_NONE();
+        Py_RETURN_NONE;
     }
 
     if (!JObj_Check(obj)) {
@@ -591,7 +591,7 @@ PyObject* JPy_cast_internal(JNIEnv* jenv, PyObject* self, PyObject* args)
     if (inst) {
         return (PyObject*) JObj_FromType(jenv, (JPy_JType*) targetTypeParsed, ((JPy_JObj*) obj)->objectRef);
     } else {
-        return JPy_PY_NONE();
+        Py_RETURN_NONE;
     }
 }
 
@@ -616,7 +616,7 @@ PyObject* JPy_as_jobj_internal(JNIEnv* jenv, PyObject* self, PyObject* args)
     }
 
     if (obj == Py_None) {
-        return JPy_PY_NONE();
+        Py_RETURN_NONE;
     }
 
     if (JPy_IS_STR(targetTypeArg)) {

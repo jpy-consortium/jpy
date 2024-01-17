@@ -2611,7 +2611,7 @@ static PyObject* JPrint_write(PyObject* self, PyObject* args)
         }
         fprintf(stdout, "%s", text);
     }
-    return JPy_PY_NONE();
+    Py_RETURN_NONE;
 }
 
 static PyObject* JPrint_flush(PyObject* self, PyObject* args)
@@ -2619,7 +2619,7 @@ static PyObject* JPrint_flush(PyObject* self, PyObject* args)
     if (stdout != NULL) {
         fflush(stdout);
     }
-    return JPy_PY_NONE();
+    Py_RETURN_NONE;
 }
 
 static PyMethodDef JPrint_Functions[] = {

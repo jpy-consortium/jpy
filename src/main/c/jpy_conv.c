@@ -205,7 +205,7 @@ PyObject* JPy_FromJString(JNIEnv* jenv, jstring stringRef)
     jint length;
 
     if (stringRef == NULL) {
-        return JPy_PY_NONE();
+        Py_RETURN_NONE;
     }
 
     length = (*jenv)->GetStringLength(jenv, stringRef);
@@ -227,7 +227,7 @@ PyObject* JPy_FromJString(JNIEnv* jenv, jstring stringRef)
     const char* utfChars;
 
     if (stringRef == NULL) {
-        return JPy_PY_NONE();
+        Py_RETURN_NONE;
     }
 
     utfChars = (*jenv)->GetStringUTFChars(jenv, stringRef, NULL);
