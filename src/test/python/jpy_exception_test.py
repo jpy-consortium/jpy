@@ -27,13 +27,27 @@ class TestExceptions(unittest.TestCase):
         fixture = self.Fixture()
         self.assertEqual(fixture.throwAioobeIfIndexIsNotZero(0), 101)
 
+        def check_exception(ex_msg: str, expected_idx: int, expected_len: int):
+            """
+            Verify an ArrayIndexOutOfBoundsException. The exception message can vary by JVM.
+            :param ex_msg:  The exception message
+            :param expected_idx: The invalid index expected in the exception message
+            :param expected_len: The expected length of the array that we attempted to access
+            """
+            valid_ex_msg_1 = f'java.lang.ArrayIndexOutOfBoundsException: {expected_idx}'
+            valid_ex_msg_2 = f'java.lang.ArrayIndexOutOfBoundsException: Index {expected_idx} out of bounds for length {expected_len}'
+            ex_msg_correct = (ex_msg == valid_ex_msg_1 or ex_msg == valid_ex_msg_2)
+
+            self.assertTrue(ex_msg_correct,
+                            f'Exception message \'{ex_msg}\' does not match expectations: either \'{valid_ex_msg_1}\' or \'{valid_ex_msg_2}\'')
+
         with  self.assertRaises(RuntimeError, msg='Java ArrayIndexOutOfBoundsException expected') as e:
             fixture.throwAioobeIfIndexIsNotZero(1)
-        self.assertEqual(str(e.exception), 'java.lang.ArrayIndexOutOfBoundsException: 1')
+        check_exception(str(e.exception), 1, 1)
 
         with  self.assertRaises(RuntimeError, msg='Java ArrayIndexOutOfBoundsException expected') as e:
             fixture.throwAioobeIfIndexIsNotZero(-1)
-        self.assertEqual(str(e.exception), 'java.lang.ArrayIndexOutOfBoundsException: -1')
+        check_exception(str(e.exception), -1, 1)
 
     def test_RuntimeException(self):
         fixture = self.Fixture()
