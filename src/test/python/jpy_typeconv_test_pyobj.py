@@ -20,14 +20,14 @@ class TestTypeConversionsPyObj(unittest.TestCase):
         print('test_AsJobjToPyObject: Got type for PyObject')
 
         print('test_AsJobjToPyObject: Testing value: \'A\'')
-        print('test_AsJobjToPyObject: doing first conversion')
+        print('test_AsJobjToPyObject: Doing first conversion')
         val = 'A'
         conv = jpy.as_jobj(val, PyObject_type)
-        print('test_AsJobjToPyObject: getting first pointer')
+        print('test_AsJobjToPyObject: Getting first pointer')
         ptr = conv.getPointer()
-        print('test_AsJobjToPyObject: got first pointer')
+        print('test_AsJobjToPyObject: Got first pointer')
         self.assertEqual(ptr, id(val))
-        print('test_AsJobjToPyObject: passed first assertion')
+        print('test_AsJobjToPyObject: Passed first assertion')
 
         print('test_AsJobjToPyObject: Testing value: string')
         val = 'ABCDE'
