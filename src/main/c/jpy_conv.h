@@ -60,8 +60,9 @@ extern "C" {
 
 #endif
 
-#define JPy_FROM_JVOID()         Py_BuildValue("")
-#define JPy_FROM_JNULL()         Py_BuildValue("")
+#define JPy_PY_NONE()            Py_BuildValue("") // Builds a Python 'None' object
+#define JPy_FROM_JVOID()         JPy_PY_NONE()
+#define JPy_FROM_JNULL()         JPy_PY_NONE()
 
 
 /**

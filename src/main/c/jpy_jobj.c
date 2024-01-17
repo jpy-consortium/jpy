@@ -355,7 +355,7 @@ PyObject* JObj_str(JPy_JObj* self)
     JPy_GET_JNI_ENV_OR_RETURN(jenv, NULL)
 
     if (self->objectRef == NULL) {
-        return Py_BuildValue("");
+        return JPy_PY_NONE();
     }
 
     returnValue = NULL;
