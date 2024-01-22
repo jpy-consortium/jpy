@@ -38,7 +38,7 @@ PyObject* JPy_create_jvm(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* JPy_destroy_jvm(PyObject* self, PyObject* args);
 PyObject* JPy_get_type(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* JPy_cast(PyObject* self, PyObject* args);
-PyObject* JPy_as_jobj(PyObject* self, PyObject* args);
+PyObject* JPy_convert(PyObject* self, PyObject* args);
 PyObject* JPy_array(PyObject* self, PyObject* args);
 PyObject* JPy_byte_buffer(PyObject* self, PyObject* args);
 
@@ -62,8 +62,8 @@ static PyMethodDef JPy_Functions[] = {
                     "cast(obj, type) - Cast the given Java object to the given Java type (type name or type object). "
                     "Returns None if the cast is not possible."},
 
-    {"as_jobj",     JPy_as_jobj, METH_VARARGS,
-                    "as_jobj(obj, type) - Convert the given Python object to the given Java type (type name or type object). "
+    {"convert",     JPy_convert, METH_VARARGS,
+                    "convert(obj, type) - Convert the given Python object to the given Java type (type name or type object). "
                     "Returns None if the conversion is not possible. If the Java type is a primitive, the returned object "
                     "will be of the corresponding boxed type."},
 
@@ -600,7 +600,7 @@ PyObject* JPy_cast(PyObject* self, PyObject* args)
     JPy_FRAME(PyObject*, NULL, JPy_cast_internal(jenv, self, args), 16)
 }
 
-PyObject* JPy_as_jobj_internal(JNIEnv* jenv, PyObject* self, PyObject* args)
+PyObject* JPy_convert_internal(JNIEnv* jenv, PyObject* self, PyObject* args)
 {
     PyObject* obj;
     PyObject* targetTypeArg;        // can be a string PyObject (i.e. JPy_IS_STR) or a JPy_JType
@@ -611,7 +611,7 @@ PyObject* JPy_as_jobj_internal(JNIEnv* jenv, PyObject* self, PyObject* args)
     jobject objectRef;
 
     // Parse the 'args' from Python into 'obj'/'objType'.
-    if (!PyArg_ParseTuple(args, "OO:as_jobj", &obj, &targetTypeArg)) {
+    if (!PyArg_ParseTuple(args, "OO:convert", &obj, &targetTypeArg)) {
         return NULL;
     }
 
@@ -666,9 +666,9 @@ PyObject* JPy_as_jobj_internal(JNIEnv* jenv, PyObject* self, PyObject* args)
 }
 
 
-PyObject* JPy_as_jobj(PyObject* self, PyObject* args)
+PyObject* JPy_convert(PyObject* self, PyObject* args)
 {
-    JPy_FRAME(PyObject*, NULL, JPy_as_jobj_internal(jenv, self, args), 16)
+    JPy_FRAME(PyObject*, NULL, JPy_convert_internal(jenv, self, args), 16)
 }
 
 PyObject* JPy_array_internal(JNIEnv* jenv, PyObject* self, PyObject* args)

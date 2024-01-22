@@ -12,48 +12,48 @@ class TestTypeConversionsPyObj(unittest.TestCase):
     jpy_typeconv_test.py because it requires a different classpath.
     """
 
-    def test_AsJobjToPyObject(self):
+    def test_convert_toPyObject(self):
         # Note that this test requires jvm_classpath=['target/classes'] (not jvm_classpath=['target/***test-***classes']
 
-        print('Starting test_AsJobjToPyObject')
+        print('Starting test_convert_toPyObject')
         PyObject_type = jpy.get_type('org.jpy.PyObject')
-        print('test_AsJobjToPyObject: Got type for PyObject')
+        print('test_convert_toPyObject: Got type for PyObject')
 
-        print('test_AsJobjToPyObject: Testing value: \'A\'')
-        print('test_AsJobjToPyObject: Doing first conversion')
+        print('test_convert_toPyObject: Testing value: \'A\'')
+        print('test_convert_toPyObject: Doing first conversion')
         val = 'A'
-        conv = jpy.as_jobj(val, PyObject_type)
-        print('test_AsJobjToPyObject: Getting first pointer')
+        conv = jpy.convert(val, PyObject_type)
+        print('test_convert_toPyObject: Getting first pointer')
         ptr = conv.getPointer()
-        print('test_AsJobjToPyObject: Got first pointer')
+        print('test_convert_toPyObject: Got first pointer')
         self.assertEqual(ptr, id(val))
-        print('test_AsJobjToPyObject: Passed first assertion')
+        print('test_convert_toPyObject: Passed first assertion')
 
-        print('test_AsJobjToPyObject: Testing value: string')
+        print('test_convert_toPyObject: Testing value: string')
         val = 'ABCDE'
-        self.assertEqual(jpy.as_jobj(val, PyObject_type).getPointer(), id(val))
+        self.assertEqual(jpy.convert(val, PyObject_type).getPointer(), id(val))
 
-        print('test_AsJobjToPyObject: Testing value: True')
+        print('test_convert_toPyObject: Testing value: True')
         val = True
-        self.assertEqual(jpy.as_jobj(val, PyObject_type).getPointer(), id(val))
+        self.assertEqual(jpy.convert(val, PyObject_type).getPointer(), id(val))
 
-        print('test_AsJobjToPyObject: Testing value: False')
+        print('test_convert_toPyObject: Testing value: False')
         val = False
-        self.assertEqual(jpy.as_jobj(val, PyObject_type).getPointer(), id(val))
+        self.assertEqual(jpy.convert(val, PyObject_type).getPointer(), id(val))
 
-        print('test_AsJobjToPyObject: Testing value: 12')
+        print('test_convert_toPyObject: Testing value: 12')
         val = 12
-        self.assertEqual(jpy.as_jobj(val, PyObject_type).getPointer(), id(val))
+        self.assertEqual(jpy.convert(val, PyObject_type).getPointer(), id(val))
 
-        print('test_AsJobjToPyObject: Testing value: 12.2')
+        print('test_convert_toPyObject: Testing value: 12.2')
         val = 12.2
-        self.assertEqual(jpy.as_jobj(val, PyObject_type).getPointer(), id(val))
+        self.assertEqual(jpy.convert(val, PyObject_type).getPointer(), id(val))
 
-        print('test_AsJobjToPyObject: Testing value: [1, 2.0, "ABCDE"]')
+        print('test_convert_toPyObject: Testing value: [1, 2.0, "ABCDE"]')
         val = [1, 2.0, "ABCDE"]
-        self.assertEqual(jpy.as_jobj(val, PyObject_type).getPointer(), id(val))
+        self.assertEqual(jpy.convert(val, PyObject_type).getPointer(), id(val))
 
-        print('Finished test_AsJobjToPyObject')
+        print('Finished test_convert_toPyObject')
 
 
 if __name__ == '__main__':
