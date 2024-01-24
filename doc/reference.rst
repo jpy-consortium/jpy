@@ -87,7 +87,10 @@ jpy Functions
         tm = rt.totalMemory()
 
     The returned Java types have a `jclass` attribute which returns the actual Java object. This allows for using
-    the Java types where a Java method would expect a parameter of type `java.lang.Class`.
+    the Java types where a Java method would expect a parameter of type `java.lang.Class`. They also have a `jclassname`
+    attribute, which returns the Java type associated with the 'obj' reference. The `jclassname` is the reference's
+    declared type (which may be a supertype), rather than the object's runtime type (as returned by
+    `obj.getClass().getName()`).
 
     To instantiate Java array objects, the :py:func:`jpy.array()` function is used.
 

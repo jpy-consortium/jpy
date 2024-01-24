@@ -38,6 +38,7 @@ PyObject* JPy_create_jvm(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* JPy_destroy_jvm(PyObject* self, PyObject* args);
 PyObject* JPy_get_type(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* JPy_cast(PyObject* self, PyObject* args);
+PyObject* JPy_convert(PyObject* self, PyObject* args);
 PyObject* JPy_array(PyObject* self, PyObject* args);
 PyObject* JPy_byte_buffer(PyObject* self, PyObject* args);
 
@@ -60,6 +61,11 @@ static PyMethodDef JPy_Functions[] = {
     {"cast",        JPy_cast, METH_VARARGS,
                     "cast(obj, type) - Cast the given Java object to the given Java type (type name or type object). "
                     "Returns None if the cast is not possible."},
+
+    {"convert",     JPy_convert, METH_VARARGS,
+                    "convert(obj, type) - Convert the given Python object to the given Java type (type name or type object). "
+                    "Returns None if the conversion is not possible. If the Java type is a primitive, the returned object "
+                    "will be of the corresponding boxed type."},
 
     {"array",       JPy_array, METH_VARARGS,
                     "array(name, init) - Return a new Java array of given Java type (type name or type object) and initializer (array length or sequence). "
@@ -451,7 +457,7 @@ PyObject* JPy_create_jvm(PyObject* self, PyObject* args, PyObject* kwds)
     if (JPy_JVM != NULL) {
         JPy_DIAG_PRINT(JPy_DIAG_F_JVM + JPy_DIAG_F_ERR, "JPy_create_jvm: WARNING: Java VM is already running.\n");
         JPy_DECREF(options);
-        return Py_BuildValue("");
+        Py_RETURN_NONE;
     }
 
     if (!PySequence_Check(options)) {
@@ -513,7 +519,7 @@ PyObject* JPy_create_jvm(PyObject* self, PyObject* args, PyObject* kwds)
         return NULL;
     }
 
-    return Py_BuildValue("");
+    Py_RETURN_NONE;
 }
 
 PyObject* JPy_destroy_jvm(PyObject* self, PyObject* args)
@@ -526,7 +532,7 @@ PyObject* JPy_destroy_jvm(PyObject* self, PyObject* args)
         JPy_JVM = NULL;
     }
 
-    return Py_BuildValue("");
+    Py_RETURN_NONE;
 }
 
 PyObject* JPy_get_type_internal(JNIEnv* jenv, PyObject* self, PyObject* args, PyObject* kwds)
@@ -551,16 +557,16 @@ PyObject* JPy_get_type(PyObject* self, PyObject* args, PyObject* kwds)
 PyObject* JPy_cast_internal(JNIEnv* jenv, PyObject* self, PyObject* args)
 {
     PyObject* obj;
-    PyObject* objType;
-    JPy_JType* type;
+    PyObject* targetTypeArg;        // can be a string PyObject (i.e. JPy_IS_STR) or a JPy_JType
+    JPy_JType* targetTypeParsed;    // the actual type that targetTypeArg is processed as
     jboolean inst;
 
-    if (!PyArg_ParseTuple(args, "OO:cast", &obj, &objType)) {
+    if (!PyArg_ParseTuple(args, "OO:cast", &obj, &targetTypeArg)) {
         return NULL;
     }
 
     if (obj == Py_None) {
-        return Py_BuildValue("");
+        Py_RETURN_NONE;
     }
 
     if (!JObj_Check(obj)) {
@@ -568,30 +574,101 @@ PyObject* JPy_cast_internal(JNIEnv* jenv, PyObject* self, PyObject* args)
         return NULL;
     }
 
-    if (JPy_IS_STR(objType)) {
-        const char* typeName = JPy_AS_UTF8(objType);
-        type = JType_GetTypeForName(jenv, typeName, JNI_FALSE);
-        if (type == NULL) {
+    if (JPy_IS_STR(targetTypeArg)) {
+        const char* typeName = JPy_AS_UTF8(targetTypeArg);
+        targetTypeParsed = JType_GetTypeForName(jenv, typeName, JNI_FALSE);
+        if (targetTypeParsed == NULL) {
             return NULL;
         }
-    } else if (JType_Check(objType)) {
-        type = (JPy_JType*) objType;
+    } else if (JType_Check(targetTypeArg)) {
+        targetTypeParsed = (JPy_JType*) targetTypeArg;
     } else {
         PyErr_SetString(PyExc_ValueError, "cast: argument 2 (obj_type) must be a Java type name or Java type object");
         return NULL;
     }
 
-    inst = (*jenv)->IsInstanceOf(jenv, ((JPy_JObj*) obj)->objectRef, type->classRef);
+    inst = (*jenv)->IsInstanceOf(jenv, ((JPy_JObj*) obj)->objectRef, targetTypeParsed->classRef);
     if (inst) {
-        return (PyObject*) JObj_FromType(jenv, (JPy_JType*) objType, ((JPy_JObj*) obj)->objectRef);
+        return (PyObject*) JObj_FromType(jenv, (JPy_JType*) targetTypeParsed, ((JPy_JObj*) obj)->objectRef);
     } else {
-        return Py_BuildValue("");
+        Py_RETURN_NONE;
     }
 }
 
 PyObject* JPy_cast(PyObject* self, PyObject* args)
 {
     JPy_FRAME(PyObject*, NULL, JPy_cast_internal(jenv, self, args), 16)
+}
+
+PyObject* JPy_convert_internal(JNIEnv* jenv, PyObject* self, PyObject* args)
+{
+    PyObject* obj;
+    PyObject* targetTypeArg;        // can be a string PyObject (i.e. JPy_IS_STR) or a JPy_JType
+    JPy_JType* targetTypeParsed;    // the actual type that targetTypeArg is processed as
+    jboolean inst;
+
+    PyObject* resultObj;
+    jobject objectRef;
+
+    // Parse the 'args' from Python into 'obj'/'objType'.
+    if (!PyArg_ParseTuple(args, "OO:convert", &obj, &targetTypeArg)) {
+        return NULL;
+    }
+
+    if (obj == Py_None) {
+        Py_RETURN_NONE;
+    }
+
+    if (JPy_IS_STR(targetTypeArg)) {
+        const char* typeName = JPy_AS_UTF8(targetTypeArg);
+        targetTypeParsed = JType_GetTypeForName(jenv, typeName, JNI_FALSE);
+        if (targetTypeParsed == NULL) {
+            return NULL;
+        }
+    } else if (JType_Check(targetTypeArg)) {
+        targetTypeParsed = (JPy_JType*) targetTypeArg;
+    } else {
+        PyErr_SetString(PyExc_ValueError, "cast: argument 2 (obj_type) must be a Java type name or Java type object");
+        return NULL;
+    }
+
+    // If the input obj is a Java object, and it is already of the specified target type,
+    // then just cast it.
+    if (JObj_Check(obj)) {
+        inst = (*jenv)->IsInstanceOf(jenv, ((JPy_JObj*) obj)->objectRef, targetTypeParsed->classRef);
+        if (inst) {
+            return (PyObject*) JObj_FromType(jenv, (JPy_JType*) targetTypeParsed, ((JPy_JObj*) obj)->objectRef);
+        }
+    }
+
+    // Convert the Python object to the specified Java type
+    if (JPy_AsJObjectWithType(jenv,  obj, &objectRef, targetTypeParsed) < 0) {
+        return NULL;
+    }
+
+    // Create a global reference for the objectRef (so it is valid after we exit this frame)
+    objectRef = (*jenv)->NewGlobalRef(jenv, objectRef);
+    if (objectRef == NULL) {
+        PyErr_NoMemory();
+        return NULL;
+    }
+
+    // Create a PyObject (JObj) to hold the result
+    resultObj = (JPy_JObj*) PyObject_New(JPy_JObj, JTYPE_AS_PYTYPE(targetTypeParsed));
+    if (resultObj == NULL) {
+        (*jenv)->DeleteGlobalRef(jenv, objectRef);
+        return NULL;
+    }
+    // Store the reference to the converted object in the result JObj
+    ((JPy_JObj*) resultObj)->objectRef = objectRef;
+
+    return (PyObject*) resultObj;
+}
+
+
+PyObject* JPy_convert(PyObject* self, PyObject* args)
+{
+    JPy_FRAME(PyObject*, NULL, JPy_convert_internal(jenv, self, args), 16)
 }
 
 PyObject* JPy_array_internal(JNIEnv* jenv, PyObject* self, PyObject* args)

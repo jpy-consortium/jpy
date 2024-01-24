@@ -631,7 +631,7 @@ PyObject* JMethod_set_param_mutable(JPy_JMethod* self, PyObject* args)
     }
     JMethod_CHECK_PARAMETER_INDEX(self, index);
     self->paramDescriptors[index].isMutable = value;
-    return Py_BuildValue("");
+    Py_RETURN_NONE;
 }
 
 PyObject* JMethod_is_param_output(JPy_JMethod* self, PyObject* args)
@@ -661,7 +661,7 @@ PyObject* JMethod_set_param_output(JPy_JMethod* self, PyObject* args)
     }
     JMethod_CHECK_PARAMETER_INDEX(self, index);
     self->paramDescriptors[index].isOutput = value;
-    return Py_BuildValue("");
+    Py_RETURN_NONE;
 }
 
 PyObject* JMethod_is_param_return(JPy_JMethod* self, PyObject* args)
@@ -694,7 +694,7 @@ PyObject* JMethod_set_param_return(JPy_JMethod* self, PyObject* args)
     if (value) {
         self->returnDescriptor->paramIndex = index;
     }
-    return Py_BuildValue("");
+    Py_RETURN_NONE;
 }
 
 

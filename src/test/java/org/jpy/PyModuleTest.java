@@ -17,6 +17,7 @@
 package org.jpy;
 
 import org.junit.*;
+import org.junit.rules.TestRule;
 
 import java.io.File;
 
@@ -29,6 +30,8 @@ import static org.junit.Assert.assertTrue;
  */
 public class PyModuleTest {
 
+    @Rule
+    public TestRule testStatePrinter = new TestStatePrinter();
     @Before
     public void setUp() throws Exception {
         //System.out.println("PyModuleTest: Current thread: " + Thread.currentThread());

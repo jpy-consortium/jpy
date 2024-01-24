@@ -79,7 +79,7 @@ PyObject* JObj_FromType(JNIEnv* jenv, JPy_JType* type, jobject objectRef)
         if (PyCallable_Check(callable)) {
             callableResult = PyObject_CallFunction(callable, "OO", type, obj);
             if (callableResult == NULL) {
-                return Py_None;
+                Py_RETURN_NONE;
             } else {
                 return callableResult;
             }
@@ -355,7 +355,7 @@ PyObject* JObj_str(JPy_JObj* self)
     JPy_GET_JNI_ENV_OR_RETURN(jenv, NULL)
 
     if (self->objectRef == NULL) {
-        return Py_BuildValue("");
+        Py_RETURN_NONE;
     }
 
     returnValue = NULL;

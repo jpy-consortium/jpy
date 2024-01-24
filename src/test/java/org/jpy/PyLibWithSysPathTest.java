@@ -17,6 +17,7 @@
 package org.jpy;
 
 import org.junit.*;
+import org.junit.rules.TestRule;
 
 import java.io.File;
 import java.net.URI;
@@ -26,6 +27,9 @@ import static org.junit.Assert.*;
 
 
 public class PyLibWithSysPathTest {
+
+    @Rule
+    public TestRule testStatePrinter = new TestStatePrinter();
 
     @Before
     public void setUp() throws Exception {

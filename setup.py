@@ -88,6 +88,7 @@ python_java_jpy_tests = [
     os.path.join(src_test_py_dir, 'jpy_exception_test.py'),
     os.path.join(src_test_py_dir, 'jpy_overload_test.py'),
     os.path.join(src_test_py_dir, 'jpy_typeconv_test.py'),
+    os.path.join(src_test_py_dir, 'jpy_typeconv_test_pyobj.py'),
     os.path.join(src_test_py_dir, 'jpy_typeres_test.py'),
     os.path.join(src_test_py_dir, 'jpy_modretparam_test.py'),
     os.path.join(src_test_py_dir, 'jpy_translation_test.py'),

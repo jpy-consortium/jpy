@@ -19,7 +19,9 @@ package org.jpy;
 import org.jpy.annotations.Mutable;
 import org.jpy.annotations.Return;
 import org.jpy.fixtures.MethodReturnValueTestFixture;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
@@ -33,6 +35,9 @@ import static org.junit.Assert.assertEquals;
  * @author Norman Fomferra
  */
 public class JavaReflectionTest {
+
+    @Rule
+    public TestRule testStatePrinter = new TestStatePrinter();
 
     @Test
     public void testPrimitiveAndVoidNames() throws Exception {

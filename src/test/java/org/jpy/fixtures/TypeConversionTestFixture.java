@@ -41,4 +41,8 @@ public class TypeConversionTestFixture {
     public String stringifyStringArrayArg(String[] arg) {
         return stringifyArgs((Object) arg);
     }
+
+    public boolean isSameObject(Object o1, Object o2) {
+        return o1 == o2;
+    }
 }

@@ -102,6 +102,12 @@ documentation.
 4. Update documentation, `cd doc` and run `make html` 
 5. http://peterdowns.com/posts/first-time-with-pypi.html
 
+
+Running Tests
+----------------
+
+Run: `python setup.py build test`
+
 Automated builds
 ----------------
 

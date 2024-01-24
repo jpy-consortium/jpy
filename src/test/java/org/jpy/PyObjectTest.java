@@ -22,6 +22,7 @@ package org.jpy;
 import java.util.regex.Pattern;
 import org.junit.*;
 import org.jpy.fixtures.Processor;
+import org.junit.rules.TestRule;
 
 import java.io.File;
 import java.io.IOException;
@@ -39,6 +40,9 @@ import static org.junit.Assert.*;
 public class PyObjectTest {
 
     private PyModule SPECIAL_METHODS;
+
+    @Rule
+    public TestRule testStatePrinter = new TestStatePrinter();
 
     @Before
     public void setUp() throws Exception {
@@ -59,7 +63,7 @@ public class PyObjectTest {
         PyLib.Diag.setFlags(PyLib.Diag.F_OFF);
         PyLib.stopPython();
     }
-    
+
     @Test(expected = IllegalArgumentException.class)
     public void testNullPointer() throws Exception {
         new PyObject(0);
@@ -161,9 +165,9 @@ public class PyObjectTest {
         assertNotNull(localMap.get("y"));
         assertNotNull(localMap.get("z"));
         
-        assertEquals(7, localMap.get("x"));
-        assertEquals(6, localMap.get("y"));
-        assertEquals(13, localMap.get("z"));
+        assertEquals((byte) 7, localMap.get("x"));
+        assertEquals((byte) 6, localMap.get("y"));
+        assertEquals((byte) 13, localMap.get("z"));
     }
     
     @Test
@@ -628,7 +632,7 @@ public class PyObjectTest {
 
         PyObject result = obj.callMethod("__hash__");
         assertTrue(result.isInt());
-        assertEquals(-1, obj.getIntValue());
+        assertEquals(-1, result.getIntValue());
     }
 
     @Test
