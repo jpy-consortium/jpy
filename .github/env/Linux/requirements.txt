@@ -1,4 +1,4 @@
 setuptools
 wheel
-auditwheel
+auditwheel>=6.0.0
 patchelf
