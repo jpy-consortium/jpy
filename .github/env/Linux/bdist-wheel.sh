@@ -12,9 +12,10 @@ python -m pip install -r "${__dir}/requirements.txt"
 python setup.py bdist_wheel --dist-dir dist.linux
 
 # Note: auditwheel only works with a single file argument - we are relying on finding exactly one wheel
-python "${__dir}/auditwheel-keep-libjvm.py" \
+auditwheel \
   repair \
   --plat "manylinux_2_17_$(arch)" \
   --only-plat \
+  --exclude libjvm.so \
   --wheel-dir dist/ \
   dist.linux/*
