@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
       # TODO: sdist shouldn't need java
       - uses: actions/setup-java@v4
         id: setup-java
