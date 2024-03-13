@@ -164,7 +164,7 @@ jobs:
     needs: ['sdist', 'bdist-wheel', 'bdist-wheel-universal2-hack', 'bdist-wheels-linux-arm64']
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           path: download-artifacts
       - name: collect-artifacts.sh
@@ -179,7 +179,7 @@ jobs:
     runs-on: ubuntu-22.04
     needs: ['collect-artifacts']
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: jpy
           path: dist
