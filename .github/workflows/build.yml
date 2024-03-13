@@ -16,7 +16,7 @@ jobs:
           distribution: 'temurin'
           java-version: '8'
       - run: mvn --batch-mode jar:jar javadoc:jar source:jar-no-fork
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: jars
           path: target
@@ -33,7 +33,7 @@ jobs:
           distribution: 'temurin'
           java-version: '8'
       - run: python setup.py sdist
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: sdist
           path: dist
@@ -80,7 +80,7 @@ jobs:
       - run: pip install --upgrade setuptools
       - run: ${{ matrix.info.cmd }}
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: build-${{ matrix.info.python }}-${{ matrix.info.machine }}-${{ matrix.info.arch }}
           path: dist/*.whl
@@ -127,7 +127,7 @@ jobs:
       - run: pip install --upgrade setuptools
       - run: ${{ matrix.info.cmd }}
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: build-${{ matrix.info.python }}-${{ matrix.info.machine }}-${{ matrix.info.arch }}
           path: dist/*.whl
@@ -153,7 +153,7 @@ jobs:
             *.platform=linux/arm64/v8
             *.output=type=local,dest=/tmp/dist
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: bdist-wheels-linux-arm64
           path: /tmp/dist/*.whl
@@ -164,12 +164,12 @@ jobs:
     needs: ['sdist', 'bdist-wheel', 'bdist-wheel-universal2-hack', 'bdist-wheels-linux-arm64']
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           path: download-artifacts
       - name: collect-artifacts.sh
         run: .github/scripts/collect-artifacts.sh
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: jpy
           path: collect-artifacts
@@ -179,7 +179,7 @@ jobs:
     runs-on: ubuntu-22.04
     needs: ['collect-artifacts']
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: jpy
           path: dist
