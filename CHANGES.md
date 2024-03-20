@@ -1,6 +1,9 @@
 # jpy Changelog
 
-## Version 0.16.0 (in development)
+## Version 0.16.0
+* [#128](https://github.com/jpy-consortium/jpy/pull/128) Function for converting Python values to an explicit Java type
+* [#132](https://github.com/jpy-consortium/jpy/pull/132) Update auditwheel command to use --exclude
+* Various CI-related version bumps
 
 ## Version 0.15.0
 * [#112](https://github.com/jpy-consortium/jpy/pull/112) Add jpy.byte_buffer() function
