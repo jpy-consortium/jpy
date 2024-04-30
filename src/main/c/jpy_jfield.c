@@ -100,7 +100,7 @@ PyTypeObject JField_Type = {
     sizeof (JPy_JField),          /* tp_basicsize */
     0,                            /* tp_itemsize */
     (destructor)JField_dealloc,   /* tp_dealloc */
-    NULL,                         /* tp_print */
+    0,                            /* tp_print */
     NULL,                         /* tp_getattr */
     NULL,                         /* tp_setattr */
     NULL,                         /* tp_reserved */

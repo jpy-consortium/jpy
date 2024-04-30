@@ -719,7 +719,7 @@ PyTypeObject JMethod_Type = {
     sizeof (JPy_JMethod),         /* tp_basicsize */
     0,                            /* tp_itemsize */
     (destructor)JMethod_dealloc,  /* tp_dealloc */
-    NULL,                         /* tp_print */
+    0,                            /* tp_print */
     NULL,                         /* tp_getattr */
     NULL,                         /* tp_setattr */
     NULL,                         /* tp_reserved */
@@ -1036,7 +1036,7 @@ PyTypeObject JOverloadedMethod_Type = {
     sizeof (JPy_JOverloadedMethod),         /* tp_basicsize */
     0,                            /* tp_itemsize */
     (destructor)JOverloadedMethod_dealloc,  /* tp_dealloc */
-    NULL,                         /* tp_print */
+    0,                            /* tp_print */
     NULL,                         /* tp_getattr */
     NULL,                         /* tp_setattr */
     NULL,                         /* tp_reserved */

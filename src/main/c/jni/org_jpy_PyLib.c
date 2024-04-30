@@ -1021,7 +1021,7 @@ jlong JNICALL Java_org_jpy_PyLib_executeCode
     codeChars = (*jenv)->GetStringUTFChars(jenv, jCode, NULL);
     if (codeChars == NULL) {
         PyLib_ThrowOOM(jenv);
-        return NULL;
+        return 0;
     }
 
     JPy_DIAG_PRINT(JPy_DIAG_F_EXEC, "Java_org_jpy_PyLib_executeCode: code='%s'\n", codeChars);

@@ -109,7 +109,7 @@ int JArray_GetBufferProc(JPy_JArray* self, Py_buffer* view, int flags, char java
 
     // Step 2/5
     view->buf = buf;
-    view->len = itemCount * itemSize;
+    view->len = (Py_ssize_t)itemCount * (Py_ssize_t)itemSize;
     view->itemsize = itemSize;
     view->readonly = (flags & (PyBUF_WRITE | PyBUF_WRITEABLE)) == 0;
     self->bufReadonly &= view->readonly;
