@@ -171,7 +171,7 @@ JPy_JType* JType_GetType(JNIEnv* jenv, jclass classRef, jboolean resolve)
         //printf("T2: type->tp_init=%p\n", ((PyTypeObject*)type)->tp_init);
 
         // ... before we can continue processing the super type ...
-        if (JType_InitSuperType(jenv, type, resolve) < 0) {
+        if (JType_InitSuperType(jenv, type, JNI_FALSE) < 0) {
             PyDict_DelItem(JPy_Types, typeKey);
             return NULL;
         }
