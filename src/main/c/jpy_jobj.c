@@ -726,11 +726,13 @@ int JType_InitSlots(JPy_JType* type)
 
     typeObj = JTYPE_AS_PYTYPE(type);
 
-    #if defined(JPY_COMPAT_39P)
-        Py_SET_REFCNT(typeObj, 1);
-    #else
-        Py_REFCNT(typeObj) = 1;
-    #endif
+    // This is hacky to make the caller JType_GetType be able to call JPy_INCREF regardless if the type was already created,
+    // but it will cause a ref counting error when this function fails, and we need to remove the type from the registry
+    //    #if defined(JPY_COMPAT_39P)
+    //        Py_SET_REFCNT(typeObj, 1);
+    //    #else
+    //        Py_REFCNT(typeObj) = 1;
+    //    #endif
     Py_SET_TYPE(typeObj, NULL);
     Py_SET_SIZE(typeObj, 0);
     // todo: The following lines are actually correct, but setting Py_TYPE(type) = &JType_Type results in an interpreter crash. Why?

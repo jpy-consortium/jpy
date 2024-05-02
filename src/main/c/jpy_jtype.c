@@ -179,7 +179,7 @@ JPy_JType* JType_GetType(JNIEnv* jenv, jclass classRef, jboolean resolve)
         //printf("T3: type->tp_init=%p\n", ((PyTypeObject*)type)->tp_init);
 
         // ... and processing the component type.
-        if (JType_InitComponentType(jenv, type, resolve) < 0) {
+        if (JType_InitComponentType(jenv, type, JNI_FALSE) < 0) {
             PyDict_DelItem(JPy_Types, typeKey);
             return NULL;
         }
@@ -194,6 +194,7 @@ JPy_JType* JType_GetType(JNIEnv* jenv, jclass classRef, jboolean resolve)
         }
 
         JType_AddClassAttribute(jenv, type);
+        JPy_DECREF(typeKey);
 
         //printf("T5: type->tp_init=%p\n", ((PyTypeObject*)type)->tp_init);
 
@@ -226,8 +227,12 @@ JPy_JType* JType_GetType(JNIEnv* jenv, jclass classRef, jboolean resolve)
             return NULL;
         }
     }
-    
-    JPy_INCREF(type);
+
+    // Only increment the refcount when the type is found in the registry to guarantee that we return a new reference
+    if (typeValue != NULL) {
+        JPy_INCREF(type);
+    }
+
     return type;
 }
 
