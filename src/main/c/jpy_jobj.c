@@ -726,7 +726,7 @@ int JType_InitSlots(JPy_JType* type)
 
     typeObj = JTYPE_AS_PYTYPE(type);
 
-    // This is hacky to make the caller JType_GetType be able to call JPy_INCREF regardless if the type was already created,
+    // This is hacky to make the caller JType_GetType able to call JPy_INCREF regardless if the type was already created,
     // but it will cause a ref counting error when this function fails, and we need to remove the type from the registry
     //    #if defined(JPY_COMPAT_39P)
     //        Py_SET_REFCNT(typeObj, 1);

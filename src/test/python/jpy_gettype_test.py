@@ -71,6 +71,21 @@ class TestGetClass(unittest.TestCase):
             for i in range(200):
                 jpy.get_type(java_type)
 
+    def test_cyclic_reference(self):
+        """
+        Test if delaying resolving super classes doesn't break existing class reference pattern.
+        """
+        j_child1_class = jpy.get_type("org.jpy.fixtures.CyclicReferenceChild1")
+        j_child2_class = jpy.get_type("org.jpy.fixtures.CyclicReferenceChild2")
+        j_child2 = j_child2_class()
+
+        j_child1 = j_child1_class.of(8)
+        self.assertEqual(88, j_child1.parentMethod())
+        self.assertEqual(888, j_child1.grandParentMethod())
+        self.assertIsNone(j_child1.refChild2(j_child2))
+        self.assertEqual(8, j_child1.get_x())
+        self.assertEqual(10, j_child1.y)
+        self.assertEqual(100, j_child1.z)
 
 
 if __name__ == '__main__':

@@ -171,8 +171,17 @@ JPy_JType* JType_GetType(JNIEnv* jenv, jclass classRef, jboolean resolve)
         //printf("T2: type->tp_init=%p\n", ((PyTypeObject*)type)->tp_init);
 
         // ... before we can continue processing the super type ...
+        // Note, at this point, the Python type has been registered-but-yet-finalized (as done in JType_InitSlots).
+        // We need to delay resolving the super classes to when they are actually referenced, so that in a cyclic
+        // reference scenario, the super classes can still be finalized (reference-able by child classes), but NOT RESOLVED
+        // (its methods/fields remain absent in the type object). This is to avoid the case where its members reference some other
+        // registered-but-yet-finalized classes in the same class hierarchy, and these classes in turn have
+        // registered-but-yet-finalized super classes, causing JType_InitSlots to fail for one of them because its super
+        // class is not finalized. When this happens, the affected classes will not be properly resolved.
         if (JType_InitSuperType(jenv, type, JNI_FALSE) < 0) {
             PyDict_DelItem(JPy_Types, typeKey);
+            JPy_DECREF(typeKey);
+            JPy_DECREF(type);
             return NULL;
         }
 
@@ -180,7 +189,10 @@ JPy_JType* JType_GetType(JNIEnv* jenv, jclass classRef, jboolean resolve)
 
         // ... and processing the component type.
         if (JType_InitComponentType(jenv, type, JNI_FALSE) < 0) {
+            JPy_DIAG_PRINT(JPy_DIAG_F_TYPE, "JType_GetType: error: JType_InitComponentType() failed for javaName=\"%s\"\n", type->javaName);
             PyDict_DelItem(JPy_Types, typeKey);
+            JPy_DECREF(typeKey);
+            JPy_DECREF(type);
             return NULL;
         }
 
@@ -190,6 +202,8 @@ JPy_JType* JType_GetType(JNIEnv* jenv, jclass classRef, jboolean resolve)
         if (JType_InitSlots(type) < 0) {
             JPy_DIAG_PRINT(JPy_DIAG_F_TYPE, "JType_GetType: error: JType_InitSlots() failed for javaName=\"%s\"\n", type->javaName);
             PyDict_DelItem(JPy_Types, typeKey);
+            JPy_DECREF(typeKey);
+            JPy_DECREF(type);
             return NULL;
         }
 
