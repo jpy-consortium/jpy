@@ -32,9 +32,10 @@ class TestEvalExec(unittest.TestCase):
 
     def test_exec_import(self):
         import sys
-        self.assertTrue("base64" not in sys.modules)
-        self.fixture.script("import base64")
-        self.assertTrue("base64" in sys.modules)
+        self.assertTrue("json" not in sys.modules)
+        self.fixture.script("import json")
+        self.assertTrue("json" in sys.modules)
+
 
 if __name__ == '__main__':
     print('\nRunning ' + __file__)

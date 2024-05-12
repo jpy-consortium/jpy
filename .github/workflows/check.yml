@@ -1,0 +1,25 @@
+name: Check
+
+on:
+  pull_request:
+    branches: [ 'master', 'release/v*' ]
+  push:
+    branches: [ 'master', 'release/v*' ]
+
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '8'
+
+      - run: pip install --upgrade setuptools
+
+      - name: Run Test
+        run: python setup.py test

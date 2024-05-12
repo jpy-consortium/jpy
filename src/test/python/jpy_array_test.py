@@ -232,6 +232,12 @@ class TestJavaArrays(unittest.TestCase):
         for i in range(1000000):
             memory_view = memoryview(j_int_array)
 
+    def test_size_greater_than_maxint(self):
+        jarr = jpy.array("int", 2**30)
+        mv = memoryview(jarr)
+        self.assertEqual(mv.nbytes, 2**32)
+
+
 if __name__ == '__main__':
     print('\nRunning ' + __file__)
     unittest.main()

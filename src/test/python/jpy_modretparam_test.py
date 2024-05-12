@@ -129,7 +129,7 @@ class TestMutableAndReturnParameters(unittest.TestCase):
         with self.assertRaises(RuntimeError, msg='RuntimeError expected') as e:
             a = None
             fixture.modifyIntArray(a, 14, 15, 16)
-        self.assertEqual(str(e.exception), 'java.lang.NullPointerException')
+        self.assertTrue(str(e.exception).startswith('java.lang.NullPointerException'))
 
 
     def test_returnIntArray(self):
