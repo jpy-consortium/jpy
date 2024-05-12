@@ -4,7 +4,7 @@ import sys
 import jpyutil
 
 
-jpyutil.init_jvm(jvm_maxmem='32M', jvm_classpath=['target/test-classes'])
+jpyutil.init_jvm(jvm_maxmem='8g', jvm_classpath=['target/test-classes'])
 import jpy
 
 
