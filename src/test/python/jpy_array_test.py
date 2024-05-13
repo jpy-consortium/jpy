@@ -4,7 +4,7 @@ import sys
 import jpyutil
 
 
-jpyutil.init_jvm(jvm_maxmem='32M', jvm_classpath=['target/test-classes'])
+jpyutil.init_jvm(jvm_maxmem='8g', jvm_classpath=['target/test-classes'])
 import jpy
 
 
@@ -231,6 +231,12 @@ class TestJavaArrays(unittest.TestCase):
         keep_around = memoryview(j_int_array)
         for i in range(1000000):
             memory_view = memoryview(j_int_array)
+
+    def test_size_greater_than_maxint(self):
+        jarr = jpy.array("int", 2**30)
+        mv = memoryview(jarr)
+        self.assertEqual(mv.nbytes, 2**32)
+
 
 if __name__ == '__main__':
     print('\nRunning ' + __file__)

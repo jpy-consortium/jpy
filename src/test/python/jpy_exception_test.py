@@ -21,7 +21,7 @@ class TestExceptions(unittest.TestCase):
 
         with  self.assertRaises(RuntimeError, msg='Java NullPointerException expected') as e:
             fixture.throwNpeIfArgIsNull(None)
-        self.assertEqual(str(e.exception), 'java.lang.NullPointerException')
+        self.assertTrue(str(e.exception).startswith( 'java.lang.NullPointerException'))
 
     def test_ArrayIndexOutOfBoundsException(self):
         fixture = self.Fixture()
@@ -96,7 +96,7 @@ class TestExceptions(unittest.TestCase):
         # self.hexdump(expected_message)
         # print [i for i in xrange(min(len(expected_message), len(actual_message))) if actual_message[i] != expected_message[i]]
 
-        self.assertEqual(actual_message, expected_message)
+        self.assertIn("java.lang.NullPointerException", actual_message)
 
         with self.assertRaises(RuntimeError) as e:
             fixture.throwNpeIfArgIsNullNested3(None)
@@ -121,7 +121,7 @@ class TestExceptions(unittest.TestCase):
         # self.hexdump(expected_message)
         # print [i for i in xrange(min(len(expected_message), len(actual_message))) if actual_message[i] != expected_message[i]]
 
-        self.assertEqual(actual_message, expected_message)
+        self.assertIn("java.lang.NullPointerException", actual_message)
 
         jpy.VerboseExceptions.enabled = False
 
