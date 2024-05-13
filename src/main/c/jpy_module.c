@@ -800,11 +800,7 @@ PyObject* JType_CreateJavaByteBufferObj(JNIEnv* jenv, PyObject* pyObj)
 
 PyObject* JPy_byte_buffer_internal(JNIEnv* jenv, PyObject* self, PyObject* args)
 {
-    jobject byteBufferRef;
     PyObject* pyObj;
-    PyObject* newPyObj;
-    Py_buffer *pyBuffer;
-    JPy_JByteBufferObj* byteBuffer;
 
     if (!PyArg_ParseTuple(args, "O:byte_buffer", &pyObj)) {
         return NULL;
