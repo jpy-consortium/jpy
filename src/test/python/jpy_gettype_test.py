@@ -73,7 +73,7 @@ class TestGetClass(unittest.TestCase):
 
     def test_cyclic_reference(self):
         """
-        Test if delaying resolving super classes doesn't break existing class reference pattern.
+        Test if delaying resolving super classes breaks existing class reference pattern.
         """
         j_child1_class = jpy.get_type("org.jpy.fixtures.CyclicReferenceChild1")
         j_child2_class = jpy.get_type("org.jpy.fixtures.CyclicReferenceChild2")

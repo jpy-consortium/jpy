@@ -179,6 +179,7 @@ JPy_JType* JType_GetType(JNIEnv* jenv, jclass classRef, jboolean resolve)
         // registered-but-yet-finalized super classes, causing JType_InitSlots to fail for one of them because its super
         // class is not finalized. When this happens, the affected classes will not be properly resolved.
         if (JType_InitSuperType(jenv, type, JNI_FALSE) < 0) {
+            JPy_DIAG_PRINT(JPy_DIAG_F_TYPE, "JType_GetType: error: JType_InitSuperType() failed for javaName=\"%s\"\n", type->javaName);
             PyDict_DelItem(JPy_Types, typeKey);
             JPy_DECREF(typeKey);
             JPy_DECREF(type);
@@ -208,6 +209,7 @@ JPy_JType* JType_GetType(JNIEnv* jenv, jclass classRef, jboolean resolve)
         }
 
         JType_AddClassAttribute(jenv, type);
+        // 'type' will be returned as a new reference. 'typeKey' needs to be released.
         JPy_DECREF(typeKey);
 
         //printf("T5: type->tp_init=%p\n", ((PyTypeObject*)type)->tp_init);
@@ -230,24 +232,22 @@ JPy_JType* JType_GetType(JNIEnv* jenv, jclass classRef, jboolean resolve)
             return NULL;
         }
 
-        JPy_DECREF(typeKey);
         type = (JPy_JType*) typeValue;
+        // 'type' will be returned as a new reference. 'typeKey' needs to be released.
+        JPy_INCREF(type);
+        JPy_DECREF(typeKey);
     }
 
     JPy_DIAG_PRINT(JPy_DIAG_F_TYPE, "JType_GetType: javaName=\"%s\", found=%d, resolve=%d, resolved=%d, type=%p\n", type->javaName, found, resolve, type->isResolved, type);
 
     if (!type->isResolved && resolve) {
         if (JType_ResolveType(jenv, type) < 0) {
+            JPy_DECREF(type);
             return NULL;
         }
     }
 
-    // Only increment the refcount when the type is found in the registry to guarantee that we return a new reference
-    if (typeValue != NULL) {
-        JPy_INCREF(type);
-    }
-
-    return type;
+     return type;
 }
 
 /**
