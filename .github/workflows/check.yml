@@ -9,15 +9,21 @@ on:
 jobs:
   test:
     runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        python: ['3.8', '3.9', '3.10', '3.11', '3.12']
+        java: ['8', '11', '17', '21', '22']
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
 
       - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '8'
+          java-version: ${{ matrix.java }}
 
       - run: pip install --upgrade setuptools
 
