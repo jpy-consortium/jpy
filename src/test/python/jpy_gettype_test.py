@@ -87,6 +87,14 @@ class TestGetClass(unittest.TestCase):
         self.assertEqual(10, j_child1.y)
         self.assertEqual(100, j_child1.z)
 
+    def test_component_type_resolution(self):
+        j_child1_class = jpy.get_type("org.jpy.fixtures.CyclicReferenceChild1")
+        j_child1 = j_child1_class.of(8)
+        j_child2s = j_child1.getChild2s()
+        self.assertIn("[Lorg.jpy.fixtures.CyclicReferenceChild2;", repr(type(j_child2s)))
+        for j_child2 in j_child2s:
+            self.assertTrue(j_child2.getName().startswith("Child2"))
+
 
 if __name__ == '__main__':
     print('\nRunning ' + __file__)

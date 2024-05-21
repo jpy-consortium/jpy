@@ -14,4 +14,7 @@ import java.lang.reflect.Method;
  */
 @SuppressWarnings("UnusedDeclaration")
 public class CyclicReferenceChild2 extends CyclicReferenceParent {
+    public String getName() {
+        return "Child2: " + this.toString();
+    }
 }

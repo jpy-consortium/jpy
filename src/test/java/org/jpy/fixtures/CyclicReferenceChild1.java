@@ -27,4 +27,11 @@ public class CyclicReferenceChild1 extends CyclicReferenceParent {
     public int get_x() {
         return this.x;
     }
+
+    public CyclicReferenceChild2[] getChild2s() {
+        CyclicReferenceChild2[] child2s = new CyclicReferenceChild2[2];
+        child2s[0] = new CyclicReferenceChild2();
+        child2s[1] = new CyclicReferenceChild2();
+        return child2s;
+    }
 }
