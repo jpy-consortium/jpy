@@ -156,7 +156,7 @@ JPy_JType* JType_GetType(JNIEnv* jenv, jclass classRef, jboolean resolve)
 
         found = JNI_FALSE;
 
-        // Create a new type instance
+        // Create a new type instance, the refcount is set to 1 if this call succeeds
         type = JType_New(jenv, classRef, resolve);
         if (type == NULL) {
             JPy_DECREF(typeKey);
@@ -166,21 +166,35 @@ JPy_JType* JType_GetType(JNIEnv* jenv, jclass classRef, jboolean resolve)
         //printf("T1: type->tp_init=%p\n", ((PyTypeObject*)type)->tp_init);
 
         // In order to avoid infinite recursion, we have to register the new (but yet incomplete) type first...
+        // it will increment the refcount of type
         PyDict_SetItem(JPy_Types, typeKey, (PyObject*) type);
 
         //printf("T2: type->tp_init=%p\n", ((PyTypeObject*)type)->tp_init);
 
         // ... before we can continue processing the super type ...
-        if (JType_InitSuperType(jenv, type, resolve) < 0) {
+        // Note, at this point, the Python type has been registered-but-yet-finalized (as done in JType_InitSlots).
+        // We need to delay resolving the super classes to when they are actually referenced, so that in a cyclic
+        // reference scenario, the super classes can still be finalized (reference-able by child classes), but NOT RESOLVED
+        // (its methods/fields remain absent in the type object). This is to avoid the case where its members reference some other
+        // registered-but-yet-finalized classes in the same class hierarchy, and these classes in turn have
+        // registered-but-yet-finalized super classes, causing JType_InitSlots to fail for one of them because its super
+        // class is not finalized. When this happens, the affected classes will not be properly resolved.
+        if (JType_InitSuperType(jenv, type, JNI_FALSE) < 0) {
+            JPy_DIAG_PRINT(JPy_DIAG_F_TYPE, "JType_GetType: error: JType_InitSuperType() failed for javaName=\"%s\"\n", type->javaName);
             PyDict_DelItem(JPy_Types, typeKey);
+            JPy_DECREF(typeKey);
+            JPy_DECREF(type);
             return NULL;
         }
 
         //printf("T3: type->tp_init=%p\n", ((PyTypeObject*)type)->tp_init);
 
         // ... and processing the component type.
-        if (JType_InitComponentType(jenv, type, resolve) < 0) {
+        if (JType_InitComponentType(jenv, type, JNI_FALSE) < 0) {
+            JPy_DIAG_PRINT(JPy_DIAG_F_TYPE, "JType_GetType: error: JType_InitComponentType() failed for javaName=\"%s\"\n", type->javaName);
             PyDict_DelItem(JPy_Types, typeKey);
+            JPy_DECREF(typeKey);
+            JPy_DECREF(type);
             return NULL;
         }
 
@@ -190,10 +204,15 @@ JPy_JType* JType_GetType(JNIEnv* jenv, jclass classRef, jboolean resolve)
         if (JType_InitSlots(type) < 0) {
             JPy_DIAG_PRINT(JPy_DIAG_F_TYPE, "JType_GetType: error: JType_InitSlots() failed for javaName=\"%s\"\n", type->javaName);
             PyDict_DelItem(JPy_Types, typeKey);
+            JPy_DECREF(typeKey);
+            JPy_DECREF(type);
             return NULL;
         }
 
         JType_AddClassAttribute(jenv, type);
+        // 'type' will be refcount incremented and returned as a new reference later. 'typeKey' needs to be released.
+        JPy_DECREF(typeKey);
+        JPy_DECREF(type);
 
         //printf("T5: type->tp_init=%p\n", ((PyTypeObject*)type)->tp_init);
 
@@ -215,8 +234,9 @@ JPy_JType* JType_GetType(JNIEnv* jenv, jclass classRef, jboolean resolve)
             return NULL;
         }
 
-        JPy_DECREF(typeKey);
         type = (JPy_JType*) typeValue;
+        // 'type' will be refcount incremented and returned as a new reference. 'typeKey' needs to be released.
+        JPy_DECREF(typeKey);
     }
 
     JPy_DIAG_PRINT(JPy_DIAG_F_TYPE, "JType_GetType: javaName=\"%s\", found=%d, resolve=%d, resolved=%d, type=%p\n", type->javaName, found, resolve, type->isResolved, type);
@@ -226,7 +246,7 @@ JPy_JType* JType_GetType(JNIEnv* jenv, jclass classRef, jboolean resolve)
             return NULL;
         }
     }
-    
+
     JPy_INCREF(type);
     return type;
 }
@@ -1074,7 +1094,6 @@ int JType_InitComponentType(JNIEnv* jenv, JPy_JType* type, jboolean resolve)
         if (type->componentType == NULL) {
             return -1;
         }
-        JPy_INCREF(type->componentType);
     } else {
         type->componentType = NULL;
     }
@@ -1092,7 +1111,6 @@ int JType_InitSuperType(JNIEnv* jenv, JPy_JType* type, jboolean resolve)
         if (type->superType == NULL) {
             return -1;
         }
-        JPy_INCREF(type->superType);
         JPy_DELETE_LOCAL_REF(superClassRef);
     } else if (type->isInterface && JPy_JObject != NULL) {
         // This solves the problems that java.lang.Object methods can not be called on interfaces (https://github.com/bcdev/jpy/issues/57)

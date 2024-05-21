@@ -71,6 +71,33 @@ class TestGetClass(unittest.TestCase):
             for i in range(200):
                 jpy.get_type(java_type)
 
+    def test_cyclic_reference(self):
+        """
+        Test if delaying resolving super classes breaks existing class reference pattern.
+        """
+        j_child1_class = jpy.get_type("org.jpy.fixtures.CyclicReferenceChild1")
+        j_child2_class = jpy.get_type("org.jpy.fixtures.CyclicReferenceChild2")
+        j_child2 = j_child2_class()
+
+        j_child1 = j_child1_class.of(8)
+        self.assertEqual(88, j_child1.parentMethod())
+        self.assertEqual(888, j_child1.grandParentMethod())
+        self.assertIsNone(j_child1.refChild2(j_child2))
+        self.assertEqual(8, j_child1.get_x())
+        self.assertEqual(10, j_child1.y)
+        self.assertEqual(100, j_child1.z)
+
+    def test_component_type_resolution(self):
+        j_child1_class = jpy.get_type("org.jpy.fixtures.CyclicReferenceChild1")
+        j_child1 = j_child1_class.of(8)
+        j_child2s = j_child1.getChild2s()
+        self.assertIn("[Lorg.jpy.fixtures.CyclicReferenceChild2;", repr(type(j_child2s)))
+        for j_child2 in j_child2s:
+            self.assertTrue(j_child2.getName().startswith("Child2"))
+
+    def test_fail_init_supertype(self):
+        with self.assertRaises(ValueError) as cm:
+            j_child_class = jpy.get_type("org.jpy.fixtures.GetTypeFailureChild")
 
 
 if __name__ == '__main__':
