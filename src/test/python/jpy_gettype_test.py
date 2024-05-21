@@ -95,6 +95,11 @@ class TestGetClass(unittest.TestCase):
         for j_child2 in j_child2s:
             self.assertTrue(j_child2.getName().startswith("Child2"))
 
+    def test_fail_init_supertype(self):
+        with self.assertRaises(ValueError) as cm:
+            j_child_class = jpy.get_type("org.jpy.fixtures.GetTypeFailureChild")
+        print(str(cm.exception))
+
 
 if __name__ == '__main__':
     print('\nRunning ' + __file__)

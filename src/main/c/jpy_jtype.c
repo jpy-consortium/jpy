@@ -156,7 +156,7 @@ JPy_JType* JType_GetType(JNIEnv* jenv, jclass classRef, jboolean resolve)
 
         found = JNI_FALSE;
 
-        // Create a new type instance
+        // Create a new type instance, the refcount is set to 1 if this call succeeds
         type = JType_New(jenv, classRef, resolve);
         if (type == NULL) {
             JPy_DECREF(typeKey);
@@ -166,6 +166,7 @@ JPy_JType* JType_GetType(JNIEnv* jenv, jclass classRef, jboolean resolve)
         //printf("T1: type->tp_init=%p\n", ((PyTypeObject*)type)->tp_init);
 
         // In order to avoid infinite recursion, we have to register the new (but yet incomplete) type first...
+        // it will increment the refcount of type
         PyDict_SetItem(JPy_Types, typeKey, (PyObject*) type);
 
         //printf("T2: type->tp_init=%p\n", ((PyTypeObject*)type)->tp_init);
@@ -209,8 +210,9 @@ JPy_JType* JType_GetType(JNIEnv* jenv, jclass classRef, jboolean resolve)
         }
 
         JType_AddClassAttribute(jenv, type);
-        // 'type' will be returned as a new reference. 'typeKey' needs to be released.
+        // 'type' will be refcount incremented and returned as a new reference later. 'typeKey' needs to be released.
         JPy_DECREF(typeKey);
+        JPy_DECREF(type);
 
         //printf("T5: type->tp_init=%p\n", ((PyTypeObject*)type)->tp_init);
 
@@ -233,8 +235,7 @@ JPy_JType* JType_GetType(JNIEnv* jenv, jclass classRef, jboolean resolve)
         }
 
         type = (JPy_JType*) typeValue;
-        // 'type' will be returned as a new reference. 'typeKey' needs to be released.
-        JPy_INCREF(type);
+        // 'type' will be refcount incremented and returned as a new reference. 'typeKey' needs to be released.
         JPy_DECREF(typeKey);
     }
 
@@ -242,12 +243,12 @@ JPy_JType* JType_GetType(JNIEnv* jenv, jclass classRef, jboolean resolve)
 
     if (!type->isResolved && resolve) {
         if (JType_ResolveType(jenv, type) < 0) {
-            JPy_DECREF(type);
             return NULL;
         }
     }
 
-     return type;
+    JPy_INCREF(type);
+    return type;
 }
 
 /**
@@ -1093,7 +1094,6 @@ int JType_InitComponentType(JNIEnv* jenv, JPy_JType* type, jboolean resolve)
         if (type->componentType == NULL) {
             return -1;
         }
-        JPy_INCREF(type->componentType);
     } else {
         type->componentType = NULL;
     }
@@ -1111,7 +1111,6 @@ int JType_InitSuperType(JNIEnv* jenv, JPy_JType* type, jboolean resolve)
         if (type->superType == NULL) {
             return -1;
         }
-        JPy_INCREF(type->superType);
         JPy_DELETE_LOCAL_REF(superClassRef);
     } else if (type->isInterface && JPy_JObject != NULL) {
         // This solves the problems that java.lang.Object methods can not be called on interfaces (https://github.com/bcdev/jpy/issues/57)
