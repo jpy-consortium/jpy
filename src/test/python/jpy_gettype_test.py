@@ -98,7 +98,6 @@ class TestGetClass(unittest.TestCase):
     def test_fail_init_supertype(self):
         with self.assertRaises(ValueError) as cm:
             j_child_class = jpy.get_type("org.jpy.fixtures.GetTypeFailureChild")
-        print(str(cm.exception))
 
 
 if __name__ == '__main__':
