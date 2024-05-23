@@ -1,5 +1,7 @@
 # jpy Changelog
 
+## Version 0.18.0 (in development)
+
 ## Version 0.17.0
 * [#146](https://github.com/jpy-consortium/jpy/pull/146) Delay resolving super classes until referenced
 * [#145](https://github.com/jpy-consortium/jpy/pull/145) Use Py_ssize_t when calculate buffer len
