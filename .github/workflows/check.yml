@@ -25,7 +25,5 @@ jobs:
           distribution: 'temurin'
           java-version: ${{ matrix.java }}
 
-      - run: pip install --upgrade setuptools
-
       - name: Run Test
         run: python setup.py test

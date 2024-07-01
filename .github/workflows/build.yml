@@ -76,8 +76,6 @@ jobs:
           distribution: 'temurin'
           java-version: '8'
 
-      - run: pip install --upgrade pip
-      - run: pip install --upgrade setuptools
       - run: ${{ matrix.info.cmd }}
 
       - uses: actions/upload-artifact@v4
@@ -123,8 +121,6 @@ jobs:
           distribution: 'temurin'
           java-version: '8'
 
-      - run: pip install --upgrade pip
-      - run: pip install --upgrade setuptools
       - run: ${{ matrix.info.cmd }}
 
       - uses: actions/upload-artifact@v4
