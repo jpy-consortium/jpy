@@ -2667,7 +2667,7 @@ void PyLib_RedirectStdOut(void)
 
 
 static const int PYLIB_RECURSIVE_CUTOFF = 3;
-#define PyLib_TraceBack_LIMIT 1024 
+#define PyLib_TraceBack_LIMIT 1024
 
 static PyObject *format_displayline(PyObject *filename, int lineno, PyObject *name)
 {
@@ -2730,6 +2730,13 @@ static int append_to_java_message(PyObject * pyObjUtf8, char **buf, int *bufLen 
     return 0;
 }
 
+static int get_traceback_lineno(PyTracebackObject *tb) {
+    PyObject* po_lineno = PyObject_GetAttrString((PyObject*)tb, "tb_lineno");
+    int lineno = (int)PyLong_AsLong(po_lineno);
+    JPy_DECREF(po_lineno);
+    return lineno;
+}
+
 static int format_python_traceback(PyTracebackObject *tb, char **buf, int *bufLen)
 {
     int err = 0;
@@ -2752,9 +2759,10 @@ static int format_python_traceback(PyTracebackObject *tb, char **buf, int *bufLe
     }
     while (tb != NULL && err == 0) {
         PyCodeObject* co = PyFrame_GetCode(tb->tb_frame);
+        int tb_lineno = get_traceback_lineno(tb);
         if (last_file == NULL ||
             co->co_filename != last_file ||
-            last_line == -1 || tb->tb_lineno != last_line ||
+            last_line == -1 || tb_lineno != last_line ||
             last_name == NULL || co->co_name != last_name) {
             if (cnt >  PYLIB_RECURSIVE_CUTOFF) {
                 pyObjUtf8 = format_line_repeated(cnt);
@@ -2765,7 +2773,7 @@ static int format_python_traceback(PyTracebackObject *tb, char **buf, int *bufLe
                 }
             }
             last_file = co->co_filename;
-            last_line = tb->tb_lineno;
+            last_line = tb_lineno;
             last_name = co->co_name;
             cnt = 0;
         }
@@ -2773,7 +2781,7 @@ static int format_python_traceback(PyTracebackObject *tb, char **buf, int *bufLe
         if (err == 0 && cnt <= PYLIB_RECURSIVE_CUTOFF) {
             pyObjUtf8 = format_displayline( 
                                  co->co_filename,
-                                 tb->tb_lineno,
+                                 tb_lineno,
                                  co->co_name);
             err = append_to_java_message(pyObjUtf8, buf, bufLen);
             if (err != 0) {
