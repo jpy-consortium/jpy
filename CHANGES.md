@@ -1,11 +1,13 @@
 # jpy Changelog
 
-## Version 0.18.0 (in development)
+## Version 0.18.0
+* [#158](https://github.com/jpy-consortium/jpy/pull/158) Get the correct computed tb lineno
+* [#153](https://github.com/jpy-consortium/jpy/pull/153) Remove pip upgrade from CI
+* [#150](https://github.com/jpy-consortium/jpy/pull/150) Bump docker/bake-action from 4.5.0 to 4.6.0
 
 ## Version 0.17.0
 * [#146](https://github.com/jpy-consortium/jpy/pull/146) Delay resolving super classes until referenced
 * [#145](https://github.com/jpy-consortium/jpy/pull/145) Use Py_ssize_t when calculate buffer len
-
 
 ## Version 0.16.0
 * [#128](https://github.com/jpy-consortium/jpy/pull/128) Function for converting Python values to an explicit Java type
