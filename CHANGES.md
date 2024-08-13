@@ -1,5 +1,7 @@
 # jpy Changelog
 
+## Version 0.19.0 (in development)
+
 ## Version 0.18.0
 * [#158](https://github.com/jpy-consortium/jpy/pull/158) Get the correct computed tb lineno
 * [#153](https://github.com/jpy-consortium/jpy/pull/153) Remove pip upgrade from CI
