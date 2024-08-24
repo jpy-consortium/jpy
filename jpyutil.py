@@ -251,15 +251,19 @@ def _get_jvm_lib_dirs(java_home_dir):
     return (os.path.join(java_home_dir, 'bin'),
             os.path.join(java_home_dir, 'bin', 'server'),
             os.path.join(java_home_dir, 'bin', 'client'),
+            os.path.join(java_home_dir, 'bin', 'zero'),
             os.path.join(java_home_dir, 'bin', arch_dir_name),
             os.path.join(java_home_dir, 'bin', arch_dir_name, 'server'),
             os.path.join(java_home_dir, 'bin', arch_dir_name, 'client'),
+            os.path.join(java_home_dir, 'bin', arch_dir_name, 'zero'),
             os.path.join(java_home_dir, 'lib'),
             os.path.join(java_home_dir, 'lib', 'server'),
             os.path.join(java_home_dir, 'lib', 'client'),
+            os.path.join(java_home_dir, 'lib', 'zero'),
             os.path.join(java_home_dir, 'lib', arch_dir_name),
             os.path.join(java_home_dir, 'lib', arch_dir_name, 'server'),
             os.path.join(java_home_dir, 'lib', arch_dir_name, 'client'),
+            os.path.join(java_home_dir, 'lib', arch_dir_name, 'zero'),
             )
 
 
