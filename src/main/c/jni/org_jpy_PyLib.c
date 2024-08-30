@@ -555,7 +555,11 @@ JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_getCurrentGlobals
 
     JPy_BEGIN_GIL_STATE
 
+#if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION > 12
+    globals = PyEval_GetFrameGlobals(); // new ref
+#else
     globals = PyEval_GetGlobals(); // borrowed ref
+#endif
 
     if (globals == NULL) {
         goto error;
@@ -567,8 +571,11 @@ JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_getCurrentGlobals
     }
 
 error:
-    JPy_END_GIL_STATE
+#if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION > 12
+    JPy_XDECREF(globals);
+#endif
 
+    JPy_END_GIL_STATE
     return objectRef;
 }
 
@@ -579,7 +586,12 @@ JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_getCurrentLocals
 
     JPy_BEGIN_GIL_STATE
 
-    locals = PyEval_GetLocals(); // borrowed ref
+#if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION > 12
+        locals = PyEval_GetFrameLocals(); // new ref
+#else
+        locals = PyEval_GetLocals(); // borrowed ref
+#endif
+
     if (locals == NULL) {
         goto error;
     }
@@ -590,8 +602,11 @@ JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_getCurrentLocals
     }
 
 error:
-    JPy_END_GIL_STATE
+#if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION > 12
+    JPy_XDECREF(locals);
+#endif
 
+    JPy_END_GIL_STATE
     return objectRef;
 }
 
