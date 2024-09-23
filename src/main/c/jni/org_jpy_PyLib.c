@@ -521,6 +521,7 @@ PyObject *getMainGlobals() {
     }
 
     pyGlobals = PyModule_GetDict(pyMainModule); // borrowed ref
+    JPy_INCREF(pyGlobals);
 
     return pyGlobals;
 }
@@ -532,7 +533,7 @@ JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_getMainGlobals
 
     JPy_BEGIN_GIL_STATE
 
-    globals = getMainGlobals(); // borrowed ref
+    globals = getMainGlobals(); // new ref
     if (globals == NULL) {
         goto error;
     }
@@ -543,6 +544,7 @@ JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_getMainGlobals
     }
 
 error:
+    JPy_XDECREF(globals);
     JPy_END_GIL_STATE
 
     return objectRef;
@@ -555,7 +557,13 @@ JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_getCurrentGlobals
 
     JPy_BEGIN_GIL_STATE
 
+#if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION <= 12
     globals = PyEval_GetGlobals(); // borrowed ref
+    JPy_XINCREF(globals);
+#else
+    // See https://peps.python.org/pep-0667 for the change in Python 3.13
+    globals = PyEval_GetFrameGlobals(); // new ref
+#endif
 
     if (globals == NULL) {
         goto error;
@@ -567,6 +575,7 @@ JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_getCurrentGlobals
     }
 
 error:
+    JPy_XDECREF(globals);
     JPy_END_GIL_STATE
 
     return objectRef;
@@ -579,7 +588,14 @@ JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_getCurrentLocals
 
     JPy_BEGIN_GIL_STATE
 
+#if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION <= 12
     locals = PyEval_GetLocals(); // borrowed ref
+    JPy_XINCREF(locals);
+#else
+    // See https://peps.python.org/pep-0667 for the change in Python 3.13
+    locals = PyEval_GetFrameLocals(); // new ref
+#endif
+
     if (locals == NULL) {
         goto error;
     }
@@ -590,6 +606,7 @@ JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_getCurrentLocals
     }
 
 error:
+    JPy_XDECREF(locals);
     JPy_END_GIL_STATE
 
     return objectRef;
@@ -904,7 +921,8 @@ jlong executeInternal(JNIEnv* jenv, jclass jLibClass, jint jStart, jobject jGlob
 
     if (jGlobals == NULL) {
         JPy_DIAG_PRINT(JPy_DIAG_F_EXEC, "Java_org_jpy_PyLib_executeInternal: using main globals\n");
-        pyGlobals = getMainGlobals();
+        pyGlobals = getMainGlobals(); // new ref
+        decGlobals = JNI_TRUE;
         if (pyGlobals == NULL) {
             PyLib_HandlePythonException(jenv);
             goto error;
