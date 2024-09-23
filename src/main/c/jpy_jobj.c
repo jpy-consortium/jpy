@@ -74,10 +74,20 @@ PyObject* JObj_FromType(JNIEnv* jenv, JPy_JType* type, jobject objectRef)
 
     // we check the type translations dictionary for a callable for this java type name,
     // and apply the returned callable to the wrapped object
-    callable = PyDict_GetItemString(JPy_Type_Translations, type->javaName);
+#ifdef Py_GIL_DISABLED
+    // if return is 1, callable is new reference
+    if (PyDict_GetItemStringRef(JPy_Type_Translations, type->javaName, &callable) != 1) {
+        callable = NULL;
+    }
+#else
+    callable = PyDict_GetItemString(JPy_Type_Translations, type->javaName); // borrowed reference
+    JPy_XINCREF(callable);
+#endif
+
     if (callable != NULL) {
         if (PyCallable_Check(callable)) {
             callableResult = PyObject_CallFunction(callable, "OO", type, obj);
+            JPy_XDECREF(callable);
             if (callableResult == NULL) {
                 Py_RETURN_NONE;
             } else {
@@ -85,6 +95,7 @@ PyObject* JObj_FromType(JNIEnv* jenv, JPy_JType* type, jobject objectRef)
             }
         }
     }
+    JPy_XDECREF(callable);
 
     return (PyObject *)obj;
 }
@@ -103,6 +114,7 @@ int JObj_init_internal(JNIEnv* jenv, JPy_JObj* self, PyObject* args, PyObject* k
 
     type = ((PyObject*) self)->ob_type;
 
+    // borrowed ref, no need to replace with PyDict_GetItemStringRef because tp_dict won't be changed concurrently
     constructor = PyDict_GetItemString(type->tp_dict, JPy_JTYPE_ATTR_NAME_JINIT);
     if (constructor == NULL) {
         PyErr_SetString(PyExc_RuntimeError, "no constructor found (missing JType attribute '" JPy_JTYPE_ATTR_NAME_JINIT "')");

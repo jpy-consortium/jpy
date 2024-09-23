@@ -499,12 +499,18 @@ void dumpDict(const char* dictName, PyObject* dict)
 
     size = PyDict_Size(dict);
     printf(">> dumpDict: %s.size = %ld\n", dictName, size);
+#ifdef Py_GIL_DISABLED
+    Py_BEGIN_CRITICAL_SECTION(dict);
+#endif
     while (PyDict_Next(dict, &pos, &key, &value)) {
         const char* name;
         name = JPy_AS_UTF8(key);
         printf(">> dumpDict: %s[%ld].name = '%s'\n", dictName, i, name);
         i++;
     }
+#ifdef Py_GIL_DISABLED
+    Py_END_CRITICAL_SECTION();
+#endif
 }
 
 /**
@@ -521,7 +527,7 @@ PyObject *getMainGlobals() {
     }
 
     pyGlobals = PyModule_GetDict(pyMainModule); // borrowed ref
-    JPy_INCREF(pyGlobals);
+    JPy_XINCREF(pyGlobals);
 
     return pyGlobals;
 }
@@ -557,7 +563,7 @@ JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_getCurrentGlobals
 
     JPy_BEGIN_GIL_STATE
 
-#if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION <= 12
+#if PY_VERSION_HEX < 0x030D0000
     globals = PyEval_GetGlobals(); // borrowed ref
     JPy_XINCREF(globals);
 #else
@@ -588,7 +594,7 @@ JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_getCurrentLocals
 
     JPy_BEGIN_GIL_STATE
 
-#if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION <= 12
+#if PY_VERSION_HEX < 0x030D0000
     locals = PyEval_GetLocals(); // borrowed ref
     JPy_XINCREF(locals);
 #else
@@ -1124,7 +1130,11 @@ JNIEXPORT void JNICALL Java_org_jpy_PyLib_incRef
     if (Py_IsInitialized()) {
         JPy_BEGIN_GIL_STATE
 
+#if PY_VERSION_HEX < 0x030D0000
         refCount = pyObject->ob_refcnt;
+#else
+        refCount = Py_REFCNT(pyObject);
+#endif
         JPy_DIAG_PRINT(JPy_DIAG_F_MEM, "Java_org_jpy_PyLib_incRef: pyObject=%p, refCount=%d, type='%s'\n", pyObject, refCount, Py_TYPE(pyObject)->tp_name);
         JPy_INCREF(pyObject);
 
@@ -1150,7 +1160,11 @@ JNIEXPORT void JNICALL Java_org_jpy_PyLib_decRef
     if (Py_IsInitialized()) {
         JPy_BEGIN_GIL_STATE
 
+#if PY_VERSION_HEX < 0x030D0000
         refCount = pyObject->ob_refcnt;
+#else
+        refCount = Py_REFCNT(pyObject);
+#endif
         if (refCount <= 0) {
             JPy_DIAG_PRINT(JPy_DIAG_F_ALL, "Java_org_jpy_PyLib_decRef: error: refCount <= 0: pyObject=%p, refCount=%d\n", pyObject, refCount);
         } else {
@@ -1183,7 +1197,11 @@ JNIEXPORT void JNICALL Java_org_jpy_PyLib_decRefs
         buf = (*jenv)->GetLongArrayElements(jenv, objIds, &isCopy);
         for (i = 0; i < len; i++) {
             pyObject = (PyObject*) buf[i];
+#if PY_VERSION_HEX < 0x030D0000
             refCount = pyObject->ob_refcnt;
+#else
+            refCount = Py_REFCNT(pyObject);
+#endif
             if (refCount <= 0) {
                 JPy_DIAG_PRINT(JPy_DIAG_F_ALL, "Java_org_jpy_PyLib_decRefs: error: refCount <= 0: pyObject=%p, refCount=%d\n", pyObject, refCount);
             } else {
