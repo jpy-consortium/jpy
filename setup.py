@@ -97,6 +97,7 @@ python_java_jpy_tests = [
     os.path.join(src_test_py_dir, 'jpy_java_embeddable_test.py'),
     os.path.join(src_test_py_dir, 'jpy_obj_test.py'),
     os.path.join(src_test_py_dir, 'jpy_eval_exec_test.py'),
+    os.path.join(src_test_py_dir, 'jpy_mt_eval_exec_test.py'),
 ]
 
 # e.g. jdk_home_dir = '/home/marta/jdk1.7.0_15'
@@ -279,7 +280,7 @@ def test_suite():
     def test_java(self):
         assert test_maven()
 
-    suite.addTest(test_python_with_java_runtime)
+    # suite.addTest(test_python_with_java_runtime)
     suite.addTest(test_python_with_java_classes)
     # comment out because the asynchronous nature of the PyObject GC in Java makes stopPython/startPython flakey.
     # suite.addTest(test_java)

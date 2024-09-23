@@ -72,7 +72,7 @@ PyObject* JObj_FromType(JNIEnv* jenv, JPy_JType* type, jobject objectRef)
     }
 
 
-// we check the type translations dictionary for a callable for this java type name,
+    // we check the type translations dictionary for a callable for this java type name,
     // and apply the returned callable to the wrapped object
     callable = PyDict_GetItemString(JPy_Type_Translations, type->javaName);
     if (callable != NULL) {

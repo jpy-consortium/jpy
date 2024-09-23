@@ -27,6 +27,54 @@
 #include "jpy_conv.h"
 #include "jpy_compat.h"
 
+#ifdef Py_GIL_DISABLED
+typedef struct {
+    PyMutex lock;
+    PyThreadState* owner;
+    int recursion_level;
+} ReentrantLock;
+
+static void acquire_lock(ReentrantLock* self) {
+    PyThreadState* current_thread = PyThreadState_Get();
+
+    if (self->owner == current_thread) {
+        self->recursion_level++;
+        return;
+    }
+
+    PyMutex_Lock(&(self->lock));
+
+    self->owner = current_thread;
+    self->recursion_level = 1;
+}
+
+static void release_lock(ReentrantLock* self) {
+    if (self->owner != PyThreadState_Get()) {
+        PyErr_SetString(PyExc_RuntimeError, "Lock not owned by current thread");
+        return;
+    }
+
+    self->recursion_level--;
+    if (self->recursion_level == 0) {
+        self->owner = NULL;
+        PyMutex_Unlock(&(self->lock));
+    }
+}
+
+static ReentrantLock get_type_rlock = {{0}, NULL, 0};
+static ReentrantLock resolve_type_rlock = {{0}, NULL, 0};
+
+#define ACQUIRE_GET_TYPE_LOCK() acquire_lock(&get_type_rlock)
+#define RELEASE_GET_TYPE_LOCK() release_lock(&get_type_rlock)
+#define ACQUIRE_RESOLVE_TYPE_LOCK() acquire_lock(&resolve_type_rlock)
+#define RELEASE_RESOLVE_TYPE_LOCK() release_lock(&resolve_type_rlock)
+
+#else
+#define ACQUIRE_GET_TYPE_LOCK()
+#define RELEASE_GET_TYPE_LOCK()
+#define ACQUIRE_RESOLVE_TYPE_LOCK()
+#define RELEASE_RESOLVE_TYPE_LOCK()
+#endif
 
 JPy_JType* JType_New(JNIEnv* jenv, jclass classRef, jboolean resolve);
 int JType_ResolveType(JNIEnv* jenv, JPy_JType* type);
@@ -51,6 +99,8 @@ static int JType_MatchVarArgPyArgAsFPType(const JPy_ParamDescriptor *paramDescri
 
 static int JType_MatchVarArgPyArgIntType(const JPy_ParamDescriptor *paramDescriptor, PyObject *pyArg, int idx,
                                   struct JPy_JType *expectedComponentType);
+
+
 
 JPy_JType* JType_GetTypeForObject(JNIEnv* jenv, jobject objectRef, jboolean resolve)
 {
@@ -151,6 +201,7 @@ JPy_JType* JType_GetType(JNIEnv* jenv, jclass classRef, jboolean resolve)
         return NULL;
     }
 
+    ACQUIRE_GET_TYPE_LOCK();
     typeValue = PyDict_GetItem(JPy_Types, typeKey);
     if (typeValue == NULL) {
 
@@ -160,6 +211,7 @@ JPy_JType* JType_GetType(JNIEnv* jenv, jclass classRef, jboolean resolve)
         type = JType_New(jenv, classRef, resolve);
         if (type == NULL) {
             JPy_DECREF(typeKey);
+            RELEASE_GET_TYPE_LOCK();
             return NULL;
         }
 
@@ -184,6 +236,7 @@ JPy_JType* JType_GetType(JNIEnv* jenv, jclass classRef, jboolean resolve)
             PyDict_DelItem(JPy_Types, typeKey);
             JPy_DECREF(typeKey);
             JPy_DECREF(type);
+            RELEASE_GET_TYPE_LOCK();
             return NULL;
         }
 
@@ -195,6 +248,7 @@ JPy_JType* JType_GetType(JNIEnv* jenv, jclass classRef, jboolean resolve)
             PyDict_DelItem(JPy_Types, typeKey);
             JPy_DECREF(typeKey);
             JPy_DECREF(type);
+            RELEASE_GET_TYPE_LOCK();
             return NULL;
         }
 
@@ -206,6 +260,7 @@ JPy_JType* JType_GetType(JNIEnv* jenv, jclass classRef, jboolean resolve)
             PyDict_DelItem(JPy_Types, typeKey);
             JPy_DECREF(typeKey);
             JPy_DECREF(type);
+            RELEASE_GET_TYPE_LOCK();
             return NULL;
         }
 
@@ -231,6 +286,7 @@ JPy_JType* JType_GetType(JNIEnv* jenv, jclass classRef, jboolean resolve)
                          "jpy internal error: attributes in 'jpy.%s' must be of type '%s', but found a '%s'",
                          JPy_MODULE_ATTR_NAME_TYPES, JType_Type.tp_name, Py_TYPE(typeValue)->tp_name);
             JPy_DECREF(typeKey);
+            RELEASE_GET_TYPE_LOCK();
             return NULL;
         }
 
@@ -240,6 +296,7 @@ JPy_JType* JType_GetType(JNIEnv* jenv, jclass classRef, jboolean resolve)
     }
 
     JPy_DIAG_PRINT(JPy_DIAG_F_TYPE, "JType_GetType: javaName=\"%s\", found=%d, resolve=%d, resolved=%d, type=%p\n", type->javaName, found, resolve, type->isResolved, type);
+    RELEASE_GET_TYPE_LOCK();
 
     if (!type->isResolved && resolve) {
         if (JType_ResolveType(jenv, type) < 0) {
@@ -968,7 +1025,10 @@ int JType_ResolveType(JNIEnv* jenv, JPy_JType* type)
 {
     PyTypeObject* typeObj;
 
+    ACQUIRE_RESOLVE_TYPE_LOCK();
+
     if (type->isResolved || type->isResolving) {
+        RELEASE_RESOLVE_TYPE_LOCK();
         return 0;
     }
 
@@ -980,6 +1040,7 @@ int JType_ResolveType(JNIEnv* jenv, JPy_JType* type)
         if (!baseType->isResolved) {
             if (JType_ResolveType(jenv, baseType) < 0) {
                 type->isResolving = JNI_FALSE;
+                RELEASE_RESOLVE_TYPE_LOCK();
                 return -1;
             }
         }
@@ -988,24 +1049,29 @@ int JType_ResolveType(JNIEnv* jenv, JPy_JType* type)
     //printf("JType_ResolveType 1\n");
     if (JType_ProcessClassConstructors(jenv, type) < 0) {
         type->isResolving = JNI_FALSE;
+        RELEASE_RESOLVE_TYPE_LOCK();
         return -1;
     }
 
     //printf("JType_ResolveType 2\n");
     if (JType_ProcessClassMethods(jenv, type) < 0) {
         type->isResolving = JNI_FALSE;
+        RELEASE_RESOLVE_TYPE_LOCK();
         return -1;
     }
 
     //printf("JType_ResolveType 3\n");
     if (JType_ProcessClassFields(jenv, type) < 0) {
         type->isResolving = JNI_FALSE;
+        RELEASE_RESOLVE_TYPE_LOCK();
         return -1;
     }
 
     //printf("JType_ResolveType 4\n");
     type->isResolving = JNI_FALSE;
     type->isResolved = JNI_TRUE;
+
+    RELEASE_RESOLVE_TYPE_LOCK();
     return 0;
 }
 
