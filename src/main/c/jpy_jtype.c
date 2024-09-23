@@ -202,6 +202,7 @@ JPy_JType* JType_GetType(JNIEnv* jenv, jclass classRef, jboolean resolve)
     }
 
     ACQUIRE_GET_TYPE_LOCK();
+    // borrowed ref, no need to replace with PyDict_GetItemRef because it protected by the lock
     typeValue = PyDict_GetItem(JPy_Types, typeKey);
     if (typeValue == NULL) {
 
@@ -1081,12 +1082,21 @@ jboolean JType_AcceptMethod(JPy_JType* declaringClass, JPy_JMethod* method)
     PyObject* callableResult;
 
     //printf("JType_AcceptMethod: javaName='%s'\n", overloadedMethod->declaringClass->javaName);
+#ifdef Py_GIL_DISABLED
+    // if return is 1, callable is new reference
+    if (PyDict_GetItemStringRef(JPy_Type_Callbacks, declaringClass->javaName, &callable) != 1) {
+        callable = NULL;
+    }
+#else
+    callable = PyDict_GetItemString(JPy_Type_Callbacks, declaringClass->javaName); // borrowed reference
+    JPy_XINCREF(callable);
+#endif
 
-    callable = PyDict_GetItemString(JPy_Type_Callbacks, declaringClass->javaName);
     if (callable != NULL) {
         if (PyCallable_Check(callable)) {
             callableResult = PyObject_CallFunction(callable, "OO", declaringClass, method);
             if (callableResult == Py_None || callableResult == Py_False) {
+                JPy_XDECREF(callable);
                 return JNI_FALSE;
             } else if (callableResult == NULL) {
                 JPy_DIAG_PRINT(JPy_DIAG_F_TYPE, "JType_AcceptMethod: warning: failed to invoke callback on method addition\n");
@@ -1094,6 +1104,7 @@ jboolean JType_AcceptMethod(JPy_JType* declaringClass, JPy_JMethod* method)
             }
         }
     }
+    JPy_XDECREF(callable);
 
     return JNI_TRUE;
 }
@@ -1493,6 +1504,7 @@ int JType_AddMethod(JPy_JType* type, JPy_JMethod* method)
         return -1;
     }
 
+    // borrowed ref, no need to replace with PyDict_GetItemRef because typeDict won't be changed concurrently
     methodValue = PyDict_GetItem(typeDict, method->name);
     if (methodValue == NULL) {
         overloadedMethod = JOverloadedMethod_New(type, method->name, method);
@@ -1520,6 +1532,7 @@ PyObject* JType_GetOverloadedMethod(JNIEnv* jenv, JPy_JType* type, PyObject* met
         return NULL;
     }
 
+    // borrowed ref, no need to replace with PyDict_GetItemRef because typeDict won't be changed concurrently
     methodValue = PyDict_GetItem(typeDict, methodName);
     if (methodValue == NULL) {
         if (useSuperClass) {
