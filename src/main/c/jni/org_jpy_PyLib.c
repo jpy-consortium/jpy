@@ -559,7 +559,7 @@ JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_getCurrentGlobals
 
 #if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION <= 12
     globals = PyEval_GetGlobals(); // borrowed ref
-    JPy_INCREF(globals);
+    JPy_XINCREF(globals);
 #else
     // See https://peps.python.org/pep-0667 for the change in Python 3.13
     globals = PyEval_GetFrameGlobals(); // new ref
@@ -590,7 +590,7 @@ JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_getCurrentLocals
 
 #if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION <= 12
     locals = PyEval_GetLocals(); // borrowed ref
-    JPy_INCREF(locals);
+    JPy_XINCREF(locals);
 #else
     // See https://peps.python.org/pep-0667 for the change in Python 3.13
     locals = PyEval_GetFrameLocals(); // new ref

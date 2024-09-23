@@ -33,6 +33,7 @@ extern "C" {
 #if 1
 #define JPy_DECREF(x) Py_DECREF(x)
 #define JPy_INCREF(x) Py_INCREF(x)
+#define JPy_XINCREF(x) Py_XINCREF(x)
 #define JPy_XDECREF(x) Py_XDECREF(x)
 #else
 #include "jpy_diag.h"
