@@ -71,7 +71,7 @@ public class PyObject implements AutoCloseable {
     PyObject(long pointer, boolean fromJNI) {
         state = new PyObjectState(pointer);
         if (fromJNI) {
-            if (CLEANUP_ON_INIT && PyLib.hasGil()) {
+            if (CLEANUP_ON_INIT) {
                 REFERENCES.cleanupOnlyUseFromGIL(); // only performs *one* cleanup
             }
             if (CLEANUP_ON_THREAD) {
