@@ -6,7 +6,8 @@ group "default" {
         "python-39-linux",
         "python-310-linux",
         "python-311-linux",
-        "python-312-linux"
+        "python-312-linux",
+        "python-313-linux"
     ]
 }
 
@@ -74,5 +75,12 @@ target "python-312-linux" {
     inherits = [ "shared" ]
     args = {
         PYTHON_TAG = "3.12-${DEBIAN_BASE}"
+    }
+}
+
+target "python-313-linux" {
+    inherits = [ "shared" ]
+    args = {
+        PYTHON_TAG = "3.13-${DEBIAN_BASE}"
     }
 }
