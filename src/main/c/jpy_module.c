@@ -323,6 +323,9 @@ PyMODINIT_FUNC JPY_MODULE_INIT_FUNC(void)
     if (JPy_Module == NULL) {
         JPY_RETURN(NULL);
     }
+#ifdef Py_GIL_DISABLED
+    PyUnstable_Module_SetGIL(JPy_Module, Py_MOD_GIL_NOT_USED);
+#endif
 #elif defined(JPY_COMPAT_27)
     JPy_Module = Py_InitModule3(JPY_MODULE_NAME, JPy_Functions, JPY_MODULE_DOC);
     if (JPy_Module == NULL) {

@@ -799,6 +799,7 @@ JPy_JMethod* JOverloadedMethod_FindMethod0(JNIEnv* jenv, JPy_JOverloadedMethod* 
                               overloadedMethod->declaringClass->javaName, JPy_AS_UTF8(overloadedMethod->name), overloadCount, argCount);
 
     for (i = 0; i < overloadCount; i++) {
+        // borrowed ref, no need to replace with PyList_GetItemRef() because the list won't be changed concurrently
         currMethod = (JPy_JMethod*) PyList_GetItem(overloadedMethod->methodList, i);
 
         if (currMethod->isVarArgs && matchValueMax > 0 && !bestMethod->isVarArgs) {
@@ -950,6 +951,7 @@ int JOverloadedMethod_AddMethod(JPy_JOverloadedMethod* overloadedMethod, JPy_JMe
         // we need to insert this before the first varargs method
         Py_ssize_t size = PyList_Size(overloadedMethod->methodList);
         for (ii = 0; ii < size; ii++) {
+            // borrowed ref, no need to replace with PyList_GetItemRef() because the list won't be changed concurrently
             PyObject *check = PyList_GetItem(overloadedMethod->methodList, ii);
             if (((JPy_JMethod *) check)->isVarArgs) {
                 // this is the first varargs method, so we should go before it
