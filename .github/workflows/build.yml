@@ -79,7 +79,6 @@ jobs:
           distribution: 'temurin'
           java-version: '8'
 
-      - run: pip install setuptools
       - run: ${{ matrix.info.cmd }}
 
       - uses: actions/upload-artifact@v4

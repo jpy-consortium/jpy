@@ -29,3 +29,30 @@ jobs:
 
       - name: Run Test
         run: python setup.py test
+
+  test-free-threaded:
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        java: ['8', '11', '17', '21', '23']
+    steps:
+        - uses: actions/checkout@v4
+
+        - uses: actions/setup-java@v4
+          with:
+            distribution: 'temurin'
+            java-version: ${{ matrix.java }}
+
+        - uses: astral-sh/setup-uv@v3
+        - run: |
+            uv python install 3.13t
+            uv venv --python 3.13t
+            source .venv/bin/activate
+            uv pip install pip
+            echo PATH=$PATH >> $GITHUB_ENV
+
+        - run: pip install "setuptools < 72"
+
+        - name: Run Free-threaded Test
+          run: python setup.py test
+
