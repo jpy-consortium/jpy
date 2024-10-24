@@ -280,7 +280,7 @@ def test_suite():
     def test_java(self):
         assert test_maven()
 
-    # suite.addTest(test_python_with_java_runtime)
+    suite.addTest(test_python_with_java_runtime)
     suite.addTest(test_python_with_java_classes)
     # comment out because the asynchronous nature of the PyObject GC in Java makes stopPython/startPython flakey.
     # suite.addTest(test_java)

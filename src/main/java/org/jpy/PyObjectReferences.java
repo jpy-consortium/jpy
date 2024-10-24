@@ -153,6 +153,8 @@ class PyObjectReferences {
                 sleep_time = 0.1 if size == 1024 else 1.0
                 time.sleep(sleep_time)
          */
+        // try-catch block to handle PyLib not initialized exception when a race condition occurs in the free-threaded
+        // mode that the cleanup thread starts running after Python is already finalized.
         try {
             final PyObjectCleanup proxy = asProxy();
 
