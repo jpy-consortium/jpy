@@ -160,9 +160,105 @@ jobs:
           path: /tmp/dist/*.whl
           retention-days: 1
 
+  bdist-wheels-t:
+    runs-on: ${{ matrix.info.machine }}
+    strategy:
+      fail-fast: false
+      matrix:
+        info:
+          - { machine: 'ubuntu-20.04', python: '3.13t', arch: 'amd64', cmd: '.github/env/Linux/bdist-wheel.sh' }
+          - { machine: 'macos-13', python: '3.13t', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-latest', python: '3.13t', arch: 'arm64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v3
+      - run: |
+          uv python install ${{ matrix.info.python }}
+          uv venv --python ${{ matrix.info.python }}
+          source .venv/bin/activate
+          uv pip install pip
+          echo $JAVA_HOME
+          echo PATH=$PATH >> $GITHUB_ENV
+
+      - run: ${{ matrix.info.cmd }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.info.python }}-${{ matrix.info.machine }}-${{ matrix.info.arch }}
+          path: dist/*.whl
+          retention-days: 1
+
+  bdist-wheels-windows-t:
+    runs-on: ${{ matrix.info.machine }}
+    strategy:
+      fail-fast: false
+      matrix:
+        info:
+          - { machine: 'windows-2022', python: '3.13t', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v3
+      - run: |
+          uv python install ${{ matrix.info.python }}
+          uv venv --python ${{ matrix.info.python }}
+          .venv\Scripts\Activate.ps1
+          uv pip install pip
+          echo PATH=%PATH% >> $GITHUB_ENV
+          ${{ matrix.info.cmd }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.info.python }}-${{ matrix.info.machine }}-${{ matrix.info.arch }}
+          path: dist/*.whl
+          retention-days: 1
+
+  bdist-wheels-linux-arm64-t:
+    runs-on: ${{ matrix.info.machine }}
+    strategy:
+      fail-fast: false
+      matrix:
+        info:
+          - { machine: 'ubuntu-20.04', python: '3.13t', arch: 'aarch64', cmd: '.github/env/Linux/bdist-wheel.sh' }
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.21.3
+        env:
+          CIBW_FREE_THREADED_SUPPORT: true
+          CIBW_ARCHS_LINUX: "aarch64"
+          CIBW_BUILD: "cp313t-*"
+          CIBW_SKIP: "cp313t-musllinux_aarch64"
+          CIBW_BEFORE_ALL_LINUX: >
+            yum install -y java-11-openjdk-devel &&
+            yum install -y wget &&
+            wget https://www.apache.org/dist/maven/maven-3/3.8.8/binaries/apache-maven-3.8.8-bin.tar.gz -P /tmp &&
+            tar xf /tmp/apache-maven-3.8.8-bin.tar.gz -C /opt &&
+            ln -s /opt/apache-maven-3.8.8/bin/mvn /usr/bin/mvn
+          CIBW_ENVIRONMENT: JAVA_HOME=/etc/alternatives/jre_11_openjdk
+          CIBW_REPAIR_WHEEL_COMMAND_LINUX: 'auditwheel repair --exclude libjvm.so -w {dest_dir} {wheel}'
+
+        with:
+          package-dir: .
+          output-dir: dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.info.python }}-${{ matrix.info.machine }}-${{ matrix.info.arch }}
+          path: dist/*.whl
+          retention-days: 1
+
   collect-artifacts:
     runs-on: ubuntu-22.04
-    needs: ['sdist', 'bdist-wheel', 'bdist-wheel-universal2-hack', 'bdist-wheels-linux-arm64']
+    needs: ['sdist', 'bdist-wheel', 'bdist-wheel-universal2-hack', 'bdist-wheels-linux-arm64', 'bdist-wheels-t', 'bdist-wheels-windows-t', 'bdist-wheels-linux-arm64-t']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
