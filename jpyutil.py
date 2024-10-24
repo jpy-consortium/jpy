@@ -43,7 +43,6 @@ __version__ = "0.19.0.dev0"
 # This way importing jpyutil does not interfere with logging in other modules
 logger = logging.getLogger('jpyutil')
 # Get log level from environment variable JPY_LOG_LEVEL. Default to INFO
-os.environ['JPY_LOG_LEVEL'] = 'DEBUG'
 log_level = os.getenv('JPY_LOG_LEVEL', 'INFO')
 try:
     logger.setLevel(getattr(logging, log_level))
@@ -306,6 +305,7 @@ def _find_python_dll_file(fail=False):
     # Prepare list of search directories
     search_dirs = [sys.prefix]
 
+    # installed_base/lib needs to be added to the search path for Python 3.13t files
     installed_base = sysconfig.get_config_var('installed_base')
     if installed_base:
         search_dirs.append(os.path.join(installed_base, "lib"))
