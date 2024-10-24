@@ -43,6 +43,7 @@ __version__ = "0.19.0.dev0"
 # This way importing jpyutil does not interfere with logging in other modules
 logger = logging.getLogger('jpyutil')
 # Get log level from environment variable JPY_LOG_LEVEL. Default to INFO
+os.environ['JPY_LOG_LEVEL'] = 'DEBUG'
 log_level = os.getenv('JPY_LOG_LEVEL', 'INFO')
 try:
     logger.setLevel(getattr(logging, log_level))
@@ -303,17 +304,16 @@ def _find_python_dll_file(fail=False):
     logger.debug("Searching for Python shared library file")
 
     # Prepare list of search directories
-
     search_dirs = [sys.prefix]
+
+    installed_base = sysconfig.get_config_var('installed_base')
+    if installed_base:
+        search_dirs.append(os.path.join(installed_base, "lib"))
 
     extra_search_dirs = [sysconfig.get_config_var(name) for name in PYTHON_LIB_DIR_CONFIG_VAR_NAMES]
     for extra_dir in extra_search_dirs:
         if extra_dir and extra_dir not in search_dirs and os.path.exists(extra_dir):
             search_dirs.append(extra_dir)
-
-    if platform.system() == 'Windows':
-        extra_search_dirs = _get_existing_subdirs(search_dirs, "DLLs")
-        search_dirs = extra_search_dirs + search_dirs
 
     multi_arch_sub_dir = sysconfig.get_config_var('multiarchsubdir')
     if multi_arch_sub_dir:
@@ -326,18 +326,32 @@ def _find_python_dll_file(fail=False):
 
     # Prepare list of possible library file names
 
+    # account for Python debug builds
+    try:
+        sys.gettotalrefcount()
+        debug_build = True
+    except AttributeError:
+        debug_build = False
+
+    # account for Python 3.13+ with GIL disabled
+    dll_suffix = ''
+    if sys.version_info >= (3, 13):
+        if not sys._is_gil_enabled():
+            dll_suffix = 't'
+    dll_suffix += 'd' if debug_build else ''
+
     vmaj = str(sys.version_info.major)
     vmin = str(sys.version_info.minor)
 
     if platform.system() == 'Windows':
-        versions = (vmaj + vmin, vmaj, '')
+        versions = (vmaj + vmin, vmaj, vmaj + vmin + dll_suffix, '')
         file_names = ['python' + v + '.dll' for v in versions]
     elif platform.system() == 'Darwin':
-        versions = (vmaj + "." + vmin, vmaj, '')
+        versions = (vmaj + "." + vmin, vmaj, vmaj + "." + vmin + dll_suffix, '')
         file_names = ['libpython' + v + '.dylib' for v in versions] + \
                      ['libpython' + v + '.so' for v in versions]
     else:
-        versions = (vmaj + "." + vmin, vmaj, '')
+        versions = (vmaj + "." + vmin, vmaj, vmaj + "." + vmin + dll_suffix, '')
         file_names = ['libpython' + v + '.so' for v in versions]
 
     logger.debug("Potential Python shared library file names: %s" % repr(file_names))

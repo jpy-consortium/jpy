@@ -34,6 +34,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
+        python: ['3.13t']
         java: ['8', '11', '17', '21', '23']
     steps:
         - uses: actions/checkout@v4
@@ -45,10 +46,11 @@ jobs:
 
         - uses: astral-sh/setup-uv@v3
         - run: |
-            uv python install 3.13t
-            uv venv --python 3.13t
+            uv python install ${{ matrix.python }}
+            uv venv --python ${{ matrix.python }}
             source .venv/bin/activate
             uv pip install pip
+            echo $JAVA_HOME
             echo PATH=$PATH >> $GITHUB_ENV
 
         - run: pip install "setuptools < 72"
