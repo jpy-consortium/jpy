@@ -63,7 +63,7 @@ jobs:
           path: dist/*.whl
           retention-days: 1
 
-  bdist-wheels-linux-aarch64:
+  bdist-wheels-linux-arm64:
     runs-on: ${{ matrix.info.machine }}
     strategy:
       fail-fast: false
@@ -102,4 +102,34 @@ jobs:
           name: build-${{ matrix.info.python }}-${{ matrix.info.machine }}-${{ matrix.info.arch }}
           path: dist/*.whl
           retention-days: 1
+
+  collect-artifacts:
+    runs-on: ubuntu-22.04
+    needs: ['bdist-wheels', 'bdist-wheels-windows', 'bdist-wheels-linux-arm64']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: download-artifacts
+      - name: collect-artifacts.sh
+        run: .github/scripts/collect-artifacts.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jpy-ft
+          path: collect-artifacts
+
+  release-artifacts:
+    if: ${{ startsWith(github.ref, 'refs/heads/release/v') }}
+    runs-on: ubuntu-22.04
+    needs: ['collect-artifacts']
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: jpy-ft
+          path: dist
+      - name: Publish package to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
 
