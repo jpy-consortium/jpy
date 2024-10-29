@@ -181,14 +181,17 @@ jobs:
           java-version: ${{ matrix.info.java }}
 
       - uses: astral-sh/setup-uv@v3
-      - run: |
+        run: |
           uv python install ${{ matrix.info.python }}
           uv venv --python ${{ matrix.info.python }}
-          if [ ${{ matrix.info.machine }} == 'windows-2022' ]; then
-            .venv\Scripts\Activate.ps1
-          else
-            source .venv/bin/activate
-          fi
+      - if : ${{ startsWith(matrix.info.machine, 'windows')}}
+        run: |
+          .venv\Scripts\Activate.ps1
+          uv pip install pip
+          echo PATH=$PATH >> $GITHUB_PATH
+      - if : ${{ ! startsWith(matrix.info.machine, 'windows')}}
+        run: |
+          source .venv/bin/activate
           uv pip install pip
           echo PATH=$PATH >> $GITHUB_PATH
 
