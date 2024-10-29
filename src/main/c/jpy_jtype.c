@@ -202,7 +202,7 @@ JPy_JType* JType_GetType(JNIEnv* jenv, jclass classRef, jboolean resolve)
     }
 
     ACQUIRE_GET_TYPE_LOCK();
-    // borrowed ref, no need to replace with PyDict_GetItemRef because it protected by the lock
+    // borrowed ref, no need to replace with PyDict_GetItemRef because it is protected by the lock
     typeValue = PyDict_GetItem(JPy_Types, typeKey);
     if (typeValue == NULL) {
 
@@ -1088,7 +1088,8 @@ jboolean JType_AcceptMethod(JPy_JType* declaringClass, JPy_JMethod* method)
         callable = NULL;
     }
 #else
-    callable = PyDict_GetItemString(JPy_Type_Callbacks, declaringClass->javaName); // borrowed reference
+    // borrowed ref, no need to replace with PyDict_GetItemStringRef because it is protected by the lock
+    callable = PyDict_GetItemString(JPy_Type_Callbacks, declaringClass->javaName); 
     JPy_XINCREF(callable);
 #endif
 

@@ -80,6 +80,7 @@ PyObject* JObj_FromType(JNIEnv* jenv, JPy_JType* type, jobject objectRef)
         callable = NULL;
     }
 #else
+    // borrowed ref, no need to replace with PyDict_GetItemStringRef() because the dict won't be changed concurrently
     callable = PyDict_GetItemString(JPy_Type_Translations, type->javaName); // borrowed reference
     JPy_XINCREF(callable);
 #endif
