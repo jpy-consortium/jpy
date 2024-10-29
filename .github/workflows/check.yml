@@ -30,6 +30,16 @@ jobs:
       - name: Run Test
         run: python setup.py test
 
+      - name: Upload JVM Error Logs
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: check-ci-jvm-err
+          path: |
+            **/*_pid*.log
+            **/core.*
+          if-no-files-found: ignore
+
   test-free-threaded:
     runs-on: ubuntu-22.04
     strategy:
@@ -58,3 +68,12 @@ jobs:
         - name: Run Free-threaded Test
           run: python setup.py test
 
+        - name: Upload JVM Error Logs
+          uses: actions/upload-artifact@v4
+          if: failure()
+          with:
+            name: check-ci-jvm-err
+            path: |
+              **/*_pid*.log
+              **/core.*
+            if-no-files-found: ignore
