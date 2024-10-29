@@ -315,6 +315,10 @@ def _find_python_dll_file(fail=False):
         if extra_dir and extra_dir not in search_dirs and os.path.exists(extra_dir):
             search_dirs.append(extra_dir)
 
+    if platform.system() == 'Windows':
+        extra_search_dirs = _get_existing_subdirs(search_dirs, "DLLs")
+        search_dirs = extra_search_dirs + search_dirs
+
     multi_arch_sub_dir = sysconfig.get_config_var('multiarchsubdir')
     if multi_arch_sub_dir:
         while multi_arch_sub_dir.startswith('/'):
