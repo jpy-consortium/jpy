@@ -28,36 +28,41 @@
 #include "jpy_compat.h"
 
 #ifdef Py_GIL_DISABLED
+// Reentrant lock for the recursive JType_GetType() and JType_ResolveType() in free-threaded environments
+// Note that in order to avoid a fatal circular reference issues, JType_InitSuperType() no longer tries to resolve
+// the super types. This means it is impossible for a thread to hold a get_type lock while trying to acquire the
+// resolve_type lock but it can still hold a resolve_type lock while trying to acquire the get_type lock. This allows
+// maximum concurrency but also avoids deadlocks at the same time.
 typedef struct {
     PyMutex lock;
     PyThreadState* owner;
     int recursion_level;
 } ReentrantLock;
 
-static void acquire_lock(ReentrantLock* self) {
+static void acquire_lock(ReentrantLock* rlock) {
     PyThreadState* current_thread = PyThreadState_Get();
 
-    if (self->owner == current_thread) {
-        self->recursion_level++;
+    if (rlock->owner == current_thread) {
+        rlock->recursion_level++;
         return;
     }
 
-    PyMutex_Lock(&(self->lock));
+    PyMutex_Lock(&(rlock->lock));
 
-    self->owner = current_thread;
-    self->recursion_level = 1;
+    rlock->owner = current_thread;
+    rlock->recursion_level = 1;
 }
 
-static void release_lock(ReentrantLock* self) {
-    if (self->owner != PyThreadState_Get()) {
+static void release_lock(ReentrantLock* rlock) {
+    if (rlock->owner != PyThreadState_Get()) {
         PyErr_SetString(PyExc_RuntimeError, "Lock not owned by current thread");
         return;
     }
 
-    self->recursion_level--;
-    if (self->recursion_level == 0) {
-        self->owner = NULL;
-        PyMutex_Unlock(&(self->lock));
+    rlock->recursion_level--;
+    if (rlock->recursion_level == 0) {
+        rlock->owner = NULL;
+        PyMutex_Unlock(&(rlock->lock));
     }
 }
 
@@ -1082,15 +1087,16 @@ jboolean JType_AcceptMethod(JPy_JType* declaringClass, JPy_JMethod* method)
     PyObject* callableResult;
 
     //printf("JType_AcceptMethod: javaName='%s'\n", overloadedMethod->declaringClass->javaName);
-#ifdef Py_GIL_DISABLED
-    // if return is 1, callable is new reference
+#if PY_VERSION_HEX < 0x030D0000 // < 3.13
+    // borrowed ref
+    callable = PyDict_GetItemString(JPy_Type_Callbacks, declaringClass->javaName);
+    JPy_XINCREF(callable);
+#else
+    // https://docs.python.org/3/howto/free-threading-extensions.html#borrowed-references
+    // PyDict_GetItemStringRef() is a thread safe version of PyDict_GetItemString() and returns a new reference
     if (PyDict_GetItemStringRef(JPy_Type_Callbacks, declaringClass->javaName, &callable) != 1) {
         callable = NULL;
     }
-#else
-    // borrowed ref, no need to replace with PyDict_GetItemStringRef because it is protected by the lock
-    callable = PyDict_GetItemString(JPy_Type_Callbacks, declaringClass->javaName); 
-    JPy_XINCREF(callable);
 #endif
 
     if (callable != NULL) {

@@ -74,21 +74,23 @@ PyObject* JObj_FromType(JNIEnv* jenv, JPy_JType* type, jobject objectRef)
 
     // we check the type translations dictionary for a callable for this java type name,
     // and apply the returned callable to the wrapped object
-#ifdef Py_GIL_DISABLED
-    // if return is 1, callable is new reference
+#if PY_VERSION_HEX < 0x030D0000 // < 3.13
+    // borrowed ref
+    callable = PyDict_GetItemString(JPy_Type_Translations, type->javaName); // borrowed reference
+    JPy_XINCREF(callable);
+#else
+    // https://docs.python.org/3/howto/free-threading-extensions.html#borrowed-references
+    // PyDict_GetItemStringRef() is a thread safe version of PyDict_GetItemString() and returns a new reference
     if (PyDict_GetItemStringRef(JPy_Type_Translations, type->javaName, &callable) != 1) {
         callable = NULL;
     }
-#else
-    // borrowed ref, no need to replace with PyDict_GetItemStringRef() because the dict won't be changed concurrently
-    callable = PyDict_GetItemString(JPy_Type_Translations, type->javaName); // borrowed reference
-    JPy_XINCREF(callable);
 #endif
 
     if (callable != NULL) {
         if (PyCallable_Check(callable)) {
             callableResult = PyObject_CallFunction(callable, "OO", type, obj);
             JPy_XDECREF(callable);
+            JPy_XDECREF(obj);
             if (callableResult == NULL) {
                 Py_RETURN_NONE;
             } else {

@@ -198,7 +198,8 @@ class PyObjectReferences {
             }
         }
         catch (RuntimeException e) {
-            if (!e.getMessage().contains("PyLib not initialized")) {
+            String msg;
+            if ((msg = e.getMessage()) != null && !msg.contains("PyLib not initialized")) {
                 throw e;
             }
         }
