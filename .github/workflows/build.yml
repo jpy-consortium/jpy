@@ -134,7 +134,7 @@ jobs:
           path: dist/*.whl
           retention-days: 1
 
-  bdist-wheels-linux-arm64:
+  bdist-wheel-linux-arm64:
     runs-on: 'ubuntu-22.04'
     steps:
       - uses: actions/checkout@v4
@@ -156,11 +156,11 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: bdist-wheels-linux-arm64
+          name: bdist-wheel-linux-arm64
           path: /tmp/dist/*.whl
           retention-days: 1
 
-  bdist-wheels-t:
+  bdist-wheel-t:
     runs-on: ${{ matrix.info.machine }}
     strategy:
       fail-fast: false
@@ -204,7 +204,7 @@ jobs:
           path: dist/*.whl
           retention-days: 1
 
-  bdist-wheels-linux-arm64-t:
+  bdist-wheel-linux-arm64-t:
     runs-on: ${{ matrix.info.machine }}
     strategy:
       fail-fast: false
@@ -246,7 +246,7 @@ jobs:
 
   collect-artifacts:
     runs-on: ubuntu-22.04
-    needs: ['sdist', 'bdist-wheel', 'bdist-wheel-universal2-hack', 'bdist-wheels-linux-arm64', 'bdist-wheels-t', 'bdist-wheels-linux-arm64-t']
+    needs: ['sdist', 'bdist-wheel', 'bdist-wheel-universal2-hack', 'bdist-wheel-linux-arm64', 'bdist-wheel-t', 'bdist-wheel-linux-arm64-t']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4

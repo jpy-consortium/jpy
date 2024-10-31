@@ -5,7 +5,6 @@ import jpyutil
 
 jpyutil.init_jvm(jvm_maxmem='512M', jvm_classpath=['target/classes', 'target/test-classes'])
 import jpy
-# jpy.diag.flags = jpy.diag.F_TYPE
 
 NUM_THREADS = 20
 
@@ -47,26 +46,26 @@ class MultiThreadedTestEvalExec(unittest.TestCase):
         self.fixture = jpy.get_type("org.jpy.fixtures.MultiThreadedEvalTestFixture")
         self.assertIsNotNone(self.fixture)
 
-    def atest_inc_baz(self):
+    def test_inc_baz(self):
         baz = 15
         self.fixture.script("baz = baz + 1; self.assertGreater(baz, 15)", NUM_THREADS)
         # note: this *is* correct wrt python semantics w/ exec(code, globals(), locals())
         # https://bugs.python.org/issue4831 (Note: it's *not* a bug, is working as intended)
         self.assertEqual(baz, 15)
 
-    def atest_exec_import(self):
+    def test_exec_import(self):
         import sys
         self.assertTrue("json" not in sys.modules)
         self.fixture.script("import json", NUM_THREADS)
         self.assertTrue("json" in sys.modules)
 
-    def atest_exec_function_call(self):
+    def test_exec_function_call(self):
         self.fixture.expression("use_circular_java_classes()", NUM_THREADS)
 
     def test_count_primes(self):
         self.fixture.expression("count_primes(1, 10000)", NUM_THREADS)
 
-    def atest_java_threading_jpy_get_type(self):
+    def test_java_threading_jpy_get_type(self):
 
         py_script = """
 j_child1_class = jpy.get_type("org.jpy.fixtures.CyclicReferenceChild1")
@@ -83,7 +82,7 @@ assert 100 == j_child1.z
     """
         self.fixture.script(py_script, NUM_THREADS)
 
-    def atest_py_threading_jpy_get_type(self):
+    def test_py_threading_jpy_get_type(self):
         import threading
 
         test_self = self
