@@ -628,6 +628,7 @@ PyObject* JPy_convert_internal(JNIEnv* jenv, PyObject* self, PyObject* args)
         if (targetTypeParsed == NULL) {
             return NULL;
         }
+        JPy_DECREF(targetTypeParsed);
     } else if (JType_Check(targetTypeArg)) {
         targetTypeParsed = (JPy_JType*) targetTypeArg;
     } else {
@@ -649,23 +650,7 @@ PyObject* JPy_convert_internal(JNIEnv* jenv, PyObject* self, PyObject* args)
         return NULL;
     }
 
-    // Create a global reference for the objectRef (so it is valid after we exit this frame)
-    objectRef = (*jenv)->NewGlobalRef(jenv, objectRef);
-    if (objectRef == NULL) {
-        PyErr_NoMemory();
-        return NULL;
-    }
-
-    // Create a PyObject (JObj) to hold the result
-    resultObj = (JPy_JObj*) PyObject_New(JPy_JObj, JTYPE_AS_PYTYPE(targetTypeParsed));
-    if (resultObj == NULL) {
-        (*jenv)->DeleteGlobalRef(jenv, objectRef);
-        return NULL;
-    }
-    // Store the reference to the converted object in the result JObj
-    ((JPy_JObj*) resultObj)->objectRef = objectRef;
-
-    return (PyObject*) resultObj;
+    return JObj_FromType(jenv, targetTypeParsed, objectRef);
 }
 
 
