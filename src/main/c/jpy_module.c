@@ -628,6 +628,7 @@ PyObject* JPy_convert_internal(JNIEnv* jenv, PyObject* self, PyObject* args)
         if (targetTypeParsed == NULL) {
             return NULL;
         }
+        // new ref, persists in the global JPy_Types dict and will never be removed, so safe to DECREF
         JPy_DECREF(targetTypeParsed);
     } else if (JType_Check(targetTypeArg)) {
         targetTypeParsed = (JPy_JType*) targetTypeArg;
