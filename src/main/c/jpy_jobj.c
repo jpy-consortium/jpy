@@ -76,7 +76,7 @@ PyObject* JObj_FromType(JNIEnv* jenv, JPy_JType* type, jobject objectRef)
     // and apply the returned callable to the wrapped object
 #if PY_VERSION_HEX < 0x030D0000 // < 3.13
     // borrowed ref
-    callable = PyDict_GetItemString(JPy_Type_Translations, type->javaName); // borrowed reference
+    callable = PyDict_GetItemString(JPy_Type_Translations, type->javaName);
     JPy_XINCREF(callable);
 #else
     // https://docs.python.org/3/howto/free-threading-extensions.html#borrowed-references
