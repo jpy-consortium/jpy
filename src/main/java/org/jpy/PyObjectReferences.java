@@ -76,11 +76,11 @@ class PyObjectReferences {
     /**
      * This should *only* be invoked through the proxy, or when we *know* we have the GIL.
      */
-    public int cleanupOnlyUseFromGIL() {
-        return cleanupOnlyUseFromGIL(buffer);
+    public int threadSafeCleanup() {
+        return threadSafeCleanup(buffer);
     }
 
-    private int cleanupOnlyUseFromGIL(long[] buffer) {
+    private int threadSafeCleanup(long[] buffer) {
         return PyLib.ensureGil(() -> {
             int index = 0;
             while (index < buffer.length) {
@@ -164,7 +164,7 @@ class PyObjectReferences {
                 // any fairness guarantees. As such, we need to be mindful of other python users/code,
                 // and ensure we don't overly acquire the GIL causing starvation issues, especially when
                 // there is no cleanup work to do.
-                final int size = proxy.cleanupOnlyUseFromGIL();
+                final int size = proxy.threadSafeCleanup();
 
 
                 // Although, it *does* make sense to potentially take the GIL in a tight loop when there
