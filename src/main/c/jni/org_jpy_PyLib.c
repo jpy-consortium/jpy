@@ -499,7 +499,7 @@ void dumpDict(const char* dictName, PyObject* dict)
 
     size = PyDict_Size(dict);
     printf(">> dumpDict: %s.size = %ld\n", dictName, size);
-#ifdef Py_GIL_DISABLED
+#if PY_VERSION_HEX >= 0x030D0000 // >=3.13
     // PyDict_Next is not thread-safe, so we need to protect it with a critical section
     // https://docs.python.org/3/howto/free-threading-extensions.html#pydict-next
     Py_BEGIN_CRITICAL_SECTION(dict);
@@ -510,7 +510,7 @@ void dumpDict(const char* dictName, PyObject* dict)
         printf(">> dumpDict: %s[%ld].name = '%s'\n", dictName, i, name);
         i++;
     }
-#ifdef Py_GIL_DISABLED
+#if PY_VERSION_HEX >= 0x030D0000 // >=3.13
     Py_END_CRITICAL_SECTION();
 #endif
 }

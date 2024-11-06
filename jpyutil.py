@@ -331,11 +331,8 @@ def _find_python_dll_file(fail=False):
     # Prepare list of possible library file names
 
     # account for Python debug builds
-    try:
-        sys.gettotalrefcount()
-        debug_build = True
-    except AttributeError:
-        debug_build = False
+
+    debug_build = sysconfig.get_config_var('Py_DEBUG')
 
     # account for Python 3.13+ with GIL disabled
     dll_suffix = ''

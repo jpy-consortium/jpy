@@ -169,7 +169,7 @@ jobs:
           - { machine: 'ubuntu-20.04', python: '3.13t', java: '8', arch: 'amd64', cmd: '.github/env/Linux/bdist-wheel.sh' }
           - { machine: 'windows-2022', python: '3.13t', java: '8', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
           - { machine: 'macos-13', python: '3.13t', java: '8', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          - { machine: 'macos-latest', python: '3.13t', java: '11', arch: 'arm64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-14', python: '3.13t', java: '11', arch: 'arm64', cmd: '.github/env/macOS/bdist-wheel.sh' }
 
     steps:
       - uses: actions/checkout@v4
