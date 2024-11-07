@@ -5,6 +5,7 @@ import jpyutil
 jpyutil.init_jvm(jvm_maxmem='512M', jvm_classpath=['target/classes', 'target/test-classes'])
 import jpy
 
+
 class TestEvalExec(unittest.TestCase):
     def setUp(self):
         self.fixture = jpy.get_type("org.jpy.fixtures.EvalTestFixture")

@@ -27,6 +27,59 @@
 #include "jpy_conv.h"
 #include "jpy_compat.h"
 
+#ifdef Py_GIL_DISABLED
+// Reentrant lock for the recursive JType_GetType() and JType_ResolveType() in free-threaded environments
+// Note that in order to avoid a fatal circular reference issues, JType_InitSuperType() no longer tries to resolve
+// the super types. This means it is impossible for a thread to hold a get_type lock while trying to acquire the
+// resolve_type lock but it can still hold a resolve_type lock while trying to acquire the get_type lock. This allows
+// maximum concurrency but also avoids deadlocks at the same time.
+typedef struct {
+    PyMutex lock;
+    PyThreadState* owner;
+    int recursion_level;
+} ReentrantLock;
+
+static void acquire_lock(ReentrantLock* rlock) {
+    PyThreadState* current_thread = PyThreadState_Get();
+
+    if (rlock->owner == current_thread) {
+        rlock->recursion_level++;
+        return;
+    }
+
+    PyMutex_Lock(&(rlock->lock));
+
+    rlock->owner = current_thread;
+    rlock->recursion_level = 1;
+}
+
+static void release_lock(ReentrantLock* rlock) {
+    if (rlock->owner != PyThreadState_Get()) {
+        PyErr_SetString(PyExc_RuntimeError, "Lock not owned by current thread");
+        return;
+    }
+
+    rlock->recursion_level--;
+    if (rlock->recursion_level == 0) {
+        rlock->owner = NULL;
+        PyMutex_Unlock(&(rlock->lock));
+    }
+}
+
+static ReentrantLock get_type_rlock = {{0}, NULL, 0};
+static ReentrantLock resolve_type_rlock = {{0}, NULL, 0};
+
+#define ACQUIRE_GET_TYPE_LOCK() acquire_lock(&get_type_rlock)
+#define RELEASE_GET_TYPE_LOCK() release_lock(&get_type_rlock)
+#define ACQUIRE_RESOLVE_TYPE_LOCK() acquire_lock(&resolve_type_rlock)
+#define RELEASE_RESOLVE_TYPE_LOCK() release_lock(&resolve_type_rlock)
+
+#else
+#define ACQUIRE_GET_TYPE_LOCK()
+#define RELEASE_GET_TYPE_LOCK()
+#define ACQUIRE_RESOLVE_TYPE_LOCK()
+#define RELEASE_RESOLVE_TYPE_LOCK()
+#endif
 
 JPy_JType* JType_New(JNIEnv* jenv, jclass classRef, jboolean resolve);
 int JType_ResolveType(JNIEnv* jenv, JPy_JType* type);
@@ -51,6 +104,8 @@ static int JType_MatchVarArgPyArgAsFPType(const JPy_ParamDescriptor *paramDescri
 
 static int JType_MatchVarArgPyArgIntType(const JPy_ParamDescriptor *paramDescriptor, PyObject *pyArg, int idx,
                                   struct JPy_JType *expectedComponentType);
+
+
 
 JPy_JType* JType_GetTypeForObject(JNIEnv* jenv, jobject objectRef, jboolean resolve)
 {
@@ -151,6 +206,8 @@ JPy_JType* JType_GetType(JNIEnv* jenv, jclass classRef, jboolean resolve)
         return NULL;
     }
 
+    ACQUIRE_GET_TYPE_LOCK();
+    // borrowed ref, no need to replace with PyDict_GetItemRef because it is protected by the lock
     typeValue = PyDict_GetItem(JPy_Types, typeKey);
     if (typeValue == NULL) {
 
@@ -160,6 +217,7 @@ JPy_JType* JType_GetType(JNIEnv* jenv, jclass classRef, jboolean resolve)
         type = JType_New(jenv, classRef, resolve);
         if (type == NULL) {
             JPy_DECREF(typeKey);
+            RELEASE_GET_TYPE_LOCK();
             return NULL;
         }
 
@@ -184,6 +242,7 @@ JPy_JType* JType_GetType(JNIEnv* jenv, jclass classRef, jboolean resolve)
             PyDict_DelItem(JPy_Types, typeKey);
             JPy_DECREF(typeKey);
             JPy_DECREF(type);
+            RELEASE_GET_TYPE_LOCK();
             return NULL;
         }
 
@@ -195,6 +254,7 @@ JPy_JType* JType_GetType(JNIEnv* jenv, jclass classRef, jboolean resolve)
             PyDict_DelItem(JPy_Types, typeKey);
             JPy_DECREF(typeKey);
             JPy_DECREF(type);
+            RELEASE_GET_TYPE_LOCK();
             return NULL;
         }
 
@@ -206,6 +266,7 @@ JPy_JType* JType_GetType(JNIEnv* jenv, jclass classRef, jboolean resolve)
             PyDict_DelItem(JPy_Types, typeKey);
             JPy_DECREF(typeKey);
             JPy_DECREF(type);
+            RELEASE_GET_TYPE_LOCK();
             return NULL;
         }
 
@@ -231,6 +292,7 @@ JPy_JType* JType_GetType(JNIEnv* jenv, jclass classRef, jboolean resolve)
                          "jpy internal error: attributes in 'jpy.%s' must be of type '%s', but found a '%s'",
                          JPy_MODULE_ATTR_NAME_TYPES, JType_Type.tp_name, Py_TYPE(typeValue)->tp_name);
             JPy_DECREF(typeKey);
+            RELEASE_GET_TYPE_LOCK();
             return NULL;
         }
 
@@ -240,6 +302,7 @@ JPy_JType* JType_GetType(JNIEnv* jenv, jclass classRef, jboolean resolve)
     }
 
     JPy_DIAG_PRINT(JPy_DIAG_F_TYPE, "JType_GetType: javaName=\"%s\", found=%d, resolve=%d, resolved=%d, type=%p\n", type->javaName, found, resolve, type->isResolved, type);
+    RELEASE_GET_TYPE_LOCK();
 
     if (!type->isResolved && resolve) {
         if (JType_ResolveType(jenv, type) < 0) {
@@ -968,7 +1031,10 @@ int JType_ResolveType(JNIEnv* jenv, JPy_JType* type)
 {
     PyTypeObject* typeObj;
 
+    ACQUIRE_RESOLVE_TYPE_LOCK();
+
     if (type->isResolved || type->isResolving) {
+        RELEASE_RESOLVE_TYPE_LOCK();
         return 0;
     }
 
@@ -980,6 +1046,7 @@ int JType_ResolveType(JNIEnv* jenv, JPy_JType* type)
         if (!baseType->isResolved) {
             if (JType_ResolveType(jenv, baseType) < 0) {
                 type->isResolving = JNI_FALSE;
+                RELEASE_RESOLVE_TYPE_LOCK();
                 return -1;
             }
         }
@@ -988,24 +1055,29 @@ int JType_ResolveType(JNIEnv* jenv, JPy_JType* type)
     //printf("JType_ResolveType 1\n");
     if (JType_ProcessClassConstructors(jenv, type) < 0) {
         type->isResolving = JNI_FALSE;
+        RELEASE_RESOLVE_TYPE_LOCK();
         return -1;
     }
 
     //printf("JType_ResolveType 2\n");
     if (JType_ProcessClassMethods(jenv, type) < 0) {
         type->isResolving = JNI_FALSE;
+        RELEASE_RESOLVE_TYPE_LOCK();
         return -1;
     }
 
     //printf("JType_ResolveType 3\n");
     if (JType_ProcessClassFields(jenv, type) < 0) {
         type->isResolving = JNI_FALSE;
+        RELEASE_RESOLVE_TYPE_LOCK();
         return -1;
     }
 
     //printf("JType_ResolveType 4\n");
     type->isResolving = JNI_FALSE;
     type->isResolved = JNI_TRUE;
+
+    RELEASE_RESOLVE_TYPE_LOCK();
     return 0;
 }
 
@@ -1015,12 +1087,23 @@ jboolean JType_AcceptMethod(JPy_JType* declaringClass, JPy_JMethod* method)
     PyObject* callableResult;
 
     //printf("JType_AcceptMethod: javaName='%s'\n", overloadedMethod->declaringClass->javaName);
-
+#if PY_VERSION_HEX < 0x030D0000 // < 3.13
+    // borrowed ref
     callable = PyDict_GetItemString(JPy_Type_Callbacks, declaringClass->javaName);
+    JPy_XINCREF(callable);
+#else
+    // https://docs.python.org/3/howto/free-threading-extensions.html#borrowed-references
+    // PyDict_GetItemStringRef() is a thread safe version of PyDict_GetItemString() and returns a new reference
+    if (PyDict_GetItemStringRef(JPy_Type_Callbacks, declaringClass->javaName, &callable) != 1) {
+        callable = NULL;
+    }
+#endif
+
     if (callable != NULL) {
         if (PyCallable_Check(callable)) {
             callableResult = PyObject_CallFunction(callable, "OO", declaringClass, method);
             if (callableResult == Py_None || callableResult == Py_False) {
+                JPy_XDECREF(callable);
                 return JNI_FALSE;
             } else if (callableResult == NULL) {
                 JPy_DIAG_PRINT(JPy_DIAG_F_TYPE, "JType_AcceptMethod: warning: failed to invoke callback on method addition\n");
@@ -1028,6 +1111,7 @@ jboolean JType_AcceptMethod(JPy_JType* declaringClass, JPy_JMethod* method)
             }
         }
     }
+    JPy_XDECREF(callable);
 
     return JNI_TRUE;
 }
@@ -1427,6 +1511,7 @@ int JType_AddMethod(JPy_JType* type, JPy_JMethod* method)
         return -1;
     }
 
+    // borrowed ref, no need to replace with PyDict_GetItemRef because typeDict won't be changed concurrently
     methodValue = PyDict_GetItem(typeDict, method->name);
     if (methodValue == NULL) {
         overloadedMethod = JOverloadedMethod_New(type, method->name, method);
@@ -1454,6 +1539,7 @@ PyObject* JType_GetOverloadedMethod(JNIEnv* jenv, JPy_JType* type, PyObject* met
         return NULL;
     }
 
+    // borrowed ref, no need to replace with PyDict_GetItemRef because typeDict won't be changed concurrently
     methodValue = PyDict_GetItem(typeDict, methodName);
     if (methodValue == NULL) {
         if (useSuperClass) {
