@@ -1,6 +1,10 @@
 # jpy Changelog
 
-## Version 0.19.0 (in development)
+## Version 0.19.0
+* [#165](https://github.com/jpy-consortium/jpy/pull/165) feat: free-threaded Python (3.13.0+) support
+* [#168](https://github.com/jpy-consortium/jpy/pull/168) Add Python 3.13 builds
+* [#164](https://github.com/jpy-consortium/jpy/pull/164) fix: Make org.jpy.PyLib.getCurrentLocals/Globals work for Python 3.13
+* [#162](https://github.com/jpy-consortium/jpy/pull/162) Find Zero-Assembler OpenJDK 21
 
 ## Version 0.18.0
 * [#158](https://github.com/jpy-consortium/jpy/pull/158) Get the correct computed tb lineno
