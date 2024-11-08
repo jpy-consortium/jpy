@@ -1,5 +1,7 @@
 # jpy Changelog
 
+## Version 0.20.0 (in development)
+
 ## Version 0.19.0
 * [#165](https://github.com/jpy-consortium/jpy/pull/165) feat: free-threaded Python (3.13.0+) support
 * [#168](https://github.com/jpy-consortium/jpy/pull/168) Add Python 3.13 builds
