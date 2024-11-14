@@ -371,7 +371,7 @@ setup(name='jpy',
           'install_lib': JpyInstallLib
       },
       python_requires='>=3.6',
-      classifiers=['Development Status :: 4 - Beta',
+      classifiers=['Development Status :: 5 - Production/Stable',
                    # Indicate who your project is intended for
                    'Intended Audience :: Developers',
 
