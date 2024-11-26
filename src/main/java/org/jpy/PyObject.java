@@ -42,7 +42,7 @@ public class PyObject implements AutoCloseable {
 
     private static final AtomicReference<Thread> CLEANUP_THREAD = new AtomicReference<>();
 
-    private static final boolean CLEANUP_ON_INIT = Boolean.parseBoolean(System.getProperty("PyObject.cleanup_on_init", "true"));
+    private static final boolean CLEANUP_ON_INIT = Boolean.parseBoolean(System.getProperty("PyObject.cleanup_on_init", "false"));
 
     private static final boolean CLEANUP_ON_THREAD = Boolean.parseBoolean(System.getProperty("PyObject.cleanup_on_thread", "true"));
 

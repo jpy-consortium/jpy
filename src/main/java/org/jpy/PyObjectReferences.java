@@ -80,7 +80,7 @@ class PyObjectReferences {
         return threadSafeCleanup(buffer);
     }
 
-    private int threadSafeCleanup(long[] buffer) {
+    private synchronized int threadSafeCleanup(long[] buffer) {
         return PyLib.ensureGil(() -> {
             int index = 0;
             while (index < buffer.length) {
