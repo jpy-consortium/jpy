@@ -42,8 +42,6 @@ public class PyObject implements AutoCloseable {
 
     private static final AtomicReference<Thread> CLEANUP_THREAD = new AtomicReference<>();
 
-    private static final boolean CLEANUP_ON_INIT = Boolean.parseBoolean(System.getProperty("PyObject.cleanup_on_init", "false"));
-
     private static final boolean CLEANUP_ON_THREAD = Boolean.parseBoolean(System.getProperty("PyObject.cleanup_on_thread", "true"));
 
     private static void startCleanupThread() {
@@ -71,9 +69,6 @@ public class PyObject implements AutoCloseable {
     PyObject(long pointer, boolean fromJNI) {
         state = new PyObjectState(pointer);
         if (fromJNI) {
-            if (CLEANUP_ON_INIT) {
-                REFERENCES.threadSafeCleanup(); // only performs *one* cleanup
-            }
             if (CLEANUP_ON_THREAD) {
                 // ensures that we've only started after python has been started, and we know there is something to cleanup
                 startCleanupThread();

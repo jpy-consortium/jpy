@@ -76,11 +76,7 @@ class PyObjectReferences {
     /**
      * This should *only* be invoked through the proxy, or when we *know* we have the GIL.
      */
-    public int threadSafeCleanup() {
-        return threadSafeCleanup(buffer);
-    }
-
-    private synchronized int threadSafeCleanup(long[] buffer) {
+    public synchronized int threadSafeCleanup() {
         return PyLib.ensureGil(() -> {
             int index = 0;
             while (index < buffer.length) {
