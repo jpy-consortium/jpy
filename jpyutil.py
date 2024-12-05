@@ -36,7 +36,7 @@ import subprocess
 __author__ = "Norman Fomferra (Brockmann Consult GmbH) and contributors"
 __copyright__ = "Copyright 2015-2018 Brockmann Consult GmbH and contributors"
 __license__ = "Apache 2.0"
-__version__ = "1.0.0"
+__version__ = "1.1.0.dev0"
 
 
 # Setup a dedicated logger for jpyutil.
