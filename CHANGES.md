@@ -1,6 +1,8 @@
 # jpy Changelog
 
-## Version 0.20.0 (in development)
+## Version 1.0.0 (in development)
+* [#176](https://github.com/jpy-consortium/jpy/pull/176) fix:  make PyObject cleanup thread-safe in free-threaded Python and reduce contention
+* [#175](https://github.com/jpy-consortium/jpy/pull/175) Update project's Development Status classifier
 
 ## Version 0.19.0
 * [#165](https://github.com/jpy-consortium/jpy/pull/165) feat: free-threaded Python (3.13.0+) support
