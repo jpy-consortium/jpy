@@ -204,17 +204,16 @@ public class PyObjectTest {
     public void testGetSetAttributes() throws Exception {
         // Python equivalent:
         //
-        // >>> import impportlib.util
-        // >>> mod_spec = importlib.util.spec_from_loader('myobj', loader=None)
-        // >>> myobj = importlib.util.module_from_spec(mod_spec)
+        // >>> import imp
+        // >>> myobj = imp.new_module('myobj')
         // >>> myobj.a = 'Tut tut!'
         // >>> myobj.a
         // 'Tut tut!'
         //
         try (
-            final PyModule imp = PyModule.importModule("importlib.util");
-            final PyObject moduleSpec = imp.call("spec_from_loader", "myobj", null);
-            final PyObject myobj = imp.call("module_from_spec", moduleSpec)) {
+            final PyModule imp = PyModule.importModule("imp");
+            final PyObject myobj = imp.call("new_module", "myobj")) {
+            // Call imp.new_module('') module
             myobj.setAttribute("a", "Tut tut!");
             Assert.assertEquals("Tut tut!", myobj.getAttribute("a", String.class));
             try (final PyObject a = myobj.getAttribute("a")) {
