@@ -329,6 +329,9 @@ def _find_python_dll_file(fail=False):
     logger.debug("Potential Python shared library search dirs: %s" % repr(search_dirs))
 
     # Prepare list of possible library file names
+    # Prefer "Install .so name" as first candidate for file_names
+    instsoname = sysconfig.get_config_var("INSTSONAME")
+    file_names = [ instsoname ] if instsoname else []
 
     # account for Python debug builds
 
@@ -346,14 +349,14 @@ def _find_python_dll_file(fail=False):
 
     if platform.system() == 'Windows':
         versions = (vmaj + vmin, vmaj, vmaj + vmin + dll_suffix, '')
-        file_names = ['python' + v + '.dll' for v in versions]
+        file_names += ['python' + v + '.dll' for v in versions]
     elif platform.system() == 'Darwin':
         versions = (vmaj + "." + vmin, vmaj, vmaj + "." + vmin + dll_suffix, '')
-        file_names = ['libpython' + v + '.dylib' for v in versions] + \
-                     ['libpython' + v + '.so' for v in versions]
+        file_names += ['libpython' + v + '.dylib' for v in versions]
+        file_names += ['libpython' + v + '.so' for v in versions]
     else:
         versions = (vmaj + "." + vmin, vmaj, vmaj + "." + vmin + dll_suffix, '')
-        file_names = ['libpython' + v + '.so' for v in versions]
+        file_names += ['libpython' + v + '.so' for v in versions]
 
     logger.debug("Potential Python shared library file names: %s" % repr(file_names))
 
