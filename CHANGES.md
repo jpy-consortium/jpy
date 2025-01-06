@@ -1,6 +1,7 @@
 # jpy Changelog
 
 ## Version 1.1.0 (in development)
+* [#179](https://github.com/jpy-consortium/jpy/pull/179) Improve libpython search with python's sysconfig INSTSONAME
 
 ## Version 1.0.0
 * [#176](https://github.com/jpy-consortium/jpy/pull/176) fix:  make PyObject cleanup thread-safe in free-threaded Python and reduce contention
