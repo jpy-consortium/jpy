@@ -1,6 +1,6 @@
 # jpy Changelog
 
-## Version 1.1.0 (in development)
+## Version 1.1.0
 * [#179](https://github.com/jpy-consortium/jpy/pull/179) Improve libpython search with python's sysconfig INSTSONAME
 
 ## Version 1.0.0
