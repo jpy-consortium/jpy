@@ -148,7 +148,9 @@ jobs:
       - run: mkdir /tmp/dist
 
       - name: Bake
-        uses: docker/bake-action@v4.6.0
+        uses: docker/bake-action@v5.11.0
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: false
         with:
           files: .github/docker/docker-bake.hcl
           pull: true
