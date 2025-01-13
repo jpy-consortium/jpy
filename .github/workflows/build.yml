@@ -148,7 +148,7 @@ jobs:
       - run: mkdir /tmp/dist
 
       - name: Bake
-        uses: docker/bake-action@v5.11.0
+        uses: docker/bake-action@v6.0.0
         env:
           DOCKER_BUILD_RECORD_UPLOAD: false
         with:
