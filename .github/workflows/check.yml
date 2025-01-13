@@ -54,7 +54,7 @@ jobs:
             distribution: 'temurin'
             java-version: ${{ matrix.java }}
 
-        - uses: astral-sh/setup-uv@v3
+        - uses: astral-sh/setup-uv@v5
         - run: |
             uv python install ${{ matrix.python }}
             uv venv --python ${{ matrix.python }}
