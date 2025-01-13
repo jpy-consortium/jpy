@@ -184,7 +184,7 @@ jobs:
           distribution: 'temurin'
           java-version: ${{ matrix.info.java }}
 
-      - uses: astral-sh/setup-uv@v3
+      - uses: astral-sh/setup-uv@v5
       - if : ${{ startsWith(matrix.info.machine, 'windows')}}
         run: |
           uv python install ${{ matrix.info.python }}
