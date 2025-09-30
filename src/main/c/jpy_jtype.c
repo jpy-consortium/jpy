@@ -499,9 +499,8 @@ int JType_CreateJavaObject_2(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg, jcl
 int JType_CreateJavaBooleanObject(JNIEnv* jenv, JPy_JType* type, PyObject* pyArg, jobject* objectRef)
 {
     jboolean value;
-    if (PyBool_Check(pyArg) || JPy_IS_CLONG(pyArg)) {
-        value = JPy_AS_JBOOLEAN(pyArg);
-    } else {
+    value = JPy_AS_JBOOLEAN(pyArg);
+    if ((signed char)value == -1) {
         return JType_PythonToJavaConversionError(type, pyArg);
     }
     JType_CALL_STATIC_OBJECT_METHOD_1_AND_RETURN(JPy_Boolean_JClass, JPy_Boolean_ValueOf_SMID, value, objectRef);

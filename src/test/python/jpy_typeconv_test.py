@@ -318,6 +318,31 @@ class TestTypeConversions(unittest.TestCase):
         self.assertEqual(fixture.stringifyStringArrayArg(('A', 'B', 'C')), 'String[](String(A),String(B),String(C))')
         self.assertEqual(fixture.stringifyStringArrayArg(['A', 'B', 'C']), 'String[](String(A),String(B),String(C))')
 
+    def test_ToBooleanConversion(self):
+        java_boolean_type = jpy.get_type("java.lang.Boolean")
+        expected_type = jpy.get_type('java.lang.Boolean')
+
+        jobj = jpy.convert(['abc'], java_boolean_type)
+        self.assertTrue(type(jobj).jclass.equals(java_boolean_type.jclass), f'Type is {type(jobj)}')
+        self.assertTrue(jobj.getClass().equals(expected_type.jclass), f'Type is {jobj.getClass()}')
+        self.assertEqual(jpy.cast(jobj, expected_type).booleanValue(), True)
+
+        jobj = jpy.convert([], java_boolean_type)
+        self.assertTrue(type(jobj).jclass.equals(java_boolean_type.jclass), f'Type is {type(jobj)}')
+        self.assertTrue(jobj.getClass().equals(expected_type.jclass), f'Type is {jobj.getClass()}')
+        self.assertEqual(jpy.cast(jobj, expected_type).booleanValue(), False)
+
+        try:
+            import numpy as np
+        except ImportError:
+            return
+
+        ba = np.array([True, False])
+        jobj = jpy.convert(ba[0], java_boolean_type)
+        self.assertEqual(jpy.cast(jobj, expected_type).booleanValue(), True)
+        jobj = jpy.convert(ba[1], java_boolean_type)
+        self.assertEqual(jpy.cast(jobj, expected_type).booleanValue(), False)
+
 
 if __name__ == '__main__':
     print('\nRunning ' + __file__)
