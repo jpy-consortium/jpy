@@ -36,7 +36,7 @@ import subprocess
 __author__ = "Norman Fomferra (Brockmann Consult GmbH) and contributors"
 __copyright__ = "Copyright 2015-2018 Brockmann Consult GmbH and contributors"
 __license__ = "Apache 2.0"
-__version__ = "0.19.0.dev0"
+__version__ = "1.2.0.dev0"
 
 
 # Setup a dedicated logger for jpyutil.
@@ -303,8 +303,12 @@ def _find_python_dll_file(fail=False):
     logger.debug("Searching for Python shared library file")
 
     # Prepare list of search directories
-
     search_dirs = [sys.prefix]
+
+    # installed_base/lib needs to be added to the search path for Python 3.13t files
+    installed_base = sysconfig.get_config_var('installed_base')
+    if installed_base:
+        search_dirs.append(os.path.join(installed_base, "lib"))
 
     extra_search_dirs = [sysconfig.get_config_var(name) for name in PYTHON_LIB_DIR_CONFIG_VAR_NAMES]
     for extra_dir in extra_search_dirs:
@@ -325,20 +329,34 @@ def _find_python_dll_file(fail=False):
     logger.debug("Potential Python shared library search dirs: %s" % repr(search_dirs))
 
     # Prepare list of possible library file names
+    # Prefer "Install .so name" as first candidate for file_names
+    instsoname = sysconfig.get_config_var("INSTSONAME")
+    file_names = [ instsoname ] if instsoname else []
+
+    # account for Python debug builds
+
+    debug_build = sysconfig.get_config_var('Py_DEBUG')
+
+    # account for Python 3.13+ with GIL disabled
+    dll_suffix = ''
+    if sys.version_info >= (3, 13):
+        if not sys._is_gil_enabled():
+            dll_suffix = 't'
+    dll_suffix += 'd' if debug_build else ''
 
     vmaj = str(sys.version_info.major)
     vmin = str(sys.version_info.minor)
 
     if platform.system() == 'Windows':
-        versions = (vmaj + vmin, vmaj, '')
-        file_names = ['python' + v + '.dll' for v in versions]
+        versions = (vmaj + vmin, vmaj, vmaj + vmin + dll_suffix, '')
+        file_names += ['python' + v + '.dll' for v in versions]
     elif platform.system() == 'Darwin':
-        versions = (vmaj + "." + vmin, vmaj, '')
-        file_names = ['libpython' + v + '.dylib' for v in versions] + \
-                     ['libpython' + v + '.so' for v in versions]
+        versions = (vmaj + "." + vmin, vmaj, vmaj + "." + vmin + dll_suffix, '')
+        file_names += ['libpython' + v + '.dylib' for v in versions]
+        file_names += ['libpython' + v + '.so' for v in versions]
     else:
-        versions = (vmaj + "." + vmin, vmaj, '')
-        file_names = ['libpython' + v + '.so' for v in versions]
+        versions = (vmaj + "." + vmin, vmaj, vmaj + "." + vmin + dll_suffix, '')
+        file_names += ['libpython' + v + '.so' for v in versions]
 
     logger.debug("Potential Python shared library file names: %s" % repr(file_names))
 

@@ -76,11 +76,7 @@ class PyObjectReferences {
     /**
      * This should *only* be invoked through the proxy, or when we *know* we have the GIL.
      */
-    public int cleanupOnlyUseFromGIL() {
-        return cleanupOnlyUseFromGIL(buffer);
-    }
-
-    private int cleanupOnlyUseFromGIL(long[] buffer) {
+    public synchronized int threadSafeCleanup() {
         return PyLib.ensureGil(() -> {
             int index = 0;
             while (index < buffer.length) {
@@ -153,45 +149,54 @@ class PyObjectReferences {
                 sleep_time = 0.1 if size == 1024 else 1.0
                 time.sleep(sleep_time)
          */
+        // try-catch block to handle PyLib not initialized exception when a race condition occurs in the free-threaded
+        // mode that the cleanup thread starts running after Python is already finalized.
+        try {
+            final PyObjectCleanup proxy = asProxy();
 
-        final PyObjectCleanup proxy = asProxy();
-
-        while (!Thread.currentThread().isInterrupted()) {
-            // This blocks on the GIL, acquires the GIL, and then releases the GIL.
-            // For linux, acquiring the GIL involves a pthread_mutex_lock, which does not provide
-            // any fairness guarantees. As such, we need to be mindful of other python users/code,
-            // and ensure we don't overly acquire the GIL causing starvation issues, especially when
-            // there is no cleanup work to do.
-            final int size = proxy.cleanupOnlyUseFromGIL();
+            while (!Thread.currentThread().isInterrupted()) {
+                // This blocks on the GIL, acquires the GIL, and then releases the GIL.
+                // For linux, acquiring the GIL involves a pthread_mutex_lock, which does not provide
+                // any fairness guarantees. As such, we need to be mindful of other python users/code,
+                // and ensure we don't overly acquire the GIL causing starvation issues, especially when
+                // there is no cleanup work to do.
+                final int size = proxy.threadSafeCleanup();
 
 
-            // Although, it *does* make sense to potentially take the GIL in a tight loop when there
-            // is a lot of real cleanup work to do. Sleeping for any amount of time may be
-            // detrimental to the cleanup of resources. There is a balance that we want to try to
-            // achieve between producers of PyObjects, and the cleanup of PyObjects (us).
+                // Although, it *does* make sense to potentially take the GIL in a tight loop when there
+                // is a lot of real cleanup work to do. Sleeping for any amount of time may be
+                // detrimental to the cleanup of resources. There is a balance that we want to try to
+                // achieve between producers of PyObjects, and the cleanup of PyObjects (us).
 
-            // It would be much nicer if ReferenceQueue exposed a method that blocked until the
-            // queue was non-empty and *doesn't* remove any items. We can potentially implement this
-            // by using reflection to access the internal lock of the ReferenceQueue in the future.
+                // It would be much nicer if ReferenceQueue exposed a method that blocked until the
+                // queue was non-empty and *doesn't* remove any items. We can potentially implement this
+                // by using reflection to access the internal lock of the ReferenceQueue in the future.
 
-            if (size == buffer.length) {
-                if (CLEANUP_THREAD_ACTIVE_SLEEP_MILLIS == 0) {
-                    Thread.yield();
+                if (size == buffer.length) {
+                    if (CLEANUP_THREAD_ACTIVE_SLEEP_MILLIS == 0) {
+                        Thread.yield();
+                    } else {
+                        try {
+                            Thread.sleep(CLEANUP_THREAD_ACTIVE_SLEEP_MILLIS);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            return;
+                        }
+                    }
                 } else {
                     try {
-                        Thread.sleep(CLEANUP_THREAD_ACTIVE_SLEEP_MILLIS);
+                        Thread.sleep(CLEANUP_THREAD_PASSIVE_SLEEP_MILLIS);
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                         return;
                     }
                 }
-            } else {
-                try {
-                    Thread.sleep(CLEANUP_THREAD_PASSIVE_SLEEP_MILLIS);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    return;
-                }
+            }
+        }
+        catch (RuntimeException e) {
+            String msg;
+            if ((msg = e.getMessage()) != null && !msg.contains("PyLib not initialized")) {
+                throw e;
             }
         }
     }

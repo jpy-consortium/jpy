@@ -60,11 +60,11 @@ jobs:
           - { machine: 'windows-2022', python: '3.11', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
           - { machine: 'windows-2022', python: '3.12', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
           - { machine: 'windows-2022', python: '3.13', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
-          - { machine: 'macos-12', python: '3.6', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          - { machine: 'macos-12', python: '3.7', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          - { machine: 'macos-12', python: '3.11', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          - { machine: 'macos-12', python: '3.12', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          - { machine: 'macos-12', python: '3.13', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-13', python: '3.6', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-13', python: '3.7', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-13', python: '3.11', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-13', python: '3.12', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-13', python: '3.13', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
 
     steps:
       - uses: actions/checkout@v4
@@ -79,7 +79,6 @@ jobs:
           distribution: 'temurin'
           java-version: '8'
 
-      - run: pip install setuptools
       - run: ${{ matrix.info.cmd }}
 
       - uses: actions/upload-artifact@v4
@@ -108,9 +107,9 @@ jobs:
       fail-fast: false
       matrix:
         info:
-          - { machine: 'macos-12', python: '3.8', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          - { machine: 'macos-12', python: '3.9', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          - { machine: 'macos-12', python: '3.10', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-13', python: '3.8', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-13', python: '3.9', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-13', python: '3.10', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
 
     steps:
       - uses: actions/checkout@v4
@@ -135,7 +134,7 @@ jobs:
           path: dist/*.whl
           retention-days: 1
 
-  bdist-wheels-linux-arm64:
+  bdist-wheel-linux-arm64:
     runs-on: 'ubuntu-24.04'
     steps:
       - uses: actions/checkout@v4
@@ -146,8 +145,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - run: mkdir /tmp/dist
+
       - name: Bake
-        uses: docker/bake-action@v4.6.0
+        uses: docker/bake-action@v5.11.0
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: false
         with:
           files: .github/docker/docker-bake.hcl
           pull: true
@@ -157,13 +160,97 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: bdist-wheels-linux-arm64
+          name: bdist-wheel-linux-arm64
           path: /tmp/dist/*.whl
+          retention-days: 1
+
+  bdist-wheel-t:
+    runs-on: ${{ matrix.info.machine }}
+    strategy:
+      fail-fast: false
+      matrix:
+        info:
+          - { machine: 'ubuntu-24.04', python: '3.13t', java: '8', arch: 'amd64', cmd: '.github/env/Linux/bdist-wheel.sh' }
+          - { machine: 'windows-2022', python: '3.13t', java: '8', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'macos-13', python: '3.13t', java: '8', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-14', python: '3.13t', java: '11', arch: 'arm64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        id: setup-java
+        with:
+          distribution: 'temurin'
+          java-version: ${{ matrix.info.java }}
+
+      - uses: astral-sh/setup-uv@v5
+      - if : ${{ startsWith(matrix.info.machine, 'windows')}}
+        run: |
+          uv python install ${{ matrix.info.python }}
+          uv venv --python ${{ matrix.info.python }}
+          .venv\Scripts\Activate.ps1
+          uv pip install pip
+          echo PATH=$PATH >> $GITHUB_PATH
+          ${{ matrix.info.cmd }}
+      - if : ${{ ! startsWith(matrix.info.machine, 'windows')}}
+        run: |
+          uv python install ${{ matrix.info.python }}
+          uv venv --python ${{ matrix.info.python }}
+          source .venv/bin/activate
+          uv pip install pip
+          echo PATH=$PATH >> $GITHUB_PATH
+          ${{ matrix.info.cmd }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.info.python }}-${{ matrix.info.machine }}-${{ matrix.info.arch }}
+          path: dist/*.whl
+          retention-days: 1
+
+  bdist-wheel-linux-arm64-t:
+    runs-on: ${{ matrix.info.machine }}
+    strategy:
+      fail-fast: false
+      matrix:
+        info:
+          - { machine: 'ubuntu-24.04', python: '3.13t', java: '11', arch: 'aarch64', cmd: '.github/env/Linux/bdist-wheel.sh' }
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.21.3
+        env:
+          CIBW_FREE_THREADED_SUPPORT: true
+          CIBW_ARCHS_LINUX: "aarch64"
+          CIBW_BUILD: "cp313t-*"
+          CIBW_SKIP: "cp313t-musllinux_aarch64"
+          CIBW_BEFORE_ALL_LINUX: >
+            yum install -y java-${{ matrix.info.java }}-openjdk-devel &&
+            yum install -y wget &&
+            wget https://www.apache.org/dist/maven/maven-3/3.8.8/binaries/apache-maven-3.8.8-bin.tar.gz -P /tmp &&
+            tar xf /tmp/apache-maven-3.8.8-bin.tar.gz -C /opt &&
+            ln -s /opt/apache-maven-3.8.8/bin/mvn /usr/bin/mvn
+          CIBW_ENVIRONMENT: JAVA_HOME=/etc/alternatives/jre_11_openjdk
+          CIBW_REPAIR_WHEEL_COMMAND_LINUX: 'auditwheel repair --exclude libjvm.so -w {dest_dir} {wheel}'
+
+        with:
+          package-dir: .
+          output-dir: dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.info.python }}-${{ matrix.info.machine }}-${{ matrix.info.arch }}
+          path: dist/*.whl
           retention-days: 1
 
   collect-artifacts:
     runs-on: ubuntu-24.04
-    needs: ['sdist', 'bdist-wheel', 'bdist-wheel-universal2-hack', 'bdist-wheels-linux-arm64']
+    needs: ['sdist', 'bdist-wheel', 'bdist-wheel-universal2-hack', 'bdist-wheel-linux-arm64', 'bdist-wheel-t', 'bdist-wheel-linux-arm64-t']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -200,7 +287,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '8'
-          server-id: ossrh
+          server-id: central
           server-username: MAVEN_USERNAME
           server-password: MAVEN_PASSWORD
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
@@ -208,6 +295,6 @@ jobs:
       - name: Publish package
         run: mvn --batch-mode deploy -Pjpy-maven-deploy -DskipTests
         env:
-          MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-          MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
+          MAVEN_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.CENTRAL_TOKEN }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}

@@ -323,6 +323,9 @@ PyMODINIT_FUNC JPY_MODULE_INIT_FUNC(void)
     if (JPy_Module == NULL) {
         JPY_RETURN(NULL);
     }
+#ifdef Py_GIL_DISABLED
+    PyUnstable_Module_SetGIL(JPy_Module, Py_MOD_GIL_NOT_USED);
+#endif
 #elif defined(JPY_COMPAT_27)
     JPy_Module = Py_InitModule3(JPY_MODULE_NAME, JPy_Functions, JPY_MODULE_DOC);
     if (JPy_Module == NULL) {
@@ -625,6 +628,8 @@ PyObject* JPy_convert_internal(JNIEnv* jenv, PyObject* self, PyObject* args)
         if (targetTypeParsed == NULL) {
             return NULL;
         }
+        // new ref, persists in the global JPy_Types dict and will never be removed, so safe to DECREF
+        JPy_DECREF(targetTypeParsed);
     } else if (JType_Check(targetTypeArg)) {
         targetTypeParsed = (JPy_JType*) targetTypeArg;
     } else {
@@ -646,23 +651,7 @@ PyObject* JPy_convert_internal(JNIEnv* jenv, PyObject* self, PyObject* args)
         return NULL;
     }
 
-    // Create a global reference for the objectRef (so it is valid after we exit this frame)
-    objectRef = (*jenv)->NewGlobalRef(jenv, objectRef);
-    if (objectRef == NULL) {
-        PyErr_NoMemory();
-        return NULL;
-    }
-
-    // Create a PyObject (JObj) to hold the result
-    resultObj = (JPy_JObj*) PyObject_New(JPy_JObj, JTYPE_AS_PYTYPE(targetTypeParsed));
-    if (resultObj == NULL) {
-        (*jenv)->DeleteGlobalRef(jenv, objectRef);
-        return NULL;
-    }
-    // Store the reference to the converted object in the result JObj
-    ((JPy_JObj*) resultObj)->objectRef = objectRef;
-
-    return (PyObject*) resultObj;
+    return JObj_FromType(jenv, targetTypeParsed, objectRef);
 }
 
 

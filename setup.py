@@ -97,6 +97,7 @@ python_java_jpy_tests = [
     os.path.join(src_test_py_dir, 'jpy_java_embeddable_test.py'),
     os.path.join(src_test_py_dir, 'jpy_obj_test.py'),
     os.path.join(src_test_py_dir, 'jpy_eval_exec_test.py'),
+    os.path.join(src_test_py_dir, 'jpy_mt_eval_exec_test.py'),
 ]
 
 # e.g. jdk_home_dir = '/home/marta/jdk1.7.0_15'
@@ -370,7 +371,7 @@ setup(name='jpy',
           'install_lib': JpyInstallLib
       },
       python_requires='>=3.6',
-      classifiers=['Development Status :: 4 - Beta',
+      classifiers=['Development Status :: 5 - Production/Stable',
                    # Indicate who your project is intended for
                    'Intended Audience :: Developers',
 
