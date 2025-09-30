@@ -14,7 +14,6 @@ python setup.py bdist_wheel --dist-dir dist.linux
 # Note: auditwheel only works with a single file argument - we are relying on finding exactly one wheel
 auditwheel \
   repair \
-  --only-plat \
   --exclude libjvm.so \
   --wheel-dir dist/ \
   dist.linux/*
