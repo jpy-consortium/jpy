@@ -152,7 +152,7 @@ jobs:
           files: .github/docker/docker-bake.hcl
           pull: true
           set: |
-            *.platform=linux/amd64/v8
+            *.platform=linux/amd64
             *.output=type=local,dest=/tmp/dist
 
       - uses: actions/upload-artifact@v4
