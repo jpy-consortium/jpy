@@ -1,6 +1,10 @@
 group "default" {
     targets = [
         "python-39-linux",
+        "python-310-linux",
+        "python-311-linux",
+        "python-312-linux",
+        "python-313-linux"
     ]
 }
 
