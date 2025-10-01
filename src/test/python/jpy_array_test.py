@@ -58,6 +58,15 @@ class TestJavaArrays(unittest.TestCase):
     def test_array_boolean(self):
         self.do_test_array_protocol('boolean', [False, False, False], [True, False, True])
 
+        # This seems a bit weird but numpy.ndarray allows this too, also but anyone familiar with strong typed languages
+        # shouldn't expect that values of types other than boolean can be assigned to a boolean array element.
+        jba = jpy.array("boolean", 3)
+        jba[0] = []
+        jba[1] = [1]
+        jba[2] = False
+        self.assertEqual(jba[0], False)
+        self.assertEqual(jba[1], True)
+        self.assertEqual(jba[2], False)
 
     def test_array_char(self):
         self.do_test_array_protocol('char', [0, 0, 0], [0, 100, 32767])

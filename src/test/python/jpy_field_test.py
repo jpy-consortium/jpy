@@ -62,6 +62,13 @@ class TestFields(unittest.TestCase):
         self.assertAlmostEqual(fixture.fInstField, 0.12345, places=5)
         self.assertAlmostEqual(fixture.dInstField, 0.123456789)
 
+        # this seems a bit stretchy, but anyone familiar with strong typed languages shouldn't expect
+        # that values of types other than boolean can be assigned to a boolean field.
+        fixture.zInstField = []
+        self.assertEqual(fixture.zInstField, False)
+        fixture.zInstField = [None]
+        self.assertEqual(fixture.zInstField, True)
+
 
     def test_object_instance_fields(self):
         fixture = self.Fixture()
