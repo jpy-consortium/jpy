@@ -9,6 +9,9 @@ group "default" {
 }
 
 variable "DEBIAN_BASE" {
+    # bullseye: manylinux2014 / manylinux_2_17
+    # bookworm: manylinux_2_34
+    # trixie: errors out, likely some code warnings that turned into errors with newer GCC
     default = "bullseye"
 }
 
