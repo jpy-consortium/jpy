@@ -1,18 +1,14 @@
 group "default" {
     targets = [
         "python-39-linux",
-        "python-310-linux",
-        "python-311-linux",
-        "python-312-linux",
-        "python-313-linux"
     ]
 }
 
 variable "DEBIAN_BASE" {
     # bullseye: manylinux2014 / manylinux_2_17
     # bookworm: manylinux_2_34
-    # trixie: errors out, likely some code warnings that turned into errors with newer GCC
-    default = "bullseye"
+    # trixie: Unable to build on Debian trixie, https://github.com/jpy-consortium/jpy/issues/202
+    default = "trixie"
 }
 
 variable "GITHUB_ACTIONS" {
