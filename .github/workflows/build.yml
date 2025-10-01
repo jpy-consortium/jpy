@@ -45,22 +45,22 @@ jobs:
       matrix:
         info:
           # Note: this will not produce a manylinux_2_17 compatible wheel
-          - { machine: 'ubuntu-22.04', python: '3.13t', arch: 'amd64', cmd: '.github/env/Linux/bdist-wheel.sh' }
-          - { machine: 'ubuntu-22.04-arm', python: '3.13t', arch: 'arm64', cmd: '.github/env/Linux/bdist-wheel.sh' }
+          - { machine: 'ubuntu-22.04', python: '3.13t', arch: 'amd64', cmd: '.github/env/Linux/bdist-wheel.sh', java: '8' }
+          - { machine: 'ubuntu-22.04-arm', python: '3.13t', arch: 'arm64', cmd: '.github/env/Linux/bdist-wheel.sh', java: '8' }
 
-          - { machine: 'windows-2022', python: '3.9',  arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
-          - { machine: 'windows-2022', python: '3.10', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
-          - { machine: 'windows-2022', python: '3.11', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
-          - { machine: 'windows-2022', python: '3.12', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
-          - { machine: 'windows-2022', python: '3.13', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
-          - { machine: 'windows-2022', python: '3.13t', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.9',  arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1', java: '8' }
+          - { machine: 'windows-2022', python: '3.10', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1', java: '8' }
+          - { machine: 'windows-2022', python: '3.11', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1', java: '8' }
+          - { machine: 'windows-2022', python: '3.12', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1', java: '8' }
+          - { machine: 'windows-2022', python: '3.13', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1', java: '8' }
+          - { machine: 'windows-2022', python: '3.13t', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1', java: '8' }
 
-          - { machine: 'macos-13', python: '3.11', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          - { machine: 'macos-13', python: '3.12', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          - { machine: 'macos-13', python: '3.13', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-13', python: '3.11', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh', java: '8' }
+          - { machine: 'macos-13', python: '3.12', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh', java: '8' }
+          - { machine: 'macos-13', python: '3.13', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh', java: '8' }
 
-          - { machine: 'macos-13', python: '3.13t', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          - { machine: 'macos-14', python: '3.13t', arch: 'arm64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-13', python: '3.13t', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh', java: '8' }
+          - { machine: 'macos-14', python: '3.13t', arch: 'arm64', cmd: '.github/env/macOS/bdist-wheel.sh', java: '11' }
     steps:
       - uses: actions/checkout@v5
 
@@ -72,7 +72,7 @@ jobs:
         id: setup-java
         with:
           distribution: 'temurin'
-          java-version: '8'
+          java-version: ${{ matrix.info.java }}
 
       - run: ${{ matrix.info.cmd }}
 
