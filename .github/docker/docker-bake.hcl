@@ -12,7 +12,7 @@ variable "DEBIAN_BASE" {
     # bullseye: manylinux2014 / manylinux_2_17
     # bookworm: manylinux_2_34
     # trixie: Unable to build on Debian trixie, https://github.com/jpy-consortium/jpy/issues/202
-    default = "trixie"
+    default = "bullseye"
 }
 
 variable "GITHUB_ACTIONS" {
