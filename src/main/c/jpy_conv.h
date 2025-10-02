@@ -23,7 +23,7 @@
 extern "C" {
 #endif
 
-#define JPy_AS_JBOOLEAN(pyArg)   (jboolean)(PyObject_IsTrue(pyArg))
+#define JPy_AS_JBOOLEAN(pyArg)   (jboolean) (pyArg == Py_True ? 1 : (pyArg == Py_False || pyArg == Py_None) ? 0 : PyObject_IsTrue(pyArg))
 #define JPy_AS_JCHAR(pyArg)      (jchar) (pyArg == Py_None ? 0 : JPy_AS_CLONG(pyArg))
 #define JPy_AS_JBYTE(pyArg)      (jbyte) (pyArg == Py_None ? 0 : JPy_AS_CLONG(pyArg))
 #define JPy_AS_JSHORT(pyArg)     (jshort) (pyArg == Py_None ? 0 : JPy_AS_CLONG(pyArg))

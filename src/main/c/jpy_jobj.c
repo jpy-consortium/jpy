@@ -407,9 +407,6 @@ int JObj_setattro(JPy_JObj* self, PyObject* name, PyObject* value)
 
         if (type == JPy_JBoolean) {
             jboolean item = JPy_AS_JBOOLEAN(value);
-            if ((signed char)item == -1) {
-                return -1;
-            }
             (*jenv)->SetBooleanField(jenv, self->objectRef, field->fid, item);
             JPy_ON_JAVA_EXCEPTION_RETURN(-1);
         } else if (type == JPy_JChar) {
@@ -674,10 +671,6 @@ int JObj_sq_ass_item(JPy_JObj* self, Py_ssize_t index, PyObject* pyItem)
     // Note: the following item assignments are not value range checked
     if (componentType == JPy_JBoolean) {
         jboolean item = JPy_AS_JBOOLEAN(pyItem);
-        if ((signed char)item == -1) {
-            PyErr_SetString(PyExc_RuntimeError, "failed to check the truthiness of object");
-            return -1;
-        }
         (*jenv)->SetBooleanArrayRegion(jenv, self->objectRef, (jsize) index, 1, &item);
         JPy_ON_JAVA_EXCEPTION_RETURN(-1);
     } else if (componentType == JPy_JChar) {
