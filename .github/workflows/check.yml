@@ -25,7 +25,7 @@ jobs:
           distribution: 'temurin'
           java-version: ${{ matrix.java }}
 
-      - run: pip install "setuptools < 72"
+      - run: pip install "setuptools < 72" numpy
 
       - name: Run Test
         run: python setup.py test
@@ -63,7 +63,7 @@ jobs:
             echo $JAVA_HOME
             echo PATH=$PATH >> $GITHUB_PATH
 
-        - run: pip install "setuptools < 72"
+        - run: pip install "setuptools < 72" numpy
 
         - name: Run Free-threaded Test
           run: python setup.py test
