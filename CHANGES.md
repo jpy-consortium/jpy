@@ -1,6 +1,7 @@
 # jpy Changelog
 
-## Version 1.2.0 (in development)
+## Version 1.2.0
+* [#199](https://github.com/jpy-consortium/jpy/pull/199) Call PyObject_IsTrue() to test truthiness
 
 ## Version 1.1.0
 * [#179](https://github.com/jpy-consortium/jpy/pull/179) Improve libpython search with python's sysconfig INSTSONAME
