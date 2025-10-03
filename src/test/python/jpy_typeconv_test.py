@@ -342,6 +342,10 @@ class TestTypeConversions(unittest.TestCase):
         self.assertEqual(jpy.cast(jobj, expected_type).booleanValue(), True)
         jobj = jpy.convert(ba[1], java_boolean_type)
         self.assertEqual(jpy.cast(jobj, expected_type).booleanValue(), False)
+        jobj = jpy.convert(np.bool_(True), java_boolean_type)
+        self.assertEqual(jpy.cast(jobj, expected_type).booleanValue(), True)
+        jobj = jpy.convert(np.bool_(False), java_boolean_type)
+        self.assertEqual(jpy.cast(jobj, expected_type).booleanValue(), False)
 
 
 if __name__ == '__main__':
