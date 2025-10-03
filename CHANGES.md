@@ -1,5 +1,7 @@
 # jpy Changelog
 
+## Version 1.3.0 (in development)
+
 ## Version 1.2.0
 * [#199](https://github.com/jpy-consortium/jpy/pull/199) Call PyObject_IsTrue() to test truthiness
 
