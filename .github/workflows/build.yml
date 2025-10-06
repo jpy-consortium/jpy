@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '8'
@@ -27,7 +27,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v5
       # TODO: sdist shouldn't need java
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         id: setup-java
         with:
           distribution: 'temurin'
@@ -72,7 +72,7 @@ jobs:
         with:
           python-version: ${{ matrix.info.python }}
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         id: setup-java
         with:
           distribution: 'temurin'
@@ -116,7 +116,7 @@ jobs:
         with:
           python-version: ${{ matrix.info.python }}
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         id: setup-java
         with:
           distribution: 'temurin'
@@ -225,7 +225,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '8'
