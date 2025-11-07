@@ -4,7 +4,8 @@ group "default" {
         "python-310-linux",
         "python-311-linux",
         "python-312-linux",
-        "python-313-linux"
+        "python-313-linux",
+        "python-314-linux"
     ]
 }
 
@@ -61,5 +62,14 @@ target "python-313-linux" {
     inherits = [ "shared" ]
     args = {
         PYTHON_TAG = "3.13-${DEBIAN_BASE}"
+    }
+}
+
+target "python-314-linux" {
+    inherits = [ "shared" ]
+    args = {
+        DEBIAN_BASE = "bookworm"
+        # For Python 3.14, only Debian Bookworm and above is supported
+        PYTHON_TAG = "3.14-bookworm"
     }
 }

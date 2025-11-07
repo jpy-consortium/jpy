@@ -1,5 +1,6 @@
 setuptools
 wheel
+auditwheel>=6.4.2; python_version >= '3.14'
 auditwheel>=6.1.0; python_version >= '3.13'
 auditwheel>=6.0.0; python_version >= '3.8'
 auditwheel>=5.4.0; python_version == '3.7'

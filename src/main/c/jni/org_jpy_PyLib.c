@@ -58,11 +58,19 @@ static int python_traceback_report(PyObject *tb, char **buf, int* bufLen);
 #define JPy_GIL_AWARE
 
 #ifdef JPy_GIL_AWARE
-    #define JPy_BEGIN_GIL_STATE  { PyGILState_STATE gilState = PyGILState_Ensure();
-    #define JPy_END_GIL_STATE    PyGILState_Release(gilState); }
+#if defined(_WIN64)
+#define JPy_BEGIN_GIL_STATE  { PyGILState_STATE gilState = PyGILState_Ensure();
 #else
-    #define JPy_BEGIN_GIL_STATE
-    #define JPy_END_GIL_STATE
+#if PY_VERSION_HEX >= 0x030D0000 // >=3.13
+#define JPy_BEGIN_GIL_STATE  { if (Py_IsFinalizing() != 0) pthread_exit(NULL); PyGILState_STATE gilState = PyGILState_Ensure();
+#else
+#define JPy_BEGIN_GIL_STATE  { if (_Py_IsFinalizing() != 0) pthread_exit(NULL); PyGILState_STATE gilState = PyGILState_Ensure();
+#endif
+#endif
+#define JPy_END_GIL_STATE    PyGILState_Release(gilState); }
+#else
+#define JPy_BEGIN_GIL_STATE
+#define JPy_END_GIL_STATE
 #endif
 
 
