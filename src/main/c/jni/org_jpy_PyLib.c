@@ -70,9 +70,19 @@ static int python_traceback_report(PyObject *tb, char **buf, int* bufLen);
 // 2. it adds some overhead to calling Python from Java, but this is usually negligible compared to the cost of acquiring
 // and releasing the GIL itself.
 #if defined(_WIN64)
-    #define JPy_BEGIN_GIL_STATE  { if (JPy_Py_IsFinalizing() != 0) ExitThread(-1); PyGILState_STATE gilState = PyGILState_Ensure();
+    #define JPy_BEGIN_GIL_STATE  { \
+        if (JPy_Py_IsFinalizing() != 0) { \
+            JPy_DIAG_PRINT(JPy_DIAG_F_ALL, "Thread attempted to call into Python during interpreter shutdown. Exiting thread.\n"); \
+            ExitThread(-1); \
+        }; \
+        PyGILState_STATE gilState = PyGILState_Ensure();
 #else
-    #define JPy_BEGIN_GIL_STATE  { if (JPy_Py_IsFinalizing() != 0) pthread_exit(NULL); PyGILState_STATE gilState = PyGILState_Ensure();
+    #define JPy_BEGIN_GIL_STATE  { \
+        if (JPy_Py_IsFinalizing() != 0) { \
+            JPy_DIAG_PRINT(JPy_DIAG_F_ALL, "Thread attempted to call into Python during interpreter shutdown. Exiting thread.\n"); \
+            pthread_exit(NULL); \
+        }; \
+        PyGILState_STATE gilState = PyGILState_Ensure();
 #endif
 
 #define JPy_END_GIL_STATE    PyGILState_Release(gilState); }
