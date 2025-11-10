@@ -61,8 +61,6 @@ static int python_traceback_report(PyObject *tb, char **buf, int* bufLen);
 #define JPy_Py_IsFinalizing _Py_IsFinalizing
 #endif
 
-#define JPy_GIL_AWARE
-
 // Checking if Python is in the middle of finalization (using Py_IsFinalizing or _Py_IsFinalizing) to make sure that we
 // do not attempt to interact with the Python runtime while it is shutting down. This helps prevent undefined
 // behavior, segmentation faults, or resource leaks that can occur if threads try to acquire the GIL or call Python APIs
@@ -71,18 +69,13 @@ static int python_traceback_report(PyObject *tb, char **buf, int* bufLen);
 // 1. it doesn't completely prevent the race condition from happening, but it mitigates the risk significantly.
 // 2. it adds some overhead to calling Python from Java, but this is usually negligible compared to the cost of acquiring
 // and releasing the GIL itself.
-#ifdef JPy_GIL_AWARE
-    #if defined(_WIN64)
-        #define JPy_BEGIN_GIL_STATE  { if (JPy_Py_IsFinalizing() != 0) ExitThread(-1); PyGILState_STATE gilState = PyGILState_Ensure();
-    #else
-        #define JPy_BEGIN_GIL_STATE  { if (JPy_Py_IsFinalizing() != 0) pthread_exit(NULL); PyGILState_STATE gilState = PyGILState_Ensure();
-    #endif
-
-    #define JPy_END_GIL_STATE    PyGILState_Release(gilState); }
+#if defined(_WIN64)
+    #define JPy_BEGIN_GIL_STATE  { if (JPy_Py_IsFinalizing() != 0) ExitThread(-1); PyGILState_STATE gilState = PyGILState_Ensure();
 #else
-    #define JPy_BEGIN_GIL_STATE
-    #define JPy_END_GIL_STATE
+    #define JPy_BEGIN_GIL_STATE  { if (JPy_Py_IsFinalizing() != 0) pthread_exit(NULL); PyGILState_STATE gilState = PyGILState_Ensure();
 #endif
+
+#define JPy_END_GIL_STATE    PyGILState_Release(gilState); }
 
 
 /**
