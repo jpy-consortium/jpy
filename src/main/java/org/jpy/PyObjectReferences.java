@@ -195,7 +195,7 @@ class PyObjectReferences {
         }
         catch (RuntimeException e) {
             String msg;
-            if ((msg = e.getMessage()) != null && !msg.contains("PyLib not initialized")) {
+            if ((msg = e.getMessage()) != null && !(msg.contains("PyLib not initialized") || msg.contains("interpreter shutdown"))) {
                 throw e;
             }
         }

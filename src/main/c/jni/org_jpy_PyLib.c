@@ -55,15 +55,36 @@ static int python_traceback_report(PyObject *tb, char **buf, int* bufLen);
 #define JPy_IM_SCRIPT     257
 #define JPy_IM_EXPRESSION 258
 
-#define JPy_GIL_AWARE
-
-#ifdef JPy_GIL_AWARE
-    #define JPy_BEGIN_GIL_STATE  { PyGILState_STATE gilState = PyGILState_Ensure();
-    #define JPy_END_GIL_STATE    PyGILState_Release(gilState); }
+#if PY_VERSION_HEX >= 0x030D0000
+#define JPy_Py_IsFinalizing Py_IsFinalizing
 #else
-    #define JPy_BEGIN_GIL_STATE
-    #define JPy_END_GIL_STATE
+#define JPy_Py_IsFinalizing _Py_IsFinalizing
 #endif
+
+// Checking if Python is in the middle of finalization to make sure that we do not attempt to interact with the Python
+// runtime while it is shutting down. This helps prevent undefined behavior, such as thread hanging/crashing in
+// PyGILState_Ensure() as described in https://docs.python.org/3.14/c-api/init.html#c.PyGILState_Ensure. Note that this
+// approach has some limitations:
+// 1. it doesn't completely prevent the race condition from happening(TOCTOU), but it mitigates the risk significantly.
+// 2. it adds some overhead to calling Python from Java, but this is usually negligible compared to the cost of acquiring
+// and releasing the GIL itself.
+#define JPy_BEGIN_GIL_STATE(retval) {                     \
+    if (JPy_Py_IsFinalizing() != 0) {                                        \
+        JPy_DIAG_PRINT(JPy_DIAG_F_ALL, "Thread attempted to call into Python during interpreter shutdown. Raising exception.\n"); \
+        (*jenv)->ThrowNew(jenv, JPy_RuntimeException_JClass, "Thread attempted to call into Python during interpreter shutdown"); \
+        return (retval);                                                     \
+    }                                                                        \
+    PyGILState_STATE gilState = PyGILState_Ensure();
+
+#define JPy_BEGIN_GIL_STATE_VOID() {                      \
+    if (JPy_Py_IsFinalizing() != 0) {                                        \
+        JPy_DIAG_PRINT(JPy_DIAG_F_ALL, "Thread attempted to call into Python during interpreter shutdown. Raising exception.\n"); \
+        (*jenv)->ThrowNew(jenv, JPy_RuntimeException_JClass, "Thread attempted to call into Python during interpreter shutdown"); \
+        return;                                                              \
+    }                                                                        \
+    PyGILState_STATE gilState = PyGILState_Ensure();
+
+#define JPy_END_GIL_STATE    PyGILState_Release(gilState); }
 
 
 /**
@@ -322,7 +343,7 @@ JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_startPython0
             //printf(">> pathCount=%d\n", pathCount);
             if (pathCount > 0) {
 
-                JPy_BEGIN_GIL_STATE
+                JPy_BEGIN_GIL_STATE(JNI_FALSE)
 
                 pyPathList = PySys_GetObject("path");
                 //printf(">> pyPathList=%p, len=%ld\n", pyPathList, PyList_Size(pyPathList));
@@ -353,7 +374,7 @@ JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_startPython0
         if (JPy_Module == NULL) {
             PyObject* pyModule;
 
-            JPy_BEGIN_GIL_STATE
+            JPy_BEGIN_GIL_STATE(JNI_FALSE)
 
             // We import 'jpy' so that Python can call our PyInit_jpy() which sets up a number of
             // required global variables (including JPy_Module, see above).
@@ -400,7 +421,7 @@ JNIEXPORT void JNICALL Java_org_jpy_PyLib_stopPython0
     if (Py_IsInitialized()) {
         // Cleanup the JPY stateful structures and shut down the interpreter.
 
-        JPy_BEGIN_GIL_STATE
+        JPy_BEGIN_GIL_STATE_VOID()
 
         JPy_free();
 
@@ -445,7 +466,7 @@ JNIEXPORT jint JNICALL Java_org_jpy_PyLib_execScript
     const char* scriptChars;
     int retCode = -1;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(-1)
 
     scriptChars = (*jenv)->GetStringUTFChars(jenv, jScript, NULL);
     if (scriptChars == NULL) {
@@ -539,7 +560,7 @@ JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_getMainGlobals
     jobject objectRef = NULL;
     PyObject *globals;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(NULL)
 
     globals = getMainGlobals(); // new ref
     if (globals == NULL) {
@@ -563,7 +584,7 @@ JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_getCurrentGlobals
     jobject objectRef = NULL;
     PyObject *globals;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(NULL)
 
 #if PY_VERSION_HEX < 0x030D0000 // < 3.13
     globals = PyEval_GetGlobals(); // borrowed ref
@@ -594,7 +615,7 @@ JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_getCurrentLocals
     jobject objectRef = NULL;
     PyObject *locals;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(NULL)
 
 #if PY_VERSION_HEX < 0x030D0000 // < 3.13
     locals = PyEval_GetLocals(); // borrowed ref
@@ -627,7 +648,7 @@ JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_copyDict
     PyObject* copy = NULL;
     PyObject* src = (PyObject*)pyPointer;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(NULL)
 
     if (!PyDict_Check(src)) {
         PyLib_ThrowUOE(jenv, "Not a dictionary!");
@@ -652,7 +673,7 @@ JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_newDict
     jobject objectRef = NULL;
     PyObject *dict;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(NULL)
 
     dict = PyDict_New();
 
@@ -674,7 +695,7 @@ JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_pyDictKeys
     PyObject* keys = NULL;
     PyObject* src = (PyObject*)pyDict;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(NULL)
 
     if (!PyDict_Check(src)) {
         PyLib_ThrowUOE(jenv, "Not a dictionary!");
@@ -699,7 +720,7 @@ JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_pyDictValues
     PyObject* values = NULL;
     PyObject* src = (PyObject*)pyDict;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(NULL)
 
     if (!PyDict_Check(src)) {
         PyLib_ThrowUOE(jenv, "Not a dictionary!");
@@ -725,7 +746,7 @@ JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_pyDictContains
     JPy_JType* keyType;
     PyObject* pyKey;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(JNI_FALSE)
 
     if (!PyDict_Check(src)) {
         result = -1;
@@ -919,7 +940,7 @@ jlong executeInternal(JNIEnv* jenv, jclass jLibClass, jint jStart, jobject jGlob
     int start;
     jboolean decGlobals, decLocals, copyGlobals, copyLocals;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(0)
 
     decGlobals = decLocals = JNI_FALSE;
     copyGlobals = copyLocals = JNI_FALSE;
@@ -1130,7 +1151,7 @@ JNIEXPORT void JNICALL Java_org_jpy_PyLib_incRef
     pyObject = (PyObject*) objId;
 
     if (Py_IsInitialized()) {
-        JPy_BEGIN_GIL_STATE
+        JPy_BEGIN_GIL_STATE_VOID()
 
         refCount = Py_REFCNT(pyObject);
         JPy_DIAG_PRINT(JPy_DIAG_F_MEM, "Java_org_jpy_PyLib_incRef: pyObject=%p, refCount=%d, type='%s'\n", pyObject, refCount, Py_TYPE(pyObject)->tp_name);
@@ -1156,7 +1177,7 @@ JNIEXPORT void JNICALL Java_org_jpy_PyLib_decRef
     pyObject = (PyObject*) objId;
 
     if (Py_IsInitialized()) {
-        JPy_BEGIN_GIL_STATE
+        JPy_BEGIN_GIL_STATE_VOID()
 
         refCount = Py_REFCNT(pyObject);
         if (refCount <= 0) {
@@ -1183,7 +1204,7 @@ JNIEXPORT void JNICALL Java_org_jpy_PyLib_decRefs
     jlong* buf;
 
     if (Py_IsInitialized()) {
-        JPy_BEGIN_GIL_STATE
+        JPy_BEGIN_GIL_STATE_VOID()
 
         // Note: it *may* be desirable to instead force a local copy using GetLongArrayRegion, TBD.
         // It is *not* a good idea to use a critical array here, as JPy_DECREF may trigger the python
@@ -1218,7 +1239,7 @@ JNIEXPORT jint JNICALL Java_org_jpy_PyLib_getIntValue
     PyObject* pyObject;
     jint value;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(-1)
 
     pyObject = (PyObject*) objId;
     value = (jint) JPy_AS_CLONG(pyObject);
@@ -1244,7 +1265,7 @@ JNIEXPORT jlong JNICALL Java_org_jpy_PyLib_getLongValue
     PyObject* pyObject;
     jlong value;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(-1)
 
     pyObject = (PyObject*) objId;
     value = JPy_AS_CLONG(pyObject);
@@ -1267,7 +1288,7 @@ JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_getBooleanValue
     PyObject* pyObject;
     jboolean value;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(JNI_FALSE)
 
     pyObject = (PyObject*) objId;
     if (PyBool_Check(pyObject)) {
@@ -1292,7 +1313,7 @@ JNIEXPORT jdouble JNICALL Java_org_jpy_PyLib_getDoubleValue
     PyObject* pyObject;
     jdouble value;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(-1.0)
 
     pyObject = (PyObject*) objId;
     value = (jdouble) PyFloat_AsDouble(pyObject);
@@ -1317,7 +1338,7 @@ JNIEXPORT jstring JNICALL Java_org_jpy_PyLib_getStringValue
     PyObject* pyObject;
     jstring jString;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(NULL)
 
     pyObject = (PyObject*) objId;
 
@@ -1343,7 +1364,7 @@ JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_getObjectValue
     PyObject* pyObject;
     jobject jObject;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(NULL)
 
     pyObject = (PyObject*) objId;
 
@@ -1374,7 +1395,7 @@ JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_isConvertible
     PyObject* pyObject;
     jboolean result;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(JNI_FALSE)
 
     pyObject = (PyObject*) objId;
 
@@ -1397,7 +1418,7 @@ JNIEXPORT jlong JNICALL Java_org_jpy_PyLib_getType
 {
     PyObject* pyObject;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(0)
 
     pyObject = ((PyObject*) objId)->ob_type;
     JPy_INCREF(pyObject);
@@ -1420,7 +1441,7 @@ JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_pyDictCheck
 {
     jboolean result;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(JNI_FALSE)
 
     if (PyDict_Check(((PyObject*) objId))) {
         result = JNI_TRUE;
@@ -1446,7 +1467,7 @@ JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_pyListCheck
 {
     jboolean result;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(JNI_FALSE)
 
     if (PyList_Check(((PyObject*) objId))) {
         result = JNI_TRUE;
@@ -1472,7 +1493,7 @@ JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_pyBoolCheck
 {
     jboolean result;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(JNI_FALSE)
 
     if (PyBool_Check(((PyObject*) objId))) {
         result = JNI_TRUE;
@@ -1498,7 +1519,7 @@ JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_pyNoneCheck
 {
     jboolean result;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(JNI_FALSE)
 
     if (Py_None == (((PyObject*) objId))) {
         result = JNI_TRUE;
@@ -1524,7 +1545,7 @@ JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_pyIntCheck
 {
     int check;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(JNI_FALSE)
 
 #ifdef JPY_COMPAT_27
     check = PyInt_Check(((PyObject*) objId));
@@ -1550,7 +1571,7 @@ JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_pyLongCheck
 {
     jboolean result;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(JNI_FALSE)
 
     if (PyLong_Check(((PyObject*) objId))) {
         result = JNI_TRUE;
@@ -1576,7 +1597,7 @@ JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_pyFloatCheck
 {
     jboolean result;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(JNI_FALSE)
 
     if (PyFloat_Check(((PyObject*) objId))) {
         result = JNI_TRUE;
@@ -1602,7 +1623,7 @@ JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_pyStringCheck
 {
     jboolean result;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(JNI_FALSE)
 
     if (JPy_IS_STR(((PyObject*) objId))) {
         result = JNI_TRUE;
@@ -1628,7 +1649,7 @@ JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_pyCallableCheck
 {
     jboolean result;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(JNI_FALSE)
 
     if (PyCallable_Check(((PyObject*) objId))) {
         result = JNI_TRUE;
@@ -1654,7 +1675,7 @@ JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_pyFunctionCheck
 {
     jboolean result;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(JNI_FALSE)
 
     if (PyFunction_Check(((PyObject*) objId))) {
         result = JNI_TRUE;
@@ -1680,7 +1701,7 @@ JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_pyModuleCheck
 {
     jboolean result;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(JNI_FALSE)
 
     if (PyModule_Check(((PyObject*) objId))) {
         result = JNI_TRUE;
@@ -1706,7 +1727,7 @@ JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_pyTupleCheck
 {
     jboolean result;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(JNI_FALSE)
 
     if (PyTuple_Check(((PyObject*) objId))) {
         result = JNI_TRUE;
@@ -1733,7 +1754,7 @@ JNIEXPORT jstring JNICALL Java_org_jpy_PyLib_str
     jobject jObject;
     PyObject *pyStr;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(NULL)
 
     pyObject = (PyObject *) objId;
 
@@ -1766,7 +1787,7 @@ JNIEXPORT jstring JNICALL Java_org_jpy_PyLib_repr
     jobject jObject;
     PyObject *pyStr;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(NULL)
 
     pyObject = (PyObject *) objId;
 
@@ -1799,7 +1820,7 @@ JNIEXPORT jlong JNICALL Java_org_jpy_PyLib_hash
     PyObject* pyObject;
     long hash;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(-1)
 
     pyObject = (PyObject *) objId;
 
@@ -1820,7 +1841,7 @@ JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_eq
     PyObject* eq;
     jboolean result = JNI_FALSE;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(JNI_FALSE)
 
     pyObject1 = (PyObject *) objId1;
     pyObject2 = PyLib_ConvertJavaToPythonObject(jenv, other);
@@ -1876,7 +1897,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_jpy_PyLib_getObjectArrayValue
     PyObject* pyObject;
     jobject jObject;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(NULL)
 
     pyObject = (PyObject*) objId;
 
@@ -1936,7 +1957,7 @@ JNIEXPORT jlong JNICALL Java_org_jpy_PyLib_importModule
     PyObject* pyModule = NULL;
     const char* nameChars;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(0)
 
     nameChars = (*jenv)->GetStringUTFChars(jenv, jName, NULL);
     if (nameChars == NULL) {
@@ -1977,7 +1998,7 @@ JNIEXPORT jlong JNICALL Java_org_jpy_PyLib_getAttributeObject
     PyObject* pyObject;
     PyObject* pyValue;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(0)
 
     pyObject = (PyObject*) objId;
     pyValue = PyLib_GetAttributeObject(jenv, pyObject, jName);
@@ -1999,7 +2020,7 @@ JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_getAttributeValue
     PyObject* pyValue;
     jobject jReturnValue;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(NULL)
 
     pyObject = (PyObject*) objId;
 
@@ -2036,7 +2057,7 @@ JNIEXPORT void JNICALL Java_org_jpy_PyLib_setAttributeValue
     PyObject* pyValue;
     JPy_JType* valueType;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE_VOID()
 
     pyObject = (PyObject*) objId;
 
@@ -2096,7 +2117,7 @@ JNIEXPORT void JNICALL Java_org_jpy_PyLib_delAttribute
     PyObject* pyObject;
     const char* nameChars;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE_VOID()
 
     pyObject = (PyObject*) objId;
 
@@ -2140,7 +2161,7 @@ JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_hasAttribute
     const char* nameChars;
     jboolean result = JNI_FALSE;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(JNI_FALSE)
 
     pyObject = (PyObject*) objId;
 
@@ -2192,7 +2213,7 @@ JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_ensureGil
   (JNIEnv* jenv, jclass jLibClass, jobject supplier)
 {
     jobject result;
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(NULL)
     result = (*jenv)->CallObjectMethod(jenv, supplier, JPy_Supplier_get_MID);
     JPy_END_GIL_STATE
     return result;
@@ -2210,7 +2231,7 @@ JNIEXPORT jlong JNICALL Java_org_jpy_PyLib_callAndReturnObject
     PyObject* pyObject;
     PyObject* pyReturnValue;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(0)
 
     pyObject = (PyObject*) objId;
     pyReturnValue = PyLib_CallAndReturnObject(jenv, pyObject, isMethodCall, jName, argCount, jArgs, jParamClasses);
@@ -2233,7 +2254,7 @@ JNIEXPORT jobject JNICALL Java_org_jpy_PyLib_callAndReturnValue
     PyObject* pyReturnValue;
     jobject jReturnValue = NULL;
 
-    JPy_BEGIN_GIL_STATE
+    JPy_BEGIN_GIL_STATE(NULL)
 
     pyReturnValue = PyLib_CallAndReturnObject(jenv, pyObject, isMethodCall, jName, argCount, jArgs, jParamClasses);
     if (pyReturnValue == NULL) {
