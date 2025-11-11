@@ -370,7 +370,7 @@ setup(name='jpy',
           'install': JpyInstall,
           'install_lib': JpyInstallLib
       },
-      python_requires='>=3.6',
+      python_requires='>=3.9',
       classifiers=['Development Status :: 5 - Production/Stable',
                    # Indicate who your project is intended for
                    'Intended Audience :: Developers',
@@ -378,9 +378,6 @@ setup(name='jpy',
                    # Pick your license as you wish (should match "license" above)
                    'License :: OSI Approved :: Apache Software License',
 
-                   'Programming Language :: Python :: 3.6',
-                   'Programming Language :: Python :: 3.7',
-                   'Programming Language :: Python :: 3.8',
                    'Programming Language :: Python :: 3.9',
                    'Programming Language :: Python :: 3.10',
                    'Programming Language :: Python :: 3.11',
