@@ -65,12 +65,12 @@ jobs:
           - { machine: 'windows-2022', python: '3.14', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
           - { machine: 'windows-2022', python: '3.14t', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
 
-          - { machine: 'macos-13', python: '3.11', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          - { machine: 'macos-13', python: '3.12', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          - { machine: 'macos-13', python: '3.13', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          - { machine: 'macos-13', python: '3.13t', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          - { machine: 'macos-13', python: '3.14', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          - { machine: 'macos-13', python: '3.14t', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-14', python: '3.11', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-14', python: '3.12', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-14', python: '3.13', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-14', python: '3.13t', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-14', python: '3.14', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-14', python: '3.14t', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
     steps:
       - uses: actions/checkout@v5
 
@@ -112,8 +112,8 @@ jobs:
       fail-fast: false
       matrix:
         info:
-          - { machine: 'macos-13', python: '3.9', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          - { machine: 'macos-13', python: '3.10', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-14', python: '3.9', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-14', python: '3.10', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
 
     steps:
       - uses: actions/checkout@v5
