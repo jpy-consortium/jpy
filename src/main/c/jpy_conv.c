@@ -17,7 +17,6 @@
 #include "jpy_module.h"
 #include "jpy_diag.h"
 #include "jpy_jtype.h"
-#include "jpy_jobj.h"
 #include "jpy_conv.h"
 #include "jpy_compat.h"
 
@@ -198,9 +197,6 @@ PyObject* JPy_FromTypeName(JNIEnv* jenv, jclass classRef)
 PyObject* JPy_FromJString(JNIEnv* jenv, jstring stringRef)
 {
     PyObject* returnValue;
-
-#if defined(JPY_COMPAT_33P)
-
     const jchar* jChars;
     jint length;
 
@@ -222,25 +218,6 @@ PyObject* JPy_FromJString(JNIEnv* jenv, jstring stringRef)
     returnValue = JPy_FROM_WIDE_CHAR_STR(jChars, length);
     (*jenv)->ReleaseStringChars(jenv, stringRef, jChars);
 
-#elif defined(JPY_COMPAT_27)
-
-    const char* utfChars;
-
-    if (stringRef == NULL) {
-        Py_RETURN_NONE;
-    }
-
-    utfChars = (*jenv)->GetStringUTFChars(jenv, stringRef, NULL);
-    if (utfChars != NULL) {
-        returnValue = Py_BuildValue("s", utfChars);
-        (*jenv)->ReleaseStringUTFChars(jenv, stringRef, utfChars);
-    } else {
-        PyErr_NoMemory();
-        returnValue = NULL;
-    }
-#else
-    #error JPY_VERSION_ERROR
-#endif
     return returnValue;
 }
 
@@ -256,14 +233,6 @@ int JPy_AsJString(JNIEnv* jenv, PyObject* arg, jstring* stringRef)
         *stringRef = NULL;
         return 0;
     }
-
-#if defined(JPY_COMPAT_27)
-    if (PyString_Check(arg)) {
-        char* cstr = PyString_AsString(arg);
-        *stringRef = (*jenv)->NewStringUTF(jenv, cstr);
-        return *stringRef != NULL ? 0 : -1;
-    }
-#endif
 
     wChars = JPy_AS_WIDE_CHAR_STR(arg, &length);
     if (wChars == NULL) {

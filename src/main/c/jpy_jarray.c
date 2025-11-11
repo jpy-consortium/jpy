@@ -240,8 +240,6 @@ void JArray_ReleaseBufferProc(JPy_JArray* self, Py_buffer* view, char javaType)
     // https://docs.python.org/3/c-api/typeobj.html#c.PyBufferProcs.bf_releasebuffer
 }
 
-// todo: py27: fix all releasebufferproc() functions which have different parameter types in 2.7
-
 void JArray_releasebufferproc_boolean(JPy_JArray* self, Py_buffer* view)
 {
     JArray_ReleaseBufferProc(self, view, 'Z');
@@ -288,90 +286,43 @@ void JArray_releasebufferproc_double(JPy_JArray* self, Py_buffer* view)
 //    getbufferproc bf_getbuffer;
 //    releasebufferproc bf_releasebuffer;
 // }
-//
-// PyBufferProcs 2.6 and 2.7 (3.x backport)
-//
-// struct PyBufferProcs {
-//    readbufferproc bf_getreadbuffer;
-//    writebufferproc bf_getwritebuffer;
-//    segcountproc bf_getsegcount;
-//    charbufferproc bf_getcharbuffer;
-//    getbufferproc bf_getbuffer;
-//    releasebufferproc bf_releasebuffer;
-// }
-//
-// PyBufferProcs <= 2.5 (not supported by jpy)
-//
-// struct PyBufferProcs {
-//    readbufferproc bf_getreadbuffer;
-//    writebufferproc bf_getwritebuffer;
-//    segcountproc bf_getsegcount;
-//    charbufferproc bf_getcharbuffer;
-// }
-
-#if defined(JPY_COMPAT_33P)
-
-#define JPY_PY27_OLD_BUFFER_PROCS
-
-#elif defined(JPY_COMPAT_27)
-
-#define JPY_PY27_OLD_BUFFER_PROCS \
-    (readbufferproc) NULL, \
-    (writebufferproc) NULL, \
-    (segcountproc) NULL, \
-    (charbufferproc) NULL,
-
-#else
-
-#error JPY_VERSION_ERROR
-
-#endif
-
 
 PyBufferProcs JArray_as_buffer_boolean = {
-    JPY_PY27_OLD_BUFFER_PROCS
     (getbufferproc) JArray_getbufferproc_boolean,
     (releasebufferproc) JArray_releasebufferproc_boolean
 };
 
 PyBufferProcs JArray_as_buffer_char = {
-    JPY_PY27_OLD_BUFFER_PROCS
     (getbufferproc) JArray_getbufferproc_char,
     (releasebufferproc) JArray_releasebufferproc_char
 };
 
 PyBufferProcs JArray_as_buffer_byte = {
-    JPY_PY27_OLD_BUFFER_PROCS
     (getbufferproc) JArray_getbufferproc_byte,
     (releasebufferproc) JArray_releasebufferproc_byte
 };
 
 PyBufferProcs JArray_as_buffer_short = {
-    JPY_PY27_OLD_BUFFER_PROCS
     (getbufferproc) JArray_getbufferproc_short,
     (releasebufferproc) JArray_releasebufferproc_short
 };
 
 PyBufferProcs JArray_as_buffer_int = {
-    JPY_PY27_OLD_BUFFER_PROCS
     (getbufferproc) JArray_getbufferproc_int,
     (releasebufferproc) JArray_releasebufferproc_int
 };
 
 PyBufferProcs JArray_as_buffer_long = {
-    JPY_PY27_OLD_BUFFER_PROCS
     (getbufferproc) JArray_getbufferproc_long,
     (releasebufferproc) JArray_releasebufferproc_long
 };
 
 PyBufferProcs JArray_as_buffer_float = {
-    JPY_PY27_OLD_BUFFER_PROCS
     (getbufferproc) JArray_getbufferproc_float,
     (releasebufferproc) JArray_releasebufferproc_float
 };
 
 PyBufferProcs JArray_as_buffer_double = {
-    JPY_PY27_OLD_BUFFER_PROCS
     (getbufferproc) JArray_getbufferproc_double,
     (releasebufferproc) JArray_releasebufferproc_double
 };
