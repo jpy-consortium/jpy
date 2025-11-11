@@ -82,7 +82,7 @@ jobs:
         id: setup-java
         with:
           distribution: 'temurin'
-          java-version: '8'
+          java-version: '11'
 
       - run: ${{ matrix.info.cmd }}
 
@@ -126,7 +126,7 @@ jobs:
         id: setup-java
         with:
           distribution: 'temurin'
-          java-version: '8'
+          java-version: '11'
 
       - run: pip install --upgrade pip
       - run: pip install --upgrade setuptools
