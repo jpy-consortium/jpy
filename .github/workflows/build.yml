@@ -51,19 +51,28 @@ jobs:
           # opposed to manylinux_2_17 produced via the docker bake process). This is a compromise that seems reasonable
           # given the more experimental nature of the free-threaded builds, coupled with the fact that python 3.13t is
           # less likely to be used on older Linux distributions.
-          - { machine: 'ubuntu-22.04', python: '3.13t', cmd: '.github/env/Linux/bdist-wheel.sh' }
-          - { machine: 'ubuntu-22.04-arm', python: '3.13t', cmd: '.github/env/Linux/bdist-wheel.sh' }
-          - { machine: 'ubuntu-22.04', python: '3.14t', cmd: '.github/env/Linux/bdist-wheel.sh' }
-          - { machine: 'ubuntu-22.04-arm', python: '3.14t', cmd: '.github/env/Linux/bdist-wheel.sh' }
+          - { machine: 'ubuntu-22.04', python: '3.13t', java: '8', cmd: '.github/env/Linux/bdist-wheel.sh' }
+          - { machine: 'ubuntu-22.04-arm', python: '3.13t',  java: '8', cmd: '.github/env/Linux/bdist-wheel.sh' }
+          - { machine: 'ubuntu-22.04', python: '3.14t', java: '8',cmd: '.github/env/Linux/bdist-wheel.sh' }
+          - { machine: 'ubuntu-22.04-arm', python: '3.14t', java: '8', cmd: '.github/env/Linux/bdist-wheel.sh' }
 
-          - { machine: 'windows-2022', python: '3.9',  cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
-          - { machine: 'windows-2022', python: '3.10', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
-          - { machine: 'windows-2022', python: '3.11', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
-          - { machine: 'windows-2022', python: '3.12', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
-          - { machine: 'windows-2022', python: '3.13', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
-          - { machine: 'windows-2022', python: '3.13t', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
-          - { machine: 'windows-2022', python: '3.14', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
-          - { machine: 'windows-2022', python: '3.14t', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.9', java: '8',  cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.10', java: '8', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.11', java: '8', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.12', java: '8', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.13', java: '8', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.13t', java: '8', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.14', java: '8', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.14t', java: '8', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+
+          - { machine: 'macos-14', python: '3.11', java: '11', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-14', python: '3.12', java: '11', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-14', python: '3.13', java: '11', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-14', python: '3.13t', java: '11', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-14', python: '3.14', java: '11', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-14', python: '3.14t', java: '11', cmd: '.github/env/macOS/bdist-wheel.sh' }
+
+
     steps:
       - uses: actions/checkout@v5
 
@@ -75,47 +84,7 @@ jobs:
         id: setup-java
         with:
           distribution: 'temurin'
-          java-version: '8'
-
-      - run: ${{ matrix.info.cmd }}
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: build-${{ matrix.info.python }}-${{ matrix.info.machine }}
-          path: dist/*.whl
-          retention-days: 1
-
-  bdist-wheel-macos:
-    runs-on: ${{ matrix.info.machine }}
-    strategy:
-      fail-fast: false
-      matrix:
-        info:
-          # Note: the free-threaded Linux wheels are not currently buildable via the docker bake workflow due to the
-          # limitations of the current image (docker.io/library/python:X doesn't provide free-threaded versions). Using
-          # the oldest available GitHub Linux runner image (ubuntu-22.04 / ubuntu-22.04-arm), we are able to use get
-          # the free-threaded builds via actions/setup-python. This produces a manylinux_2_34 compatible wheel (as
-          # opposed to manylinux_2_17 produced via the docker bake process). This is a compromise that seems reasonable
-          # given the more experimental nature of the free-threaded builds, coupled with the fact that python 3.13t is
-          # less likely to be used on older Linux distributions.
-          - { machine: 'macos-14', python: '3.11', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          - { machine: 'macos-14', python: '3.12', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          - { machine: 'macos-14', python: '3.13', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          - { machine: 'macos-14', python: '3.13t', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          - { machine: 'macos-14', python: '3.14', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          - { machine: 'macos-14', python: '3.14t', cmd: '.github/env/macOS/bdist-wheel.sh' }
-    steps:
-      - uses: actions/checkout@v5
-
-      - uses: actions/setup-python@v6
-        with:
-          python-version: ${{ matrix.info.python }}
-
-      - uses: actions/setup-java@v5
-        id: setup-java
-        with:
-          distribution: 'temurin'
-          java-version: '11'
+          java-version: ${{ matrix.info.java }}
 
       - run: ${{ matrix.info.cmd }}
 
@@ -231,7 +200,7 @@ jobs:
 
   collect-artifacts:
     runs-on: ubuntu-24.04
-    needs: ['sdist', 'bdist-wheel', 'bdist-wheel-macos', 'bdist-wheel-universal2-hack', 'bdist-wheel-linux-amd64', 'bdist-wheel-linux-arm64']
+    needs: ['sdist', 'bdist-wheel', 'bdist-wheel-universal2-hack', 'bdist-wheel-linux-amd64', 'bdist-wheel-linux-arm64']
     steps:
       - uses: actions/checkout@v5
       - uses: actions/download-artifact@v4
