@@ -231,7 +231,7 @@ jobs:
 
   collect-artifacts:
     runs-on: ubuntu-24.04
-    needs: ['sdist', 'bdist-wheel', 'bdist-wheel-universal2-hack', 'bdist-wheel-linux-amd64', 'bdist-wheel-linux-arm64']
+    needs: ['sdist', 'bdist-wheel', 'bdist-wheel-macos', 'bdist-wheel-universal2-hack', 'bdist-wheel-linux-amd64', 'bdist-wheel-linux-arm64']
     steps:
       - uses: actions/checkout@v5
       - uses: actions/download-artifact@v4
