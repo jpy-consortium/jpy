@@ -51,26 +51,28 @@ jobs:
           # opposed to manylinux_2_17 produced via the docker bake process). This is a compromise that seems reasonable
           # given the more experimental nature of the free-threaded builds, coupled with the fact that python 3.13t is
           # less likely to be used on older Linux distributions.
-          - { machine: 'ubuntu-22.04', python: '3.13t', arch: 'amd64', cmd: '.github/env/Linux/bdist-wheel.sh' }
-          - { machine: 'ubuntu-22.04-arm', python: '3.13t', arch: 'arm64', cmd: '.github/env/Linux/bdist-wheel.sh' }
-          - { machine: 'ubuntu-22.04', python: '3.14t', arch: 'amd64', cmd: '.github/env/Linux/bdist-wheel.sh' }
-          - { machine: 'ubuntu-22.04-arm', python: '3.14t', arch: 'arm64', cmd: '.github/env/Linux/bdist-wheel.sh' }
+          - { machine: 'ubuntu-22.04', python: '3.13t', java: '8', cmd: '.github/env/Linux/bdist-wheel.sh' }
+          - { machine: 'ubuntu-22.04-arm', python: '3.13t',  java: '8', cmd: '.github/env/Linux/bdist-wheel.sh' }
+          - { machine: 'ubuntu-22.04', python: '3.14t', java: '8',cmd: '.github/env/Linux/bdist-wheel.sh' }
+          - { machine: 'ubuntu-22.04-arm', python: '3.14t', java: '8', cmd: '.github/env/Linux/bdist-wheel.sh' }
 
-          - { machine: 'windows-2022', python: '3.9',  arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
-          - { machine: 'windows-2022', python: '3.10', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
-          - { machine: 'windows-2022', python: '3.11', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
-          - { machine: 'windows-2022', python: '3.12', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
-          - { machine: 'windows-2022', python: '3.13', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
-          - { machine: 'windows-2022', python: '3.13t', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
-          - { machine: 'windows-2022', python: '3.14', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
-          - { machine: 'windows-2022', python: '3.14t', arch: 'amd64', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.9', java: '8',  cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.10', java: '8', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.11', java: '8', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.12', java: '8', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.13', java: '8', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.13t', java: '8', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.14', java: '8', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.14t', java: '8', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
 
-          - { machine: 'macos-13', python: '3.11', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          - { machine: 'macos-13', python: '3.12', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          - { machine: 'macos-13', python: '3.13', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          - { machine: 'macos-13', python: '3.13t', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          - { machine: 'macos-13', python: '3.14', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          - { machine: 'macos-13', python: '3.14t', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-14', python: '3.11', java: '11', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-14', python: '3.12', java: '11', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-14', python: '3.13', java: '11', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-14', python: '3.13t', java: '11', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-14', python: '3.14', java: '11', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-14', python: '3.14t', java: '11', cmd: '.github/env/macOS/bdist-wheel.sh' }
+
+
     steps:
       - uses: actions/checkout@v5
 
@@ -82,13 +84,13 @@ jobs:
         id: setup-java
         with:
           distribution: 'temurin'
-          java-version: '8'
+          java-version: ${{ matrix.info.java }}
 
       - run: ${{ matrix.info.cmd }}
 
       - uses: actions/upload-artifact@v4
         with:
-          name: build-${{ matrix.info.python }}-${{ matrix.info.machine }}-${{ matrix.info.arch }}
+          name: build-${{ matrix.info.python }}-${{ matrix.info.machine }}
           path: dist/*.whl
           retention-days: 1
 
@@ -112,8 +114,8 @@ jobs:
       fail-fast: false
       matrix:
         info:
-          - { machine: 'macos-13', python: '3.9', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
-          - { machine: 'macos-13', python: '3.10', arch: 'amd64', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-14', python: '3.9', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-14', python: '3.10', cmd: '.github/env/macOS/bdist-wheel.sh' }
 
     steps:
       - uses: actions/checkout@v5
@@ -126,7 +128,7 @@ jobs:
         id: setup-java
         with:
           distribution: 'temurin'
-          java-version: '8'
+          java-version: '11'
 
       - run: pip install --upgrade pip
       - run: pip install --upgrade setuptools
@@ -134,7 +136,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: build-${{ matrix.info.python }}-${{ matrix.info.machine }}-${{ matrix.info.arch }}
+          name: build-${{ matrix.info.python }}-${{ matrix.info.machine }}
           path: dist/*.whl
           retention-days: 1
 

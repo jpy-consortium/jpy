@@ -84,7 +84,6 @@ void JPy_free_ptr(void* unused);
 #define JPY_MODULE_NAME "jpy"
 #define JPY_MODULE_DOC  "Bi-directional Python-Java Bridge"
 
-#if defined(JPY_COMPAT_33P)
 static struct PyModuleDef JPy_ModuleDef =
 {
     PyModuleDef_HEAD_INIT,
@@ -97,7 +96,6 @@ static struct PyModuleDef JPy_ModuleDef =
     NULL,         // m_clear
     JPy_free_ptr  // m_free
 };
-#endif
 
 PyObject* JPy_Module = NULL;
 PyObject* JPy_Types = NULL;
@@ -299,15 +297,8 @@ JNIEnv* JPy_GetJNIEnv(void)
     return jenv;
 }
 
-#if defined(JPY_COMPAT_33P)
 #define JPY_RETURN(V) return V
 #define JPY_MODULE_INIT_FUNC PyInit_jpy
-#elif defined(JPY_COMPAT_27)
-#define JPY_RETURN(V) return
-#define JPY_MODULE_INIT_FUNC initjpy
-#else
-#error JPY_VERSION_ERROR
-#endif
 
 /**
  * Called by the Python interpreter's import machinery, e.g. using 'import jpy'.
@@ -318,21 +309,12 @@ PyMODINIT_FUNC JPY_MODULE_INIT_FUNC(void)
 
     /////////////////////////////////////////////////////////////////////////
 
-#if defined(JPY_COMPAT_33P)
     JPy_Module = PyModule_Create(&JPy_ModuleDef);
     if (JPy_Module == NULL) {
         JPY_RETURN(NULL);
     }
 #ifdef Py_GIL_DISABLED
     PyUnstable_Module_SetGIL(JPy_Module, Py_MOD_GIL_NOT_USED);
-#endif
-#elif defined(JPY_COMPAT_27)
-    JPy_Module = Py_InitModule3(JPY_MODULE_NAME, JPy_Functions, JPY_MODULE_DOC);
-    if (JPy_Module == NULL) {
-        JPY_RETURN(NULL);
-    }
-#else
-    #error JPY_VERSION_ERROR
 #endif
 
     /////////////////////////////////////////////////////////////////////////

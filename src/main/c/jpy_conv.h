@@ -31,9 +31,6 @@ extern "C" {
 #define JPy_AS_JLONG(pyArg)      (jlong) (pyArg == Py_None ? 0 : JPy_AS_CLONGLONG(pyArg))
 #define JPy_AS_JFLOAT(pyArg)     (jfloat) (pyArg == Py_None ? 0 : PyFloat_AsDouble(pyArg))
 #define JPy_AS_JDOUBLE(pyArg)    (jdouble) (pyArg == Py_None ? 0 : PyFloat_AsDouble(pyArg))
-
-#if defined(JPY_COMPAT_33P)
-
 #define JPy_FROM_JBOOLEAN(jArg)  PyBool_FromLong(jArg)
 #define JPy_FROM_JCHAR(jArg)     PyLong_FromLong(jArg)
 #define JPy_FROM_JBYTE(jArg)     PyLong_FromLong(jArg)
@@ -42,23 +39,6 @@ extern "C" {
 #define JPy_FROM_JLONG(jArg)     PyLong_FromLongLong(jArg)
 #define JPy_FROM_JFLOAT(jArg)    PyFloat_FromDouble(jArg)
 #define JPy_FROM_JDOUBLE(jArg)   PyFloat_FromDouble(jArg)
-
-#elif defined(JPY_COMPAT_27)
-
-#define JPy_FROM_JBOOLEAN(jArg)  PyBool_FromLong(jArg)
-#define JPy_FROM_JCHAR(jArg)     PyInt_FromLong(jArg)
-#define JPy_FROM_JBYTE(jArg)     PyInt_FromLong(jArg)
-#define JPy_FROM_JSHORT(jArg)    PyInt_FromLong(jArg)
-#define JPy_FROM_JINT(jArg)      PyLong_FromLong(jArg)
-#define JPy_FROM_JLONG(jArg)     PyLong_FromLongLong(jArg)
-#define JPy_FROM_JFLOAT(jArg)    PyFloat_FromDouble(jArg)
-#define JPy_FROM_JDOUBLE(jArg)   PyFloat_FromDouble(jArg)
-
-#else
-
-#error JPY_VERSION_ERROR
-
-#endif
 
 #define JPy_PY_NONE()            Py_BuildValue("") // Builds a Python 'None' object
 #define JPy_FROM_JVOID()         JPy_PY_NONE()

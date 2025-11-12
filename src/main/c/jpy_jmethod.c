@@ -620,13 +620,7 @@ PyObject* JMethod_set_param_mutable(JPy_JMethod* self, PyObject* args)
 {
     int index;
     int value;
-#if defined(JPY_COMPAT_33P)
     if (!PyArg_ParseTuple(args, "ip:set_param_mutable", &index, &value)) {
-#elif defined(JPY_COMPAT_27)
-    if (!PyArg_ParseTuple(args, "ii:set_param_mutable", &index, &value)) {
-#else
-#error JPY_VERSION_ERROR
-#endif
         return NULL;
     }
     JMethod_CHECK_PARAMETER_INDEX(self, index);
@@ -650,13 +644,7 @@ PyObject* JMethod_set_param_output(JPy_JMethod* self, PyObject* args)
 {
     int index = 0;
     int value = 0;
-#if defined(JPY_COMPAT_33P)
     if (!PyArg_ParseTuple(args, "ip:set_param_output", &index, &value)) {
-#elif defined(JPY_COMPAT_27)
-    if (!PyArg_ParseTuple(args, "ii:set_param_output", &index, &value)) {
-#else
-#error JPY_VERSION_ERROR
-#endif
         return NULL;
     }
     JMethod_CHECK_PARAMETER_INDEX(self, index);
@@ -680,13 +668,7 @@ PyObject* JMethod_set_param_return(JPy_JMethod* self, PyObject* args)
 {
     int index = 0;
     int value = 0;
-#if defined(JPY_COMPAT_33P)
     if (!PyArg_ParseTuple(args, "ip:set_param_return", &index, &value)) {
-#elif defined(JPY_COMPAT_27)
-    if (!PyArg_ParseTuple(args, "ii:set_param_return", &index, &value)) {
-#else
-#error JPY_VERSION_ERROR
-#endif
         return NULL;
     }
     JMethod_CHECK_PARAMETER_INDEX(self, index);

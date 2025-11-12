@@ -484,14 +484,7 @@ PyObject* JObj_getattro(JPy_JObj* self, PyObject* name)
     if (PyObject_TypeCheck(value, &JOverloadedMethod_Type)) {
         //JPy_JOverloadedMethod* overloadedMethod = (JPy_JOverloadedMethod*) value;
         //printf("JObj_getattro: wrapping JOverloadedMethod, overloadCount=%d\n", PyList_Size(overloadedMethod->methodList));
-#if defined(JPY_COMPAT_33P)
         return PyMethod_New(value, (PyObject*) self);
-#elif defined(JPY_COMPAT_27)
-        // todo: py27: 3rd arg must be class of self, check if NULL is ok here
-        return PyMethod_New(value, (PyObject*) self, NULL);
-#else
-#error JPY_VERSION_ERROR
-#endif
     } else if (PyObject_TypeCheck(value, &JField_Type)) {
         JNIEnv* jenv;
         JPy_JField* field;
@@ -764,12 +757,6 @@ int JType_InitSlots(JPy_JType* type)
     // If I uncomment the following line, I get (unpredictable) interpreter crashes
     // (see also http://stackoverflow.com/questions/8066438/how-to-dynamically-create-a-derived-type-in-the-python-c-api)
     //typeObj->tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HEAPTYPE;
-
-    #if defined(JPY_COMPAT_27)
-    if (isPrimitiveArray) {
-        typeObj->tp_flags |= Py_TPFLAGS_HAVE_NEWBUFFER;
-    }
-    #endif
 
     typeObj->tp_getattro = (getattrofunc) JObj_getattro;
     typeObj->tp_setattro = (setattrofunc) JObj_setattro;

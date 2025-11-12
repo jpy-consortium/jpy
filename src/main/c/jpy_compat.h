@@ -24,26 +24,11 @@ extern "C" {
 #include <Python.h>
 #include "frameobject.h"
 
-#define JPY_VERSION_ERROR "jpy requires either Python 2.7 or Python 3.3+"
+#define JPY_VERSION_ERROR "jpy requires Python 3.9+"
 
-#if PY_MAJOR_VERSION == 2 && PY_MINOR_VERSION == 7
-#define JPY_COMPAT_27 1
-#undef JPY_COMPAT_33P
-#elif PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION >= 3
-#define JPY_COMPAT_33P 1
-#if PY_MINOR_VERSION >= 5
-#define JPY_COMPAT_35P 1
+#if PY_MAJOR_VERSION < 3 || PY_MINOR_VERSION < 9
+    #error JPY_VERSION_ERROR
 #endif
-#if PY_MINOR_VERSION >= 9
-#define JPY_COMPAT_39P 1
-#endif
-#undef JPY_COMPAT_27
-#else
-#error JPY_VERSION_ERROR
-#endif
-
-
-#if defined(JPY_COMPAT_33P)
 
 #define JPy_IS_CLONG(pyArg)      PyLong_Check(pyArg)
 #define JPy_AS_CLONG(pyArg)      PyLong_AsLong(pyArg)
@@ -57,53 +42,6 @@ extern "C" {
 #define JPy_AS_UTF8(unicode)                 PyUnicode_AsUTF8(unicode)
 #define JPy_AS_WIDE_CHAR_STR(unicode, size)  PyUnicode_AsWideCharString(unicode, size)
 #define JPy_FROM_WIDE_CHAR_STR(wc, size)     PyUnicode_FromKindAndData(PyUnicode_2BYTE_KIND, wc, size)
-
-#elif defined(JPY_COMPAT_27)
-
-#define JPy_IS_CLONG(pyArg)      (PyInt_Check(pyArg) || PyLong_Check(pyArg))
-#define JPy_AS_CLONG(pyArg)      (PyInt_Check(pyArg) ? PyInt_AsLong(pyArg) : PyLong_AsLong(pyArg))
-#define JPy_AS_CLONGLONG(pyArg)  (PyInt_Check(pyArg) ? PyInt_AsLong(pyArg) : PyLong_AsLongLong(pyArg))
-#define JPy_FROM_CLONG(cl)        PyInt_FromLong(cl)
-
-#define JPy_IS_STR(pyArg)        (PyString_Check(pyArg) || PyUnicode_Check(pyArg))
-#define JPy_FROM_CSTR(cstr)      PyString_FromString(cstr)
-#define JPy_FROM_FORMAT          PyString_FromFormat
-
-// Implement conversion rules from Python 2 to 3 as given here:
-// https://docs.python.org/3.3/howto/cporting.html
-// http://lucumr.pocoo.org/2011/1/22/forwards-compatible-python/
-
-const char* JPy_AsUTF8_PriorToPy33(PyObject* unicode);
-wchar_t* JPy_AsWideCharString_PriorToPy33(PyObject *unicode, Py_ssize_t *size);
-
-#define JPy_AS_UTF8(unicode)                 JPy_AsUTF8_PriorToPy33(unicode)
-#define JPy_AS_WIDE_CHAR_STR(unicode, size)  JPy_AsWideCharString_PriorToPy33(unicode, size)
-#define JPy_FROM_WIDE_CHAR_STR(wc, size)     PyUnicode_FromWideChar(wc, size)
-
-#endif
-
-// As recommended by https://docs.python.org/3.11/whatsnew/3.11.html#whatsnew311-c-api-porting
-#if PY_VERSION_HEX < 0x030900A4 && !defined(Py_SET_TYPE)
-static inline void _Py_SET_TYPE(PyObject *ob, PyTypeObject *type)
-{ ob->ob_type = type; }
-#define Py_SET_TYPE(ob, type) _Py_SET_TYPE((PyObject*)(ob), type)
-#endif
-
-// As recommended by https://docs.python.org/3.11/whatsnew/3.11.html#whatsnew311-c-api-porting
-#if PY_VERSION_HEX < 0x030900A4 && !defined(Py_SET_SIZE)
-static inline void _Py_SET_SIZE(PyVarObject *ob, Py_ssize_t size)
-{ ob->ob_size = size; }
-#define Py_SET_SIZE(ob, size) _Py_SET_SIZE((PyVarObject*)(ob), size)
-#endif
-
-// As recommended by https://docs.python.org/3.11/whatsnew/3.11.html#pyframeobject-3-11-hiding
-#if PY_VERSION_HEX < 0x030900B1
-static inline PyCodeObject* PyFrame_GetCode(PyFrameObject *frame)
-{
-    Py_INCREF(frame->f_code);
-    return frame->f_code;
-}
-#endif
 
 #ifdef __cplusplus
 } /* extern "C" */

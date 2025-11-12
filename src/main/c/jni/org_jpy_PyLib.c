@@ -150,11 +150,7 @@ JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_isPythonRunning
 }
 
 #define  MAX_PYTHON_HOME   256
-#if defined(JPY_COMPAT_33P)
 wchar_t staticPythonHome[MAX_PYTHON_HOME];
-#elif defined(JPY_COMPAT_27)
-char staticPythonHome[MAX_PYTHON_HOME];
-#endif
 
 /*
  * Class:     org_jpy_PyLib
@@ -164,23 +160,13 @@ char staticPythonHome[MAX_PYTHON_HOME];
 JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_setPythonHome
   (JNIEnv* jenv, jclass jLibClass, jstring jPythonHome)
 {
-#if defined(JPY_COMPAT_33P) && !defined(JPY_COMPAT_35P)
-    return JNI_FALSE;  // Not supported because DecodeLocale didn't exist in 3.4
-#else
-
-    #if defined(JPY_COMPAT_35P)
     const wchar_t* pythonHome = NULL;
-    #elif defined(JPY_COMPAT_27)
-    const char* pythonHome = NULL;
-    #endif
 
     const char *nonWidePythonHome = NULL;
     jboolean result = JNI_FALSE;
     nonWidePythonHome = (*jenv)->GetStringUTFChars(jenv, jPythonHome, NULL);
 
     if (nonWidePythonHome != NULL) {
-
-        #if defined(JPY_COMPAT_35P)
         pythonHome = Py_DecodeLocale(nonWidePythonHome, NULL);
         if (pythonHome != NULL) {
             if (wcslen(pythonHome) < MAX_PYTHON_HOME) {
@@ -190,38 +176,21 @@ JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_setPythonHome
             else {
                 PyMem_RawFree(pythonHome);
             }
-
         }
-
-        #elif defined(JPY_COMPAT_27)
-        pythonHome = nonWidePythonHome;
-        if (strlen(pythonHome) < MAX_PYTHON_HOME) {
-            strcpy(staticPythonHome, pythonHome);
-            result = JNI_TRUE;
-        }
-        #endif
 
         if (result) {
             Py_SetPythonHome(staticPythonHome);
-
-            #if defined(JPY_COMPAT_35P)
             PyMem_RawFree(pythonHome);
-            #endif
         }
 
         (*jenv)->ReleaseStringUTFChars(jenv, jPythonHome, nonWidePythonHome);
     }
 
     return result;
-#endif
 }
 
 #define  MAX_PROGRAM_NAME   256
-#if defined(JPY_COMPAT_33P)
 wchar_t staticProgramName[MAX_PROGRAM_NAME];
-#elif defined(JPY_COMPAT_27)
-char staticProgramName[MAX_PROGRAM_NAME];
-#endif
 
 /*
  * Class:     org_jpy_PyLib
@@ -231,23 +200,13 @@ char staticProgramName[MAX_PROGRAM_NAME];
 JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_setProgramName
   (JNIEnv* jenv, jclass jLibClass, jstring jProgramName)
 {
-#if defined(JPY_COMPAT_33P) && !defined(JPY_COMPAT_35P)
-    return JNI_FALSE;  // Not supported because DecodeLocale didn't exist in 3.4
-#else
-
-    #if defined(JPY_COMPAT_35P)
     const wchar_t* programName = NULL;
-    #elif defined(JPY_COMPAT_27)
-    const char* programName = NULL;
-    #endif
 
     const char *nonWideProgramName = NULL;
     jboolean result = JNI_FALSE;
     nonWideProgramName = (*jenv)->GetStringUTFChars(jenv, jProgramName, NULL);
 
     if (nonWideProgramName != NULL) {
-
-        #if defined(JPY_COMPAT_35P)
         programName = Py_DecodeLocale(nonWideProgramName, NULL);
         if (programName != NULL) {
             if (wcslen(programName) < MAX_PROGRAM_NAME) {
@@ -260,27 +219,16 @@ JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_setProgramName
 
         }
 
-        #elif defined(JPY_COMPAT_27)
-        programName = nonWideProgramName;
-        if (strlen(programName) < MAX_PROGRAM_NAME) {
-            strcpy(staticProgramName, programName);
-            result = JNI_TRUE;
-        }
-        #endif
-
         if (result) {
             Py_SetProgramName(staticProgramName);
 
-            #if defined(JPY_COMPAT_35P)
             PyMem_RawFree(programName);
-            #endif
         }
 
         (*jenv)->ReleaseStringUTFChars(jenv, jProgramName, nonWideProgramName);
     }
 
     return result;
-#endif
 }
 
 /*
@@ -310,21 +258,12 @@ JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_startPython0
 
         if (JPy_DiagFlags != 0) {
             printf("PyLib_startPython: global Python interpreter information:\n");
-            #if defined(JPY_COMPAT_33P)
             printf("  Py_GetProgramName()     = \"%ls\"\n", Py_GetProgramName());
             printf("  Py_GetPrefix()          = \"%ls\"\n", Py_GetPrefix());
             printf("  Py_GetExecPrefix()      = \"%ls\"\n", Py_GetExecPrefix());
             printf("  Py_GetProgramFullPath() = \"%ls\"\n", Py_GetProgramFullPath());
             printf("  Py_GetPath()            = \"%ls\"\n", Py_GetPath());
             printf("  Py_GetPythonHome()      = \"%ls\"\n", Py_GetPythonHome());
-            #elif defined(JPY_COMPAT_27)
-            printf("  Py_GetProgramName()     = \"%s\"\n", Py_GetProgramName());
-            printf("  Py_GetPrefix()          = \"%s\"\n", Py_GetPrefix());
-            printf("  Py_GetExecPrefix()      = \"%s\"\n", Py_GetExecPrefix());
-            printf("  Py_GetProgramFullPath() = \"%s\"\n", Py_GetProgramFullPath());
-            printf("  Py_GetPath()            = \"%s\"\n", Py_GetPath());
-            printf("  Py_GetPythonHome()      = \"%s\"\n", Py_GetPythonHome());
-            #endif
             printf("  Py_GetVersion()         = \"%s\"\n", Py_GetVersion());
             printf("  Py_GetPlatform()        = \"%s\"\n", Py_GetPlatform());
             printf("  Py_GetCompiler()        = \"%s\"\n", Py_GetCompiler());
@@ -1547,11 +1486,7 @@ JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_pyIntCheck
 
     JPy_BEGIN_GIL_STATE(JNI_FALSE)
 
-#ifdef JPY_COMPAT_27
-    check = PyInt_Check(((PyObject*) objId));
-#else
     check = JPy_IS_CLONG(((PyObject*) objId));
-#endif
 
     JPy_END_GIL_STATE
 
@@ -2194,13 +2129,8 @@ JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_hasGil
 {
     jboolean result;
 
-    #if defined(JPY_COMPAT_33P)
     // Note: we *don't* need the GIL to inquire if we have the GIL, that would be silly.
     result = PyGILState_Check() ? JNI_TRUE : JNI_FALSE;
-    #else
-    PyThreadState* tstate = _PyThreadState_Current;
-    return tstate && (tstate == PyGILState_GetThisThreadState());
-    #endif
     return result;
 }
 
@@ -2453,8 +2383,6 @@ error:
     return pyReturnValue;
 }
 
-#if defined(JPY_COMPAT_33P)
-
 char* PyLib_ObjToChars(PyObject* pyObj, PyObject** pyNewRef)
 {
     char* chars = NULL;
@@ -2471,27 +2399,6 @@ char* PyLib_ObjToChars(PyObject* pyObj, PyObject** pyNewRef)
     }
     return chars;
 }
-
-#elif defined(JPY_COMPAT_27)
-
-char* PyLib_ObjToChars(PyObject* pyObj, PyObject** pyNewRef)
-{
-    char* chars = NULL;
-    if (pyObj != NULL) {
-        PyObject* pyObjStr = PyObject_Str(pyObj);
-        if (pyObjStr != NULL) {
-            chars = PyBytes_AsString(pyObjStr);
-            *pyNewRef = pyObjStr;
-        }
-    }
-    return chars;
-}
-
-#else
-
-#error JPY_VERSION_ERROR
-
-#endif
 
 #define JPY_NOT_AVAILABLE_MSG "<not available>"
 #define JPY_NOT_AVAILABLE_MSG_LEN strlen(JPY_NOT_AVAILABLE_MSG)
@@ -2683,7 +2590,6 @@ static PyMethodDef JPrint_Functions[] = {
 #define JPY_STDOUT_MODULE_NAME "jpy_stdout"
 #define JPY_STDOUT_MODULE_DOC  "Redirect 'stdout' to the console in embedded mode"
 
-#if defined(JPY_COMPAT_33P)
 static struct PyModuleDef JPrint_ModuleDef =
 {
     PyModuleDef_HEAD_INIT,
@@ -2696,18 +2602,11 @@ static struct PyModuleDef JPrint_ModuleDef =
     NULL,     // m_clear
     NULL      // m_free
 };
-#endif
 
 void PyLib_RedirectStdOut(void)
 {
     PyObject* module;
-#if defined(JPY_COMPAT_33P)
     module = PyModule_Create(&JPrint_ModuleDef);
-#elif defined(JPY_COMPAT_27)
-    module = Py_InitModule3(JPY_STDOUT_MODULE_NAME, JPrint_Functions, JPY_STDOUT_MODULE_DOC);
-#else
-    #error JPY_VERSION_ERROR
-#endif
     PySys_SetObject("stdout", module);
     PySys_SetObject("stderr", module);
 }
