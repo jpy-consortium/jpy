@@ -1,6 +1,9 @@
 # jpy Changelog
 
-## Version 1.3.0 (in development)
+## Version 1.3.0
+
+* [#212](https://github.com/jpy-consortium/jpy/pull/212) feat: Add 3.14 builds
+* [#214](https://github.com/jpy-consortium/jpy/pull/214) Remove 3.6, 3.7, 3.8 from project's metadata and related dead code in the code base
 
 ## Version 1.2.0
 * [#199](https://github.com/jpy-consortium/jpy/pull/199) Call PyObject_IsTrue() to test truthiness
