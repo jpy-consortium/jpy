@@ -162,6 +162,14 @@ public class PyLib {
     public static native boolean isPythonRunning();
 
     /**
+     * @return {@code true} if the Python GIL (Global Interpreter Lock) is enabled at runtime.
+     * For standard Python builds, this always returns {@code true}.
+     * For Python 3.13+ free-threaded builds, this returns the actual GIL status which can be
+     * controlled via the PYTHON_GIL environment variable.
+     */
+    public static native boolean isGILEnabled();
+
+    /**
      * Delegates to {@link #startPython(int, String...)} with {@code flags = Diag.F_OFF}.
      */
     public static void startPython(String... extraPaths) {
