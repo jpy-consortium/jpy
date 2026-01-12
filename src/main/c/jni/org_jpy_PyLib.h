@@ -17,6 +17,14 @@ JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_isPythonRunning
 
 /*
  * Class:     org_jpy_PyLib
+ * Method:    isGILEnabled
+ * Signature: ()Z
+ */
+JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_isGILEnabled
+  (JNIEnv *, jclass);
+
+/*
+ * Class:     org_jpy_PyLib
  * Method:    startPython0
  * Signature: ([Ljava/lang/String;)Z
  */

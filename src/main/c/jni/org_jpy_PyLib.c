@@ -149,6 +149,71 @@ JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_isPythonRunning
     return init && JPy_Module != NULL;
 }
 
+/**
+ * Class:     org_jpy_PyLib
+ * Method:    isGILEnabled
+ * Signature: ()Z
+ */
+JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_isGILEnabled
+  (JNIEnv* jenv, jclass jLibClass)
+{
+    // Check if the GIL is enabled at runtime. This is important for Python 3.13+ free-threaded builds
+    // where the GIL can be enabled with PYTHON_GIL=1 or when importing an extension module not declared as safe without
+    // the GIL.
+    // For standard Python builds (non-free-threaded), the GIL is always enabled.
+
+    #ifdef Py_GIL_DISABLED
+       // Py_GIL_DISABLED indicates this is a free-threaded build that supports running without the GIL.
+       // We need to acquire the GIL before calling Python C API functions, even when checking if the GIL
+       // is enabled. This is because the Python C API is not thread-safe without the GIL.
+       //
+       // We call Python's sys._is_gil_enabled() instead of attempting to use internal C API functions.
+       // While Python 3.13+ has internal functions for checking GIL status, they are not part of the
+       // stable/public C API and might require including internal headers (e.g., pycore_*.h files).
+       // The sys._is_gil_enabled() function is the documented, stable way to check GIL status from both
+       // Python code and C extensions in Python 3.13+ free-threaded builds.
+
+       jboolean result = JNI_TRUE;  // Default to GIL enabled
+       PyObject* sys_module = NULL;
+       PyObject* is_gil_enabled_func = NULL;
+       PyObject* call_result = NULL;
+
+       JPy_BEGIN_GIL_STATE(JNI_TRUE)
+
+       sys_module = PyImport_ImportModule("sys");
+       if (sys_module == NULL) {
+           PyErr_Clear();
+           goto cleanup;
+       }
+
+       is_gil_enabled_func = PyObject_GetAttrString(sys_module, "_is_gil_enabled");
+       if (is_gil_enabled_func == NULL) {
+           PyErr_Clear();
+           goto cleanup;
+       }
+
+       call_result = PyObject_CallNoArgs(is_gil_enabled_func);
+       if (call_result == NULL) {
+           PyErr_Clear();
+           goto cleanup;
+       }
+
+       result = PyObject_IsTrue(call_result) ? JNI_TRUE : JNI_FALSE;
+
+   cleanup:
+       Py_XDECREF(call_result);
+       Py_XDECREF(is_gil_enabled_func);
+       Py_XDECREF(sys_module);
+
+       JPy_END_GIL_STATE
+
+       return result;
+    #else
+       // Standard Python build - GIL is always enabled
+       return JNI_TRUE;
+    #endif
+}
+
 #define  MAX_PYTHON_HOME   256
 wchar_t staticPythonHome[MAX_PYTHON_HOME];
 
@@ -2725,7 +2790,7 @@ static int format_python_traceback(PyTracebackObject *tb, char **buf, int *bufLe
         }
         cnt++;
         if (err == 0 && cnt <= PYLIB_RECURSIVE_CUTOFF) {
-            pyObjUtf8 = format_displayline( 
+            pyObjUtf8 = format_displayline(
                                  co->co_filename,
                                  tb_lineno,
                                  co->co_name);
