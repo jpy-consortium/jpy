@@ -173,6 +173,41 @@ JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_isGILEnabled
        // The sys._is_gil_enabled() function is the documented, stable way to check GIL status from both
        // Python code and C extensions in Python 3.13+ free-threaded builds.
 
+       jboolean result = JNI_TRUE;  // Default to GIL enabled
+       PyObject* sys_module = NULL;
+       PyObject* is_gil_enabled_func = NULL;
+       PyObject* call_result = NULL;
+
+       JPy_BEGIN_GIL_STATE(JNI_TRUE)
+
+       sys_module = PyImport_ImportModule("sys");
+       if (sys_module == NULL) {
+           PyErr_Clear();
+           goto cleanup;
+       }
+
+       is_gil_enabled_func = PyObject_GetAttrString(sys_module, "_is_gil_enabled");
+       if (is_gil_enabled_func == NULL) {
+           PyErr_Clear();
+           goto cleanup;
+       }
+
+       call_result = PyObject_CallNoArgs(is_gil_enabled_func);
+       if (call_result == NULL) {
+           PyErr_Clear();
+           goto cleanup;
+       }
+
+       result = PyObject_IsTrue(call_result) ? JNI_TRUE : JNI_FALSE;
+
+   cleanup:
+       Py_XDECREF(call_result);
+       Py_XDECREF(is_gil_enabled_func);
+       Py_XDECREF(sys_module);
+
+       JPy_END_GIL_STATE
+
+       return result;
     #else
        // Standard Python build - GIL is always enabled
        return JNI_TRUE;
