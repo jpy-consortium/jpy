@@ -45,7 +45,6 @@ int copyPythonDictToJavaMap(JNIEnv *jenv, PyObject *pyDict, jobject jMap);
 
 static PyThreadState *_save = NULL;
 
-static int python_traceback_report(PyObject *tb, char **buf, int* bufLen);
 
 //#define JPy_JNI_DEBUG 1
 #define JPy_JNI_DEBUG 0
@@ -2383,139 +2382,121 @@ error:
     return pyReturnValue;
 }
 
-char* PyLib_ObjToChars(PyObject* pyObj, PyObject** pyNewRef)
-{
-    char* chars = NULL;
-    if (pyObj != NULL) {
-        PyObject* pyObjStr = PyObject_Str(pyObj);
-        if (pyObjStr != NULL) {
-            PyObject* pyObjUtf8 = PyUnicode_AsEncodedString(pyObjStr, "utf-8", "replace");
-            if (pyObjUtf8 != NULL) {
-                chars = PyBytes_AsString(pyObjUtf8);
-                *pyNewRef = pyObjUtf8;
-            }
-            JPy_XDECREF(pyObjStr);
-        }
-    }
-    return chars;
-}
-
-#define JPY_NOT_AVAILABLE_MSG "<not available>"
-#define JPY_NOT_AVAILABLE_MSG_LEN strlen(JPY_NOT_AVAILABLE_MSG)
 #define JPY_ERR_BASE_MSG "Error in Python interpreter"
 #define JPY_NO_INFO_MSG JPY_ERR_BASE_MSG ", no information available"
-#define JPY_INFO_ALLOC_FAILED_MSG JPY_ERR_BASE_MSG ", failed to allocate information text"
 
+/**
+ * Translates the current Python exception — including its full __cause__ / __context__
+ * chain — into a Java exception and throws it.
+ *
+ * Formatting is delegated entirely to Python's own traceback.format_exception(), which
+ * faithfully reproduces the output that the Python interpreter would print itself:
+ * chained exceptions, ExceptionGroups (3.11+), and any future exception-display changes
+ * are all handled automatically without any C-side formatting logic.
+ *
+ * On Python >= 3.12 the deprecated PyErr_Fetch / PyErr_NormalizeException trio is
+ * replaced with PyErr_GetRaisedException(), which returns a single already-normalized
+ * exception object with its __traceback__ already attached.
+ *
+ * Note on stack-frame limits and recursive-line cutoffs
+ * ------------------------------------------------------
+ * The previous hand-rolled C formatter imposed a hard frame limit (1024) and a
+ * recursive-line cutoff (3) because it managed a growable C string buffer manually
+ * and needed to bound memory growth.  Neither constant is carried forward here:
+ *
+ *  - traceback.format_exception() manages all string memory through the Python
+ *    allocator, so there is no C buffer to protect.
+ *  - Python's interpreter already enforces sys.getrecursionlimit() (default 1000),
+ *    which practically caps traceback depth without any extra limit on our side.
+ *  - The traceback module natively compresses repeated frames into
+ *    "[Previous line repeated N more times]", making deep recursive tracebacks
+ *    compact without truncating useful information.
+ *  - Imposing our own limit would silently drop the outermost frames, which are
+ *    often the most useful ones for diagnosing the root cause.
+ */
 void PyLib_HandlePythonException(JNIEnv* jenv)
 {
-    PyObject* pyType = NULL;
-    PyObject* pyValue = NULL;
-    PyTracebackObject* pyTraceback = NULL;
-
-    PyObject* pyTypeUtf8 = NULL;
-    PyObject* pyValueUtf8 = NULL;
-    PyObject* pyLinenoUtf8 = NULL;
-    PyObject* pyFilenameUtf8 = NULL;
-    PyObject* pyNamespaceUtf8 = NULL;
-    char* typeChars = NULL;
-    char* valueChars = NULL;
-    char* linenoChars = NULL;
-    char* filenameChars = NULL;
-    char* namespaceChars = NULL;
-
-    jclass jExceptionClass;
-
     if (PyErr_Occurred() == NULL) {
         return;
     }
 
-    PyErr_Fetch(&pyType, &pyValue, &pyTraceback);
-    //printf("M1: pyType=%p, pyValue=%p, pyTraceback=%p\n", pyType, pyValue, pyTraceback);
-    //printf("U1: pyType=%s, pyValue=%s, pyTraceback=%s\n", Py_TYPE(pyType)->tp_name, Py_TYPE(pyValue)->tp_name, pyTraceback != NULL ? Py_TYPE(pyTraceback)->tp_name : "?");
-    PyErr_NormalizeException(&pyType, &pyValue, &pyTraceback);
-    //printf("M2: pyType=%p, pyValue=%p, pyTraceback=%p\n", pyType, pyValue, pyTraceback);
-    //printf("U2: pyType=%s, pyValue=%s, pyTraceback=%s\n", Py_TYPE(pyType)->tp_name, Py_TYPE(pyValue)->tp_name, pyTraceback != NULL ? Py_TYPE(pyTraceback)->tp_name : "?");
+    /* pyValue is an alias used only for Java exception-class selection below. */
+    PyObject* pyValue = NULL;
+    jclass jExceptionClass;
+    int threw = 0;
 
-    typeChars = PyLib_ObjToChars(pyType, &pyTypeUtf8);
-    valueChars = PyLib_ObjToChars(pyValue, &pyValueUtf8);
-    if (PyObject_TypeCheck(pyValue, (PyTypeObject*) PyExc_KeyError)) {
+#if PY_VERSION_HEX >= 0x030C0000  /* >= 3.12 */
+    /* Returns a single normalized exception object with __traceback__ already attached,
+     * and clears the error indicator. Replaces the deprecated PyErr_Fetch /
+     * PyErr_NormalizeException / PyErr_Restore trio. */
+    PyObject* pyExc = PyErr_GetRaisedException();
+    pyValue = pyExc;
+#else
+    PyObject* pyType = NULL;
+    PyObject* pyTraceback = NULL;
+    PyErr_Fetch(&pyType, &pyValue, &pyTraceback);
+    PyErr_NormalizeException(&pyType, &pyValue, &pyTraceback);
+#endif
+
+    /* Select the Java exception class to throw. */
+    if (pyValue != NULL && PyObject_TypeCheck(pyValue, (PyTypeObject*) PyExc_KeyError)) {
         jExceptionClass = JPy_KeyError_JClass;
-    } else if (PyObject_TypeCheck(pyValue, (PyTypeObject*) PyExc_StopIteration)) {
+    } else if (pyValue != NULL && PyObject_TypeCheck(pyValue, (PyTypeObject*) PyExc_StopIteration)) {
         jExceptionClass = JPy_StopIteration_JClass;
     } else {
         jExceptionClass = JPy_RuntimeException_JClass;
     }
 
-    PyTracebackObject* topPyTraceback = pyTraceback;
-    while (pyTraceback && pyTraceback->tb_next)
-        pyTraceback = pyTraceback->tb_next;
+    /* Delegate to Python's own traceback module to format the full exception chain.
+     * This handles __cause__, __context__, __suppress_context__, ExceptionGroups, etc.
+     * — everything the previous hand-rolled C formatter silently discarded. */
+    PyObject* tbModule = PyImport_ImportModule("traceback");
+    if (tbModule != NULL) {
+        PyObject* formatted = NULL;
+#if PY_VERSION_HEX >= 0x030C0000  /* single-argument form available since 3.10, safe here */
+        formatted = PyObject_CallMethod(tbModule, "format_exception", "O", pyExc);
+#else
+        /* Three-argument form works on all supported Python versions. */
+        formatted = PyObject_CallMethod(tbModule, "format_exception", "OOO",
+                                        pyType, pyValue,
+                                        pyTraceback != NULL ? pyTraceback : Py_None);
+#endif
+        JPy_DECREF(tbModule);
 
-    if (pyTraceback != NULL) {
-        PyFrameObject* pyFrame = NULL;
-        PyCodeObject* pyCode = NULL;
-        linenoChars = PyLib_ObjToChars(PyObject_GetAttrString(pyTraceback, "tb_lineno"), &pyLinenoUtf8);
-        pyFrame = PyObject_GetAttrString(pyTraceback, "tb_frame");
-        if (pyFrame != NULL) {
-            pyCode = PyFrame_GetCode(pyFrame);
-            if (pyCode != NULL) {
-                filenameChars = PyLib_ObjToChars(PyObject_GetAttrString(pyCode, "co_filename"), &pyFilenameUtf8);
-                namespaceChars = PyLib_ObjToChars(PyObject_GetAttrString(pyCode, "co_name"), &pyNamespaceUtf8);
+        if (formatted != NULL) {
+            /* format_exception returns a list of strings; join, prefix, and encode them.
+             * Each step is conditional on the previous succeeding; all temporaries are
+             * released together in the flat cleanup block below. */
+            PyObject* sep        = PyUnicode_FromString("");
+            PyObject* joined     = sep      != NULL ? PyUnicode_Join(sep, formatted)                         : NULL;
+            PyObject* prefixed   = joined   != NULL ? PyUnicode_FromFormat(JPY_ERR_BASE_MSG ":\n%U", joined) : NULL;
+            PyObject* joinedUtf8 = prefixed != NULL ? PyUnicode_AsEncodedString(prefixed, "utf-8", "replace") : NULL;
+
+            if (joinedUtf8 != NULL) {
+                (*jenv)->ThrowNew(jenv, jExceptionClass, PyBytes_AsString(joinedUtf8));
+                threw = 1;
             }
+
+            JPy_XDECREF(joinedUtf8);
+            JPy_XDECREF(prefixed);
+            JPy_XDECREF(joined);
+            JPy_XDECREF(sep);
+            JPy_DECREF(formatted);
         }
-        JPy_XDECREF(pyCode);
-        JPy_XDECREF(pyFrame);
     }
 
-    //printf("U2: typeChars=%s, valueChars=%s, linenoChars=%s, filenameChars=%s, namespaceChars=%s\n",
-    //       typeChars, valueChars, linenoChars, filenameChars, namespaceChars);
-
-    pyTraceback = topPyTraceback;
-
-    if (typeChars != NULL || valueChars != NULL
-        || linenoChars != NULL || filenameChars != NULL || namespaceChars != NULL) {
-        char* javaMessage;
-        int bufLen = (typeChars != NULL ? strlen(typeChars) : JPY_NOT_AVAILABLE_MSG_LEN)
-                               + (valueChars != NULL ? strlen(valueChars) : JPY_NOT_AVAILABLE_MSG_LEN)
-                               + (linenoChars != NULL ? strlen(linenoChars) : JPY_NOT_AVAILABLE_MSG_LEN)
-                               + (filenameChars != NULL ? strlen(filenameChars) : JPY_NOT_AVAILABLE_MSG_LEN)
-                               + (namespaceChars != NULL ? strlen(namespaceChars) : JPY_NOT_AVAILABLE_MSG_LEN) + 1024;
-        javaMessage = PyMem_New(char, bufLen);
-        if (javaMessage != NULL) {
-            sprintf(javaMessage,
-                    JPY_ERR_BASE_MSG ":\n"
-                    "Type: %s\n"
-                    "Value: %s\n"
-                    "Line: %s\n"
-                    "Namespace: %s\n"
-                    "File: %s",
-                    typeChars != NULL ? typeChars : JPY_NOT_AVAILABLE_MSG,
-                    valueChars != NULL ? valueChars : JPY_NOT_AVAILABLE_MSG,
-                    linenoChars != NULL ? linenoChars : JPY_NOT_AVAILABLE_MSG,
-                    namespaceChars != NULL ? namespaceChars : JPY_NOT_AVAILABLE_MSG,
-                    filenameChars != NULL ? filenameChars : JPY_NOT_AVAILABLE_MSG);
-            int err = python_traceback_report(pyTraceback, &javaMessage, &bufLen);
-            if (err != 0) {
-                (*jenv)->ThrowNew(jenv, jExceptionClass, JPY_INFO_ALLOC_FAILED_MSG);
-            } else {
-                (*jenv)->ThrowNew(jenv, jExceptionClass, javaMessage);
-            }
-            PyMem_Del(javaMessage);
-        } else {
-            (*jenv)->ThrowNew(jenv, jExceptionClass, JPY_INFO_ALLOC_FAILED_MSG);
-        }
-    } else {
+    if (!threw) {
+        /* Fallback: traceback module unavailable or an intermediate step failed. */
         (*jenv)->ThrowNew(jenv, jExceptionClass, JPY_NO_INFO_MSG);
     }
 
+#if PY_VERSION_HEX >= 0x030C0000
+    JPy_XDECREF(pyExc);
+#else
     JPy_XDECREF(pyType);
     JPy_XDECREF(pyValue);
     JPy_XDECREF(pyTraceback);
-    JPy_XDECREF(pyTypeUtf8);
-    JPy_XDECREF(pyValueUtf8);
-    JPy_XDECREF(pyLinenoUtf8);
-    JPy_XDECREF(pyFilenameUtf8);
-    JPy_XDECREF(pyNamespaceUtf8);
-
+#endif
     PyErr_Clear();
 }
 
@@ -2611,144 +2592,3 @@ void PyLib_RedirectStdOut(void)
     PySys_SetObject("stderr", module);
 }
 
-
-static const int PYLIB_RECURSIVE_CUTOFF = 3;
-#define PyLib_TraceBack_LIMIT 1024
-
-static PyObject *format_displayline(PyObject *filename, int lineno, PyObject *name)
-{
-    PyObject *line;
-    PyObject *pyObjUtf8 = NULL;
-
-    if (filename == NULL || name == NULL)
-        return NULL;
-
-    line = PyUnicode_FromFormat("  File \"%U\", line %d, in %U\n",
-                                filename, lineno, name);
-    if (line == NULL) {
-        return NULL;
-    }
-
-    pyObjUtf8 = PyUnicode_AsEncodedString(line, "utf-8", "replace");
-    JPy_DECREF(line);
-    return pyObjUtf8;
-}
-
-static PyObject *format_line_repeated(long cnt)
-{
-    cnt -= PYLIB_RECURSIVE_CUTOFF;
-    PyObject *line = PyUnicode_FromFormat(
-        (cnt > 1)
-          ? "  [Previous line repeated %ld more times]\n"
-          : "  [Previous line repeated %ld more time]\n",
-        cnt);
-    if (line == NULL) {
-        return NULL;
-    }
-    PyObject* pyObjUtf8 = PyUnicode_AsEncodedString(line, "utf-8", "replace");
-    JPy_DECREF(line);
-    return pyObjUtf8;
-}
-
-static int append_to_java_message(PyObject * pyObjUtf8, char **buf, int *bufLen ) {
-    if (pyObjUtf8 == NULL)
-        return 0;
-
-    char *msg = PyBytes_AsString(pyObjUtf8);
-    int msgLen = strlen(msg);
-
-    if (strlen(*buf) + msgLen + 1 >= *bufLen) {
-        char *newBuf = PyMem_New(char, *bufLen + 64 * msgLen);
-        if (newBuf == NULL) {
-            JPy_DECREF(pyObjUtf8);
-            return -1;
-        }
-
-        newBuf[0]='\0';
-        strcat(newBuf, *buf);
-        PyMem_Del(*buf);
-        *buf = newBuf;
-        *bufLen = *bufLen + 64 * msgLen;
-    }
-
-    strcat(*buf, msg);
-    JPy_DECREF(pyObjUtf8);
-    return 0;
-}
-
-static int get_traceback_lineno(PyTracebackObject *tb) {
-    PyObject* po_lineno = PyObject_GetAttrString((PyObject*)tb, "tb_lineno");
-    int lineno = (int)PyLong_AsLong(po_lineno);
-    JPy_DECREF(po_lineno);
-    return lineno;
-}
-
-static int format_python_traceback(PyTracebackObject *tb, char **buf, int *bufLen)
-{
-    int err = 0;
-    long limit = PyLib_TraceBack_LIMIT;
-    PyObject *pyObjUtf8 = NULL;
-    Py_ssize_t depth = 0;
-    PyObject *last_file = NULL;
-    int last_line = -1;
-    PyObject *last_name = NULL;
-    long cnt = 0;
-    PyTracebackObject *tb1 = tb;
-
-    while (tb1 != NULL) {
-        depth++;
-        tb1 = tb1->tb_next;
-    }
-    while (tb != NULL && depth > limit) {
-        depth--;
-        tb = tb->tb_next;
-    }
-    while (tb != NULL && err == 0) {
-        PyCodeObject* co = PyFrame_GetCode(tb->tb_frame);
-        int tb_lineno = get_traceback_lineno(tb);
-        if (last_file == NULL ||
-            co->co_filename != last_file ||
-            last_line == -1 || tb_lineno != last_line ||
-            last_name == NULL || co->co_name != last_name) {
-            if (cnt >  PYLIB_RECURSIVE_CUTOFF) {
-                pyObjUtf8 = format_line_repeated(cnt);
-                err = append_to_java_message(pyObjUtf8, buf, bufLen);
-                if (err != 0) {
-                    JPy_DECREF(co);
-                    return err;
-                }
-            }
-            last_file = co->co_filename;
-            last_line = tb_lineno;
-            last_name = co->co_name;
-            cnt = 0;
-        }
-        cnt++;
-        if (err == 0 && cnt <= PYLIB_RECURSIVE_CUTOFF) {
-            pyObjUtf8 = format_displayline( 
-                                 co->co_filename,
-                                 tb_lineno,
-                                 co->co_name);
-            err = append_to_java_message(pyObjUtf8, buf, bufLen);
-            if (err != 0) {
-                JPy_DECREF(co);
-                return err;
-            }
-        }
-        JPy_DECREF(co);
-        tb = tb->tb_next;
-    }
-    if (err == 0 && cnt > PYLIB_RECURSIVE_CUTOFF) {
-        PyObject *pyObjUtf8 = format_line_repeated(cnt);
-        err = append_to_java_message(pyObjUtf8, buf, bufLen);
-    }
-    return err;
-}
-
-static int python_traceback_report(PyObject *tb, char **buf, int* bufLen)
-{
-    /* buf should be big enough for the message */
-    strcat(*buf, "\nTraceback (most recent call last):\n");
-
-    return format_python_traceback(tb, buf, bufLen);
-}
