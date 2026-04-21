@@ -1,6 +1,14 @@
 # jpy Changelog
 
-## Version 1.4.0 (in development)
+## Version 1.4.0
+* [#220](https://github.com/jpy-consortium/jpy/pull/220) Use Python built-in exception formating
+* [#215](https://github.com/jpy-consortium/jpy/pull/215) Bump actions/checkout from 5 to 6
+* [#207](https://github.com/jpy-consortium/jpy/pull/207) Bump actions/setup-python from 5 to 6
+* [#223](https://github.com/jpy-consortium/jpy/pull/223) Bump docker/setup-buildx-action from 3 to 4
+* [#224](https://github.com/jpy-consortium/jpy/pull/224) Bump docker/bake-action from 6.9.0 to 7.1.0
+* [#221](https://github.com/jpy-consortium/jpy/pull/221) Bump actions/download-artifact from 4 to 8
+* [#222](https://github.com/jpy-consortium/jpy/pull/222) Bump actions/upload-artifact from 4 to 7
+* [#225](https://github.com/jpy-consortium/jpy/pull/225) Bump docker/setup-qemu-action from 3 to 4
 
 ## Version 1.3.0
 * [#212](https://github.com/jpy-consortium/jpy/pull/212) feat: Add 3.14 builds
