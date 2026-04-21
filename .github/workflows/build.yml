@@ -16,7 +16,7 @@ jobs:
           distribution: 'temurin'
           java-version: '8'
       - run: mvn --batch-mode jar:jar javadoc:jar source:jar-no-fork
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: jars
           path: target
@@ -33,7 +33,7 @@ jobs:
           distribution: 'temurin'
           java-version: '8'
       - run: python setup.py sdist
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: sdist
           path: dist
@@ -88,7 +88,7 @@ jobs:
 
       - run: ${{ matrix.info.cmd }}
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: build-${{ matrix.info.python }}-${{ matrix.info.machine }}
           path: dist/*.whl
@@ -134,7 +134,7 @@ jobs:
       - run: pip install --upgrade setuptools
       - run: ${{ matrix.info.cmd }}
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: build-${{ matrix.info.python }}-${{ matrix.info.machine }}
           path: dist/*.whl
@@ -163,7 +163,7 @@ jobs:
           set: |
             *.output=type=local,dest=/tmp/dist
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: bdist-wheel-linux-arm64
           path: /tmp/dist/*.whl
@@ -192,7 +192,7 @@ jobs:
           set: |
             *.output=type=local,dest=/tmp/dist
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: bdist-wheel-linux-amd64
           path: /tmp/dist/*.whl
@@ -208,7 +208,7 @@ jobs:
           path: download-artifacts
       - name: collect-artifacts.sh
         run: .github/scripts/collect-artifacts.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: jpy
           path: collect-artifacts
