@@ -1,5 +1,7 @@
 # jpy Changelog
 
+## Version 1.5.0 (in development)
+
 ## Version 1.4.0
 * [#220](https://github.com/jpy-consortium/jpy/pull/220) Use Python built-in exception formating
 * [#215](https://github.com/jpy-consortium/jpy/pull/215) Bump actions/checkout from 5 to 6
