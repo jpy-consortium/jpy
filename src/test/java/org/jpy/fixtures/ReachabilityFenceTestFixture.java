@@ -122,18 +122,19 @@ public class ReachabilityFenceTestFixture {
 
     /**
      * Stress getAttribute + type-check methods (isInt, isCallable, etc.)
-     * on transient results.
+     * on transient results.  Each check uses a fresh getAttribute result so
+     * the transient wrapper is the last use — making it eligible for
+     * premature GC per JLS §12.6.1.
      */
     public static void stressTypeChecks(PyObject obj, int iterations) {
         for (int i = 0; i < iterations; i++) {
-            PyObject attr = obj.getAttribute("value");
-            attr.isInt();
-            attr.isFloat();
-            attr.isString();
-            attr.isCallable();
-            attr.isNone();
-            attr.isList();
-            attr.isDict();
+            obj.getAttribute("value").isInt();
+            obj.getAttribute("value").isFloat();
+            obj.getAttribute("value").isString();
+            obj.getAttribute("value").isCallable();
+            obj.getAttribute("value").isNone();
+            obj.getAttribute("value").isList();
+            obj.getAttribute("value").isDict();
         }
     }
 
