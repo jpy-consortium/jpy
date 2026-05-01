@@ -52,10 +52,10 @@ class TestReachabilityFence(unittest.TestCase):
             self.Fixture.stopAllocator()
 
     # ------------------------------------------------------------------
-    # Test: getAttribute + callMethod  (the original Deephaven crash path)
+    # Test: getAttribute + callMethod
     # ------------------------------------------------------------------
     def test_stress_call_method(self):
-        """getAttribute('__call__') → transient.callMethod('__call__')"""
+        """getAttribute('__call__') -> transient.callMethod('__call__')"""
 
         class _Holder:
             def __call__(self):
@@ -69,7 +69,7 @@ class TestReachabilityFence(unittest.TestCase):
     # Test: getAttribute + getIntValue
     # ------------------------------------------------------------------
     def test_stress_get_int_value(self):
-        """getAttribute('value') → transient.getIntValue()"""
+        """getAttribute('value') -> transient.getIntValue()"""
 
         class _Holder:
             value = 99
@@ -82,7 +82,7 @@ class TestReachabilityFence(unittest.TestCase):
     # Test: getAttribute + getStringValue
     # ------------------------------------------------------------------
     def test_stress_get_string_value(self):
-        """getAttribute('name') → transient.getStringValue()"""
+        """getAttribute('name') -> transient.getStringValue()"""
 
         class _Holder:
             name = "hello"
@@ -95,7 +95,7 @@ class TestReachabilityFence(unittest.TestCase):
     # Test: getAttribute + str()
     # ------------------------------------------------------------------
     def test_stress_str(self):
-        """getAttribute('value') → transient.str()"""
+        """getAttribute('value') -> transient.str()"""
 
         class _Holder:
             value = 42
@@ -108,7 +108,7 @@ class TestReachabilityFence(unittest.TestCase):
     # Test: getAttribute + repr()
     # ------------------------------------------------------------------
     def test_stress_repr(self):
-        """getAttribute('value') → transient.repr()"""
+        """getAttribute('value') -> transient.repr()"""
 
         class _Holder:
             value = 42
@@ -121,7 +121,7 @@ class TestReachabilityFence(unittest.TestCase):
     # Test: getAttribute + hash()
     # ------------------------------------------------------------------
     def test_stress_hash(self):
-        """getAttribute('name') → transient.hash()"""
+        """getAttribute('name') -> transient.hash()"""
 
         class _Holder:
             name = "hashme"
@@ -134,7 +134,7 @@ class TestReachabilityFence(unittest.TestCase):
     # Test: getAttribute + type-check methods (isInt, isCallable, etc.)
     # ------------------------------------------------------------------
     def test_stress_type_checks(self):
-        """getAttribute('value') → transient.isInt()/isFloat()/isString()/..."""
+        """getAttribute('value') -> transient.isInt()/isFloat()/isString()/..."""
 
         class _Holder:
             value = 7
@@ -147,7 +147,7 @@ class TestReachabilityFence(unittest.TestCase):
     # Test: getAttribute + hasAttribute
     # ------------------------------------------------------------------
     def test_stress_has_attribute(self):
-        """getAttribute('nested') → transient.hasAttribute('value')"""
+        """getAttribute('nested') -> transient.hasAttribute('value')"""
 
         class _Nested:
             value = 1
@@ -163,7 +163,7 @@ class TestReachabilityFence(unittest.TestCase):
     # Test: getAttribute + call (function-style)
     # ------------------------------------------------------------------
     def test_stress_call(self):
-        """getAttribute('compute') → transient.call('__call__', arg)"""
+        """getAttribute('compute') -> transient.call('__call__', arg)"""
 
         class _Holder:
             @staticmethod
@@ -178,7 +178,7 @@ class TestReachabilityFence(unittest.TestCase):
     # Test: getAttribute + getObjectValue
     # ------------------------------------------------------------------
     def test_stress_get_object_value(self):
-        """getAttribute('value') → transient.getObjectValue()"""
+        """getAttribute('value') -> transient.getObjectValue()"""
 
         class _Holder:
             value = 123
@@ -191,7 +191,7 @@ class TestReachabilityFence(unittest.TestCase):
     # Test: createProxy + method call on transient proxy (PyProxyHandler)
     # ------------------------------------------------------------------
     def test_stress_proxy(self):
-        """createProxy(Computable) → transient proxy.compute(i)"""
+        """createProxy(Computable) -> transient proxy.compute(i)"""
 
         class _Computable:
             def compute(self, x):

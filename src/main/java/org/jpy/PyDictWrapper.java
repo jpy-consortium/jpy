@@ -234,11 +234,7 @@ public class PyDictWrapper implements Map<PyObject, PyObject>, AutoCloseable {
      * @return the pointer to the underlying Python object wrapped by this dictionary.
      */
     long getPointer() {
-        try {
-            return pyObject.getPointer();
-        } finally {
-            Reference.reachabilityFence(this);
-        }
+        return pyObject.getPointer();
     }
 
     /**
