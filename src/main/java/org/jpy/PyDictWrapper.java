@@ -201,9 +201,7 @@ public class PyDictWrapper implements Map<PyObject, PyObject>, AutoCloseable {
             Reference.reachabilityFence(this.pyObject);
         }
 
-        try (pyObj) {
-            return new ArrayList<>(pyObj.asList());
-        }
+        return pyObj.asList();
     }
 
     /**
