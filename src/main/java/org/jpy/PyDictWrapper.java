@@ -18,6 +18,7 @@
  */
 package org.jpy;
 
+import java.lang.ref.Reference;
 import java.util.*;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.stream.Collectors;
@@ -54,18 +55,30 @@ public class PyDictWrapper implements Map<PyObject, PyObject>, AutoCloseable {
 
     @Override
     public boolean containsKey(Object key) {
-        return PyLib.pyDictContains(pyObject.getPointer(), key, null);
+        try {
+            return PyLib.pyDictContains(pyObject.getPointer(), key, null);
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 
     /**
      * An extension to the Map interface that allows the use of String keys without generating warnings.
      */
     public boolean containsKey(String key) {
-        return PyLib.pyDictContains(pyObject.getPointer(), key, String.class);
+        try {
+            return PyLib.pyDictContains(pyObject.getPointer(), key, String.class);
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 
     public boolean containsKey(PyObject key) {
-        return PyLib.pyDictContains(pyObject.getPointer(), key, PyObject.class);
+        try {
+            return PyLib.pyDictContains(pyObject.getPointer(), key, PyObject.class);
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 
     @Override
@@ -164,6 +177,8 @@ public class PyDictWrapper implements Map<PyObject, PyObject>, AutoCloseable {
     public Set<PyObject> keySet() {
         try (final PyObject pyObj = PyLib.pyDictKeys(this.pyObject.getPointer())) {
             return new LinkedHashSet<>(pyObj.asList());
+        } finally {
+            Reference.reachabilityFence(this);
         }
     }
 
@@ -174,7 +189,11 @@ public class PyDictWrapper implements Map<PyObject, PyObject>, AutoCloseable {
      */
     @Override
     public Collection<PyObject> values() {
-        return PyLib.pyDictValues(this.pyObject.getPointer()).asList();
+        try {
+            return PyLib.pyDictValues(this.pyObject.getPointer()).asList();
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 
     /**
@@ -195,6 +214,8 @@ public class PyDictWrapper implements Map<PyObject, PyObject>, AutoCloseable {
                 .stream()
                 .map(p -> new SimpleImmutableEntry<>(p, get(p)))
                 .collect(Collectors.toCollection(LinkedHashSet::new));
+        } finally {
+            Reference.reachabilityFence(this);
         }
     }
 
@@ -213,7 +234,11 @@ public class PyDictWrapper implements Map<PyObject, PyObject>, AutoCloseable {
      * @return the pointer to the underlying Python object wrapped by this dictionary.
      */
     long getPointer() {
-        return pyObject.getPointer();
+        try {
+            return pyObject.getPointer();
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 
     /**
@@ -222,6 +247,11 @@ public class PyDictWrapper implements Map<PyObject, PyObject>, AutoCloseable {
      * @return a wrapped copy of this Python dictionary.
      */
     public PyDictWrapper copy() {
-        return new PyDictWrapper(PyLib.copyDict(pyObject.getPointer()));
+        try {
+            return new PyDictWrapper(PyLib.copyDict(pyObject.getPointer()));
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 }
+

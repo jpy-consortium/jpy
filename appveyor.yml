@@ -43,8 +43,8 @@ for:
     only:
       - image: Visual Studio 2015
   environment:
-    JDK8_X64: C:\Program Files\Java\jdk1.8.0
-    JPY_JDK_HOME: '%JDK8_X64%'
+    JDK11_X64: C:\Program Files\Java\jdk-11
+    JPY_JDK_HOME: '%JDK11_X64%'
 
   install:
     - set JDK_HOME=%JPY_JDK_HOME%
@@ -72,8 +72,8 @@ for:
     only:
       - image: Ubuntu2004
   environment:
-      JDK8_X64: /usr/lib/jvm/java-1.8.0-openjdk-amd64
-      JPY_JDK_HOME: $JDK8_X64
+      JDK11_X64: /usr/lib/jvm/java-11-openjdk-amd64
+      JPY_JDK_HOME: $JDK11_X64
   install:
     - set JDK_HOME=$JPY_JDK_HOME
     # JAVA_HOME is used by Maven
@@ -92,8 +92,8 @@ for:
       - image: macos
   environment:
     JPY_PYTHON_HOME_MAC: /Users/appveyor/.pyenv/versions/$JPY_MAC_PYTHON_VERSION
-    JDK8_X64: /Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home/
-    JPY_JDK_HOME: $JDK8_X64
+    JDK11_X64: /Library/Java/JavaVirtualMachines/temurin-11.jdk/Contents/Home/
+    JPY_JDK_HOME: $JDK11_X64
     # See note on deployment targets below.
     MACOSX_DEPLOYMENT_TARGET: 10.9
   install:

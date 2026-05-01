@@ -14,7 +14,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '8'
+          java-version: '11'
       - run: mvn --batch-mode jar:jar javadoc:jar source:jar-no-fork
       - uses: actions/upload-artifact@v7
         with:
@@ -31,7 +31,7 @@ jobs:
         id: setup-java
         with:
           distribution: 'temurin'
-          java-version: '8'
+          java-version: '11'
       - run: python setup.py sdist
       - uses: actions/upload-artifact@v7
         with:
@@ -51,19 +51,19 @@ jobs:
           # opposed to manylinux_2_17 produced via the docker bake process). This is a compromise that seems reasonable
           # given the more experimental nature of the free-threaded builds, coupled with the fact that python 3.13t is
           # less likely to be used on older Linux distributions.
-          - { machine: 'ubuntu-22.04', python: '3.13t', java: '8', cmd: '.github/env/Linux/bdist-wheel.sh' }
-          - { machine: 'ubuntu-22.04-arm', python: '3.13t',  java: '8', cmd: '.github/env/Linux/bdist-wheel.sh' }
-          - { machine: 'ubuntu-22.04', python: '3.14t', java: '8',cmd: '.github/env/Linux/bdist-wheel.sh' }
-          - { machine: 'ubuntu-22.04-arm', python: '3.14t', java: '8', cmd: '.github/env/Linux/bdist-wheel.sh' }
+          - { machine: 'ubuntu-22.04', python: '3.13t', java: '11', cmd: '.github/env/Linux/bdist-wheel.sh' }
+          - { machine: 'ubuntu-22.04-arm', python: '3.13t',  java: '11', cmd: '.github/env/Linux/bdist-wheel.sh' }
+          - { machine: 'ubuntu-22.04', python: '3.14t', java: '11',cmd: '.github/env/Linux/bdist-wheel.sh' }
+          - { machine: 'ubuntu-22.04-arm', python: '3.14t', java: '11', cmd: '.github/env/Linux/bdist-wheel.sh' }
 
-          - { machine: 'windows-2022', python: '3.9', java: '8',  cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
-          - { machine: 'windows-2022', python: '3.10', java: '8', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
-          - { machine: 'windows-2022', python: '3.11', java: '8', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
-          - { machine: 'windows-2022', python: '3.12', java: '8', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
-          - { machine: 'windows-2022', python: '3.13', java: '8', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
-          - { machine: 'windows-2022', python: '3.13t', java: '8', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
-          - { machine: 'windows-2022', python: '3.14', java: '8', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
-          - { machine: 'windows-2022', python: '3.14t', java: '8', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.9', java: '11',  cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.10', java: '11', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.11', java: '11', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.12', java: '11', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.13', java: '11', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.13t', java: '11', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.14', java: '11', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.14t', java: '11', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
 
           - { machine: 'macos-14', python: '3.11', java: '11', cmd: '.github/env/macOS/bdist-wheel.sh' }
           - { machine: 'macos-14', python: '3.12', java: '11', cmd: '.github/env/macOS/bdist-wheel.sh' }
@@ -236,7 +236,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '8'
+          java-version: '11'
           server-id: central
           server-username: MAVEN_USERNAME
           server-password: MAVEN_PASSWORD

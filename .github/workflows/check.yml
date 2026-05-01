@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         python: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.14']
-        java: ['8', '11', '17', '21', '23']
+        java: ['11', '17', '21', '23']
     steps:
       - uses: actions/checkout@v6
 
@@ -45,7 +45,7 @@ jobs:
     strategy:
       matrix:
         python: ['3.13t', '3.14t']
-        java: ['8', '11', '17', '21', '23']
+        java: ['11', '17', '21', '23']
     steps:
         - uses: actions/checkout@v6
 
