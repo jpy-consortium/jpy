@@ -424,12 +424,13 @@ public class PyObject implements AutoCloseable {
     public PyObject getAttribute(String name) {
         assertPythonRuns();
         Objects.requireNonNull(name, "name must not be null");
+        long pointer;
         try {
-            long pointer = PyLib.getAttributeObject(getPointer(), name);
-            return pointer != 0 ? new PyObject(pointer) : null;
+            pointer = PyLib.getAttributeObject(getPointer(), name);
         } finally {
             Reference.reachabilityFence(this);
         }
+        return pointer != 0 ? new PyObject(pointer) : null;
     }
 
     /**
@@ -540,12 +541,13 @@ public class PyObject implements AutoCloseable {
     public PyObject callMethod(String name, Object... args) {
         assertPythonRuns();
         Objects.requireNonNull(name, "name must not be null");
+        long pointer;
         try {
-            long pointer = PyLib.callAndReturnObject(getPointer(), true, name, args.length, args, null);
-            return pointer != 0 ? new PyObject(pointer) : null;
+            pointer = PyLib.callAndReturnObject(getPointer(), true, name, args.length, args, null);
         } finally {
             Reference.reachabilityFence(this);
         }
+        return pointer != 0 ? new PyObject(pointer) : null;
     }
 
     /**
@@ -561,12 +563,13 @@ public class PyObject implements AutoCloseable {
     public PyObject call(String name, Object... args) {
         assertPythonRuns();
         Objects.requireNonNull(name, "name must not be null");
+        long pointer;
         try {
-            long pointer = PyLib.callAndReturnObject(getPointer(), false, name, args.length, args, null);
-            return pointer != 0 ? new PyObject(pointer) : null;
+            pointer = PyLib.callAndReturnObject(getPointer(), false, name, args.length, args, null);
         } finally {
             Reference.reachabilityFence(this);
         }
+        return pointer != 0 ? new PyObject(pointer) : null;
     }
 
     public <T> T call(Class<T> returnType, String name, Class<?>[] paramTypes, Object[] args) {

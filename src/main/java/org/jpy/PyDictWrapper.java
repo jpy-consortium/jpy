@@ -58,7 +58,7 @@ public class PyDictWrapper implements Map<PyObject, PyObject>, AutoCloseable {
         try {
             return PyLib.pyDictContains(pyObject.getPointer(), key, null);
         } finally {
-            Reference.reachabilityFence(this);
+            Reference.reachabilityFence(this.pyObject);
         }
     }
 
@@ -69,7 +69,7 @@ public class PyDictWrapper implements Map<PyObject, PyObject>, AutoCloseable {
         try {
             return PyLib.pyDictContains(pyObject.getPointer(), key, String.class);
         } finally {
-            Reference.reachabilityFence(this);
+            Reference.reachabilityFence(this.pyObject);
         }
     }
 
@@ -77,7 +77,7 @@ public class PyDictWrapper implements Map<PyObject, PyObject>, AutoCloseable {
         try {
             return PyLib.pyDictContains(pyObject.getPointer(), key, PyObject.class);
         } finally {
-            Reference.reachabilityFence(this);
+            Reference.reachabilityFence(this.pyObject);
         }
     }
 
@@ -178,7 +178,7 @@ public class PyDictWrapper implements Map<PyObject, PyObject>, AutoCloseable {
         try (final PyObject pyObj = PyLib.pyDictKeys(this.pyObject.getPointer())) {
             return new LinkedHashSet<>(pyObj.asList());
         } finally {
-            Reference.reachabilityFence(this);
+            Reference.reachabilityFence(this.pyObject);
         }
     }
 
@@ -192,7 +192,7 @@ public class PyDictWrapper implements Map<PyObject, PyObject>, AutoCloseable {
         try {
             return PyLib.pyDictValues(this.pyObject.getPointer()).asList();
         } finally {
-            Reference.reachabilityFence(this);
+            Reference.reachabilityFence(this.pyObject);
         }
     }
 
@@ -215,7 +215,7 @@ public class PyDictWrapper implements Map<PyObject, PyObject>, AutoCloseable {
                 .map(p -> new SimpleImmutableEntry<>(p, get(p)))
                 .collect(Collectors.toCollection(LinkedHashSet::new));
         } finally {
-            Reference.reachabilityFence(this);
+            Reference.reachabilityFence(this.pyObject);
         }
     }
 
@@ -246,7 +246,7 @@ public class PyDictWrapper implements Map<PyObject, PyObject>, AutoCloseable {
         try {
             return new PyDictWrapper(PyLib.copyDict(pyObject.getPointer()));
         } finally {
-            Reference.reachabilityFence(this);
+            Reference.reachabilityFence(this.pyObject);
         }
     }
 }
