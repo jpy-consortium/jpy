@@ -18,6 +18,7 @@ package org.jpy;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodHandles.Lookup;
+import java.lang.ref.Reference;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -117,13 +118,17 @@ class PyProxyHandler implements InvocationHandler {
             return null;
         }
 
-        return PyLib.callAndReturnValue(
-            pointer,
-            callableKind == CallableKind.METHOD,
-            methodName,
-            args != null ? args.length : 0, args,
-            method.getParameterTypes(),
-            returnType);
+        try {
+            return PyLib.callAndReturnValue(
+                pointer,
+                callableKind == CallableKind.METHOD,
+                methodName,
+                args != null ? args.length : 0, args,
+                method.getParameterTypes(),
+                returnType);
+        } finally {
+            Reference.reachabilityFence(this.pyObject);
+        }
     }
 
     PyObject getPyObject() {

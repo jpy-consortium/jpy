@@ -22,6 +22,7 @@ package org.jpy;
 import static org.jpy.PyLib.assertPythonRuns;
 
 import java.io.FileNotFoundException;
+import java.lang.ref.Reference;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.util.List;
@@ -30,6 +31,13 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Represents a Python object (of Python/C API type {@code PyObject*}) in the Python interpreter.
+ *
+ * <p><b>Reachability hazard (JLS §12.6.1):</b> Instance methods that pass {@code getPointer()}
+ * to a JNI call must use {@code Reference.reachabilityFence(this)} in a {@code finally} block.
+ * Without the fence, the JIT may treat {@code this} as unreachable after {@code getPointer()}
+ * has copied the native pointer into a {@code long}, allowing the GC to collect the wrapper
+ * and the cleanup thread to {@code Py_DECREF} the underlying {@code PyObject*} while JNI is
+ * still using it — resulting in a use-after-free crash (SIGSEGV).
  *
  * @author Norman Fomferra
  * @since 0.7
@@ -165,7 +173,11 @@ public class PyObject implements AutoCloseable {
      */
     public int getIntValue() {
         assertPythonRuns();
-        return PyLib.getIntValue(getPointer());
+        try {
+            return PyLib.getIntValue(getPointer());
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 
     /**
@@ -173,7 +185,11 @@ public class PyObject implements AutoCloseable {
      */
     public long getLongValue() {
         assertPythonRuns();
-        return PyLib.getLongValue(getPointer());
+        try {
+            return PyLib.getLongValue(getPointer());
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 
     /**
@@ -181,7 +197,11 @@ public class PyObject implements AutoCloseable {
      */
     public boolean getBooleanValue() {
         assertPythonRuns();
-        return PyLib.getBooleanValue(getPointer());
+        try {
+            return PyLib.getBooleanValue(getPointer());
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 
     /**
@@ -189,7 +209,11 @@ public class PyObject implements AutoCloseable {
      */
     public double getDoubleValue() {
         assertPythonRuns();
-        return PyLib.getDoubleValue(getPointer());
+        try {
+            return PyLib.getDoubleValue(getPointer());
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 
     /**
@@ -197,7 +221,11 @@ public class PyObject implements AutoCloseable {
      */
     public String getStringValue() {
         assertPythonRuns();
-        return PyLib.getStringValue(getPointer());
+        try {
+            return PyLib.getStringValue(getPointer());
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 
     /**
@@ -210,7 +238,11 @@ public class PyObject implements AutoCloseable {
      */
     public Object getObjectValue() {
         assertPythonRuns();
-        return PyLib.getObjectValue(getPointer());
+        try {
+            return PyLib.getObjectValue(getPointer());
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 
     /**
@@ -220,72 +252,128 @@ public class PyObject implements AutoCloseable {
      */
     public PyObject getType() {
         assertPythonRuns();
-        return new PyObject(PyLib.getType(getPointer()));
+        try {
+            return new PyObject(PyLib.getType(getPointer()));
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 
     public boolean isDict() {
         assertPythonRuns();
-        return PyLib.pyDictCheck(getPointer());
+        try {
+            return PyLib.pyDictCheck(getPointer());
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 
     public boolean isList() {
         assertPythonRuns();
-        return PyLib.pyListCheck(getPointer());
+        try {
+            return PyLib.pyListCheck(getPointer());
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 
     public boolean isBoolean() {
         assertPythonRuns();
-        return PyLib.pyBoolCheck(getPointer());
+        try {
+            return PyLib.pyBoolCheck(getPointer());
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 
     public boolean isLong() {
         assertPythonRuns();
-        return PyLib.pyLongCheck(getPointer());
+        try {
+            return PyLib.pyLongCheck(getPointer());
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 
     public boolean isInt() {
         assertPythonRuns();
-        return PyLib.pyIntCheck(getPointer());
+        try {
+            return PyLib.pyIntCheck(getPointer());
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 
     public boolean isNone() {
         assertPythonRuns();
-        return PyLib.pyNoneCheck(getPointer());
+        try {
+            return PyLib.pyNoneCheck(getPointer());
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 
     public boolean isFloat() {
         assertPythonRuns();
-        return PyLib.pyFloatCheck(getPointer());
+        try {
+            return PyLib.pyFloatCheck(getPointer());
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 
     public boolean isCallable() {
         assertPythonRuns();
-        return PyLib.pyCallableCheck(getPointer());
+        try {
+            return PyLib.pyCallableCheck(getPointer());
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 
     public boolean isFunction() {
         assertPythonRuns();
-        return PyLib.pyFunctionCheck(getPointer());
+        try {
+            return PyLib.pyFunctionCheck(getPointer());
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 
     public boolean isModule() {
         assertPythonRuns();
-        return PyLib.pyModuleCheck(getPointer());
+        try {
+            return PyLib.pyModuleCheck(getPointer());
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 
     public boolean isTuple() {
         assertPythonRuns();
-        return PyLib.pyTupleCheck(getPointer());
+        try {
+            return PyLib.pyTupleCheck(getPointer());
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 
     public boolean isString() {
         assertPythonRuns();
-        return PyLib.pyStringCheck(getPointer());
+        try {
+            return PyLib.pyStringCheck(getPointer());
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 
     public boolean isConvertible() {
         assertPythonRuns();
-        return PyLib.isConvertible(getPointer());
+        try {
+            return PyLib.isConvertible(getPointer());
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 
     public List<PyObject> asList() {
@@ -317,7 +405,11 @@ public class PyObject implements AutoCloseable {
     public <T> T[] getObjectArrayValue(Class<? extends T> itemType) {
         assertPythonRuns();
         Objects.requireNonNull(itemType, "itemType must not be null");
-        return PyLib.getObjectArrayValue(getPointer(), itemType);
+        try {
+            return PyLib.getObjectArrayValue(getPointer(), itemType);
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 
     /**
@@ -332,7 +424,12 @@ public class PyObject implements AutoCloseable {
     public PyObject getAttribute(String name) {
         assertPythonRuns();
         Objects.requireNonNull(name, "name must not be null");
-        long pointer = PyLib.getAttributeObject(getPointer(), name);
+        long pointer;
+        try {
+            pointer = PyLib.getAttributeObject(getPointer(), name);
+        } finally {
+            Reference.reachabilityFence(this);
+        }
         return pointer != 0 ? new PyObject(pointer) : null;
     }
 
@@ -351,7 +448,11 @@ public class PyObject implements AutoCloseable {
     public <T> T getAttribute(String name, Class<? extends T> valueType) {
         assertPythonRuns();
         Objects.requireNonNull(name, "name must not be null");
-        return PyLib.getAttributeValue(getPointer(), name, valueType);
+        try {
+            return PyLib.getAttributeValue(getPointer(), name, valueType);
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 
     /**
@@ -367,7 +468,11 @@ public class PyObject implements AutoCloseable {
     public <T> void setAttribute(String name, T value) {
         assertPythonRuns();
         Objects.requireNonNull(name, "name must not be null");
-        PyLib.setAttributeValue(getPointer(), name, value, value != null ? value.getClass() : null);
+        try {
+            PyLib.setAttributeValue(getPointer(), name, value, value != null ? value.getClass() : null);
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 
     /**
@@ -378,7 +483,11 @@ public class PyObject implements AutoCloseable {
     public void delAttribute(String name) {
         assertPythonRuns();
         Objects.requireNonNull(name, "name must not be null");
-        PyLib.delAttribute(getPointer(), name);
+        try {
+            PyLib.delAttribute(getPointer(), name);
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 
     /**
@@ -390,7 +499,11 @@ public class PyObject implements AutoCloseable {
     public boolean hasAttribute(String name) {
         assertPythonRuns();
         Objects.requireNonNull(name, "name must not be null");
-        return PyLib.hasAttribute(getPointer(), name);
+        try {
+            return PyLib.hasAttribute(getPointer(), name);
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 
     /**
@@ -408,7 +521,11 @@ public class PyObject implements AutoCloseable {
     public <T> void setAttribute(String name, T value, Class<? extends T> valueType) {
         assertPythonRuns();
         Objects.requireNonNull(name, "name must not be null");
-        PyLib.setAttributeValue(getPointer(), name, value, valueType);
+        try {
+            PyLib.setAttributeValue(getPointer(), name, value, valueType);
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 
     /**
@@ -424,7 +541,12 @@ public class PyObject implements AutoCloseable {
     public PyObject callMethod(String name, Object... args) {
         assertPythonRuns();
         Objects.requireNonNull(name, "name must not be null");
-        long pointer = PyLib.callAndReturnObject(getPointer(), true, name, args.length, args, null);
+        long pointer;
+        try {
+            pointer = PyLib.callAndReturnObject(getPointer(), true, name, args.length, args, null);
+        } finally {
+            Reference.reachabilityFence(this);
+        }
         return pointer != 0 ? new PyObject(pointer) : null;
     }
 
@@ -441,7 +563,12 @@ public class PyObject implements AutoCloseable {
     public PyObject call(String name, Object... args) {
         assertPythonRuns();
         Objects.requireNonNull(name, "name must not be null");
-        long pointer = PyLib.callAndReturnObject(getPointer(), false, name, args.length, args, null);
+        long pointer;
+        try {
+            pointer = PyLib.callAndReturnObject(getPointer(), false, name, args.length, args, null);
+        } finally {
+            Reference.reachabilityFence(this);
+        }
         return pointer != 0 ? new PyObject(pointer) : null;
     }
 
@@ -466,7 +593,11 @@ public class PyObject implements AutoCloseable {
             }
         }
         assertPythonRuns();
-        return PyLib.callAndReturnValue(getPointer(), false, name, args.length, args, paramTypes, returnType);
+        try {
+            return PyLib.callAndReturnValue(getPointer(), false, name, args.length, args, paramTypes, returnType);
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 
     public <T, A0> T call(Class<T> returnType, String name, Class<A0> clazz0, A0 arg0) {
@@ -547,7 +678,11 @@ public class PyObject implements AutoCloseable {
      * @see #getPointer()
      */
     public final String repr() {
-	    return PyLib.repr(getPointer());
+        try {
+            return PyLib.repr(getPointer());
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 
     /**
@@ -555,7 +690,11 @@ public class PyObject implements AutoCloseable {
      * @return The String representation of this object.
      */
     public final String str() {
-        return PyLib.str(getPointer());
+        try {
+            return PyLib.str(getPointer());
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 
     /**
@@ -563,11 +702,19 @@ public class PyObject implements AutoCloseable {
      * @return The hash.
      */
     public final long hash() {
-        return PyLib.hash(getPointer());
+        try {
+            return PyLib.hash(getPointer());
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 
     public final boolean eq(Object other) {
-        return PyLib.eq(getPointer(), other);
+        try {
+            return PyLib.eq(getPointer(), other);
+        } finally {
+            Reference.reachabilityFence(this);
+        }
     }
 
     /**
