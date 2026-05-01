@@ -182,7 +182,7 @@ public class PyDictWrapper implements Map<PyObject, PyObject>, AutoCloseable {
             Reference.reachabilityFence(this.pyObject);
         }
 
-        try(pyObj) {
+        try (pyObj) {
             return new LinkedHashSet<>(pyObj.asList());
         }
     }
@@ -200,6 +200,7 @@ public class PyDictWrapper implements Map<PyObject, PyObject>, AutoCloseable {
         } finally {
             Reference.reachabilityFence(this.pyObject);
         }
+
         try (pyObj) {
             return new ArrayList<>(pyObj.asList());
         }
@@ -263,9 +264,7 @@ public class PyDictWrapper implements Map<PyObject, PyObject>, AutoCloseable {
         } finally {
             Reference.reachabilityFence(this.pyObject);
         }
-        try (pyObj) {
-            return new PyDictWrapper(pyObj);
-        }
+        return new PyDictWrapper(pyObj);
     }
 }
 
