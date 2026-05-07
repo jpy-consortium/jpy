@@ -20,7 +20,7 @@ languages.  It comes with a number of outstanding features:
 * Java arrays translate into Python sequence objects
 * Java API for accessing Python objects (`jpy.jar`)
 
-jpy has been tested with Python 3.6–3.13 and OpenJDK 8+ on Linux, Windows, and macOS.
+jpy has been tested with Python 3.9–3.14 and OpenJDK 11+ on Linux, Windows, and macOS.
 
 The initial development of jpy was driven by the need to write Python
 extensions to an established scientific imaging application programmed in
@@ -42,7 +42,7 @@ For more information please have a look into jpy's
 How to build wheels for Linux and Mac
 -------------------------------------
 
-Install a JDK 8, preferably the Oracle distribution. Set `JDK_HOME` or
+Install a JDK 11. Set `JDK_HOME` or
 `JPY_JDK_HOME` to point to your JDK installation and run the build script:
 
     $ export JDK_HOME=<your-jdk-dir>
