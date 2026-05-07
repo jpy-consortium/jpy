@@ -8,9 +8,6 @@ The wheel artifacts are compatible with the table below, and released to the PyP
 
 | Version | OS      | Arch   |
 |---------|---------|--------|
-| 3.6     | Linux   | x86_64 |
-| 3.7     | Linux   | x86_64 |
-| 3.8     | Linux   | x86_64 |
 | 3.9     | Linux   | x86_64 |
 | 3.10    | Linux   | x86_64 |
 | 3.11    | Linux   | x86_64 |
@@ -19,9 +16,6 @@ The wheel artifacts are compatible with the table below, and released to the PyP
 | 3.13t   | Linux   | x86_64 |
 | 3.14    | Linux   | x86_64 |
 | 3.14t   | Linux   | x86_64 |
-| 3.6     | Linux   | arm64  |
-| 3.7     | Linux   | arm64  |
-| 3.8     | Linux   | arm64  |
 | 3.9     | Linux   | arm64  |
 | 3.10    | Linux   | arm64  |
 | 3.11    | Linux   | arm64  |
@@ -30,9 +24,6 @@ The wheel artifacts are compatible with the table below, and released to the PyP
 | 3.13t   | Linux   | arm64  |
 | 3.14    | Linux   | arm64  |
 | 3.14t   | Linux   | arm64  |
-| 3.6     | MacOS   | x86_64 |
-| 3.7     | MacOS   | x86_64 |
-| 3.8     | MacOS   | x86_64 |
 | 3.9     | MacOS   | x86_64 |
 | 3.10    | MacOS   | x86_64 |
 | 3.11    | MacOS   | x86_64 |
@@ -41,9 +32,6 @@ The wheel artifacts are compatible with the table below, and released to the PyP
 | 3.13t   | MacOS   | x86_64 |
 | 3.14    | MacOS   | x86_64 |
 | 3.14t   | MacOS   | x86_64 |
-| 3.6     | MacOS   | arm64  |
-| 3.7     | MacOS   | arm64  |
-| 3.8     | MacOS   | arm64  |
 | 3.9     | MacOS   | arm64  |
 | 3.10    | MacOS   | arm64  |
 | 3.11    | MacOS   | arm64  |
@@ -52,9 +40,6 @@ The wheel artifacts are compatible with the table below, and released to the PyP
 | 3.13t   | MacOS   | arm64  |
 | 3.14    | MacOS   | arm64  |
 | 3.14t   | MacOS   | arm64  |
-| 3.6     | Windows | x86_64 |
-| 3.7     | Windows | x86_64 |
-| 3.8     | Windows | x86_64 |
 | 3.9     | Windows | x86_64 |
 | 3.10    | Windows | x86_64 |
 | 3.11    | Windows | x86_64 |
