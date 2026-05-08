@@ -15,7 +15,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '11'
-      - run: mvn --batch-mode jar:jar javadoc:jar source:jar-no-fork
+      - run: mvn --batch-mode clean package javadoc:jar source:jar-no-fork -DskipTests
       - uses: actions/upload-artifact@v7
         with:
           name: jars
