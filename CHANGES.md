@@ -1,6 +1,14 @@
 # jpy Changelog
 
-## Version 1.5.0 (in development)
+## Version 2.0.0
+
+This version bumps the minimum Java requirements from 8 to 11.
+See [#226](https://github.com/jpy-consortium/jpy/pull/226) for more details.
+
+* [#226](https://github.com/jpy-consortium/jpy/pull/226) fix: Fix a race caused by premature-finalization when calling a method on transient PyObjects
+* [#228](https://github.com/jpy-consortium/jpy/pull/228) Replace Java 23 with 25 in Check CI due to EOL
+* [#229](https://github.com/jpy-consortium/jpy/pull/229) Update top level documentation
+* [#231](https://github.com/jpy-consortium/jpy/pull/231) Fix the empty jar issue
 
 ## Version 1.4.0
 * [#220](https://github.com/jpy-consortium/jpy/pull/220) Use Python built-in exception formating
