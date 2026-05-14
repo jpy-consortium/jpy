@@ -1,5 +1,7 @@
 # jpy Changelog
 
+## Version 2.1.0 (in development)
+
 ## Version 2.0.0
 
 This version bumps the minimum Java requirements from 8 to 11.
