@@ -74,33 +74,59 @@ class PyObjectReferences {
     }
 
     /**
-     * This should *only* be invoked through the proxy, or when we *know* we have the GIL.
+     * Drains the reference queue and decrements the Python reference counts of all collected
+     * {@link PyObject} instances in a single batch.
+     *
+     * <p>The GIL is acquired internally by {@link PyLib#decRef} and {@link PyLib#decRefs}, so
+     * callers do not need to hold the GIL before invoking this method. The reference-queue
+     * draining is pure Java and requires no GIL.
+     *
+     * <p>This method performs zero Java heap allocation inside any JNI call, making it safe
+     * to invoke even under severe heap pressure.
      */
     public synchronized int threadSafeCleanup() {
-        return PyLib.ensureGil(() -> {
-            int index = 0;
-            while (index < buffer.length) {
-                final Reference<? extends PyObject> reference = referenceQueue.poll();
-                if (reference == null) {
-                    break;
-                }
-                index = appendIfNotClosed(buffer, index, reference);
+        int index = 0;
+        while (index < buffer.length) {
+            final Reference<? extends PyObject> reference = referenceQueue.poll();
+            if (reference == null) {
+                break;
             }
-            if (index == 0) {
-                return 0;
-            }
+            index = appendIfNotClosed(buffer, index, reference);
+        }
+        if (index == 0) {
+            return 0;
+        }
+        if (index == 1) {
+            PyLib.decRef(buffer[0]);
+            return 1;
+        }
+        PyLib.decRefs(buffer, index);
+        return index;
+    }
 
-            // We really really really want to make sure we *already* have the GIL lock at this point in
-            // time. Otherwise, we block here until the GIL is available for us, and stall all cleanup
-            // related to our PyObjects.
-
-            if (index == 1) {
-                PyLib.decRef(buffer[0]);
-                return 1;
+    /**
+     * Drains the reference queue starting from an already-removed first reference, then
+     * continues with {@link ReferenceQueue#poll()} until the queue is empty or the batch
+     * buffer is full.  Called by the cleanup daemon thread.
+     */
+    private synchronized int threadSafeCleanup(final Reference<? extends PyObject> first) {
+        int index = appendIfNotClosed(buffer, 0, first);
+        while (index < buffer.length) {
+            final Reference<? extends PyObject> ref = referenceQueue.poll();
+            if (ref == null) {
+                break;
             }
-            PyLib.decRefs(buffer, index);
-            return index;
-        });
+            index = appendIfNotClosed(buffer, index, ref);
+        }
+        if (index == 0) {
+            return 0;
+        }
+        if (index == 1) {
+            PyLib.decRef(buffer[0]);
+            return 1;
+        }
+        PyLib.decRefs(buffer, index);
+        return index;
     }
 
     private int appendIfNotClosed(long[] buffer, int index, Reference<? extends PyObject> reference) {
@@ -119,85 +145,48 @@ class PyObjectReferences {
         return index + 1;
     }
 
-    PyObjectCleanup asProxy() {
-        try (
-            final CreateModule createModule = CreateModule.create();
-            final IdentityModule identityModule = IdentityModule.create(createModule)) {
-            return identityModule
-                .identity(this)
-                .createProxy(PyObjectCleanup.class);
-        }
-    }
 
     Thread createCleanupThread(String name) {
-        return new Thread(this::cleanupThreadLogic, name);
-    }
-
-    private void cleanupThreadLogic() {
-
-        // Note: this loop logic *could* be written completely in python (as seen below), as python
-        // should release the gil during a `time.sleep(seconds)` operation. It would save us on the
-        // number of java -> python JNI crossings (but not on the python -> java JNI crossings) -
-        // but that isn't a big concern wrt cleanup logic. More important might be java thread
-        // lifecycle interruption, which we get when we call Thread.sleep.
-
-        /*
-            def cleanup(references):
-              import time
-              while True:
-                size = references.cleanup()
-                sleep_time = 0.1 if size == 1024 else 1.0
-                time.sleep(sleep_time)
-         */
-        // try-catch block to handle PyLib not initialized exception when a race condition occurs in the free-threaded
-        // mode that the cleanup thread starts running after Python is already finalized.
-        try {
-            final PyObjectCleanup proxy = asProxy();
-
-            while (!Thread.currentThread().isInterrupted()) {
-                // This blocks on the GIL, acquires the GIL, and then releases the GIL.
-                // For linux, acquiring the GIL involves a pthread_mutex_lock, which does not provide
-                // any fairness guarantees. As such, we need to be mindful of other python users/code,
-                // and ensure we don't overly acquire the GIL causing starvation issues, especially when
-                // there is no cleanup work to do.
-                final int size = proxy.threadSafeCleanup();
-
-
-                // Although, it *does* make sense to potentially take the GIL in a tight loop when there
-                // is a lot of real cleanup work to do. Sleeping for any amount of time may be
-                // detrimental to the cleanup of resources. There is a balance that we want to try to
-                // achieve between producers of PyObjects, and the cleanup of PyObjects (us).
-
-                // It would be much nicer if ReferenceQueue exposed a method that blocked until the
-                // queue was non-empty and *doesn't* remove any items. We can potentially implement this
-                // by using reflection to access the internal lock of the ReferenceQueue in the future.
-
-                if (size == buffer.length) {
-                    if (CLEANUP_THREAD_ACTIVE_SLEEP_MILLIS == 0) {
-                        Thread.yield();
+        return new Thread(() -> {
+            try {
+                boolean backlogged = false;
+                while (!Thread.currentThread().isInterrupted()) {
+                    final Reference<? extends PyObject> first;
+                    if (backlogged) {
+                        // Previous batch was full — more items are likely queued.
+                        // Poll immediately rather than blocking, to drain quickly.
+                        first = referenceQueue.poll();
+                        if (first == null) {
+                            // Queue drained — fall back to passive waiting.
+                            backlogged = false;
+                            continue;
+                        }
                     } else {
-                        try {
-                            Thread.sleep(CLEANUP_THREAD_ACTIVE_SLEEP_MILLIS);
-                        } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                            return;
+                        // Block until an item arrives or the timeout expires.
+                        // This avoids busy-polling and wakes up immediately when
+                        // there is cleanup work to do.
+                        first = referenceQueue.remove(CLEANUP_THREAD_PASSIVE_SLEEP_MILLIS);
+                        if (first == null) {
+                            continue;
                         }
                     }
-                } else {
-                    try {
-                        Thread.sleep(CLEANUP_THREAD_PASSIVE_SLEEP_MILLIS);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        return;
+
+                    final int size = threadSafeCleanup(first);
+                    backlogged = (size == buffer.length);
+
+                    if (backlogged && CLEANUP_THREAD_ACTIVE_SLEEP_MILLIS > 0) {
+                        Thread.sleep(CLEANUP_THREAD_ACTIVE_SLEEP_MILLIS);
                     }
                 }
-            }
-        }
-        catch (RuntimeException e) {
-            String msg;
-            if ((msg = e.getMessage()) != null && !(msg.contains("PyLib not initialized") || msg.contains("interpreter shutdown"))) {
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            } catch (RuntimeException e) {
+                // Free-threaded Python (3.13+): the interpreter may finalize before the
+                // cleanup thread is stopped. decRef/decRefs check Py_IsInitialized()
+                // internally and silently do nothing if Python is gone, so this catch
+                // is a last-resort safety net.
                 throw e;
             }
-        }
+        }, name);
     }
 }

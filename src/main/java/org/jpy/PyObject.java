@@ -64,7 +64,7 @@ public class PyObject implements AutoCloseable {
     }
 
     public static int cleanup() {
-        return REFERENCES.asProxy().threadSafeCleanup();
+        return REFERENCES.threadSafeCleanup();
     }
 
     private final PyObjectState state;
