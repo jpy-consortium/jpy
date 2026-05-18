@@ -8,10 +8,24 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Allows for proper cleanup of PyObjects outside of the {@link Object#finalize()} method.
+ * Tracks live {@link PyObject} instances via {@link WeakReference}s and drives
+ * {@code Py_DECREF} on the underlying Python objects once the Java wrappers
+ * become unreachable.
  *
- * <p>Note: this setup could likely be better structured as a factory, but then the existing JNI
- * code would need to be aware of it. Instead, we'll ensure that new PyObjects register.
+ * <h3>Why not {@link java.lang.ref.Cleaner}?</h3>
+ * {@code Cleaner} (Java 9+) is the modern replacement for {@link Object#finalize()}.
+ * Internally it also uses a {@link PhantomReference} + {@link ReferenceQueue} daemon,
+ * but it invokes each registered action individually.  jpy needs to batch multiple
+ * {@code Py_DECREF} calls into a single JNI round-trip ({@link PyLib#decRefs}) for
+ * performance — {@code Cleaner} offers no batching hook.  A hand-rolled
+ * {@link ReferenceQueue} daemon with a fixed-size buffer gives us exactly that.
+ *
+ * <h3>Why {@link WeakReference} rather than {@link PhantomReference}?</h3>
+ * See {@link #asRef} for the rationale.
+ *
+ * <p>Note: this setup could likely be better structured as a factory, but then the
+ * existing JNI code would need to be aware of it.  Instead, new {@link PyObject}s
+ * self-register on construction.
  */
 class PyObjectReferences {
     private static final String WEAK = "weak";
