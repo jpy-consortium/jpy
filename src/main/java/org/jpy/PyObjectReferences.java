@@ -194,13 +194,18 @@ class PyObjectReferences {
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-            } catch (RuntimeException e) {
-                // Free-threaded Python (3.13+): the interpreter may finalize before the
-                // cleanup thread is stopped. decRef/decRefs check Py_IsInitialized()
-                // internally and silently do nothing if Python is gone, so this catch
-                // is a last-resort safety net.
-                throw e;
             }
+            // Any RuntimeException escaping here propagates to the thread's
+            // UncaughtExceptionHandler (stderr + thread death by default).
+            // All plausible causes are non-recoverable:
+            //   1. Python is in a non-recoverable state — no new PyObjects can be
+            //      created so the ReferenceQueue will not grow further.
+            //   2. An invalid pointer reached decRef/decRefs, indicating a double-dec
+            //      or memory corruption; continuing would risk further corruption.
+            //   3. A violated invariant inside PyObjectReferences itself (e.g.
+            //      IllegalStateException from appendIfNotClosed) — internal state is
+            //      inconsistent and cannot be trusted.
+            // In all cases letting the thread die is the correct behaviour.
         }, name);
     }
 }
