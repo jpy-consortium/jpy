@@ -9,29 +9,23 @@ When a Java PyObject wrapper becomes unreachable, the cleanup daemon
 (PyObject-cleanup) drains the ReferenceQueue and calls Py_DECREF on the
 underlying Python objects in batches via PyLib.decRefs().
 
-The daemon uses ``ReferenceQueue.remove(passive_sleep_millis)`` in its idle
-state, waking up immediately when references arrive rather than polling on a
-fixed sleep.  When the previous batch filled the buffer (backlog mode) it
-switches to ``poll()`` to drain as fast as possible before returning to the
-blocking wait.
+The daemon calls ``ReferenceQueue.remove(passive_sleep_millis)`` to block
+until work arrives, waking up immediately when references are enqueued.
 
 Test strategy
 -------------
-* **Active / backlog path** (tests 03–06): flood the ReferenceQueue with
+* **High-throughput path** (tests 03–06): flood the ReferenceQueue with
   FLOOD = 20 000 objects — far more than the batch buffer (default 4 096).
   The daemon loops continuously without sleeping, exercising sustained
   high-throughput draining.
 * **Passive path** (test 07): release a small batch (SMALL = 100, well below
-  the buffer) with ``backlogged`` never having been ``True``.  The daemon must
-  wake up via ``remove()`` and complete cleanup well within the 1 000 ms
-  passive timeout.  The post-backlog transition (``backlogged`` reset to
-  ``False`` by the size check) is already exercised between cycles in test 04.
-
+  the buffer) and assert that cleanup completes well within the 1 000 ms
+  passive timeout, proving the daemon wakes on the event rather than waiting
+  out the full timeout.
 * **OOM-triggered GC** (test 08): release PyObjects without calling
-  System.gc(), then request a 256 MB array via ``jpy.array`` on a 256 MB
-  JVM.  The mandatory pre-OOM full GC enqueues the WeakRefs organically.
-  The cleanup thread must survive and drain correctly — reproducing the
-  exact conditions of the production SIGSEGV in hs_err_pid89198.log.
+  System.gc(), then trigger an OOM via ``jpy.array``.  The mandatory
+  pre-OOM full GC enqueues the WeakRefs organically.  The cleanup thread
+  must survive and drain correctly under OOM conditions.
 
 All tests verify correctness (no leak, no double-free) and robustness under
 sustained load.
@@ -164,7 +158,7 @@ class TestCleanupThreadStress(unittest.TestCase):
         """Daemon must free all objects from a single large burst.
 
         FLOOD >> buffer size forces multiple consecutive passes without sleeping,
-        exercising the active/backlog draining path.
+        exercising the high-throughput draining path.
         """
         self.fixture.holdPyObjects(_make_trackable, FLOOD)
         self.fixture.releaseAll()
@@ -225,8 +219,8 @@ class TestCleanupThreadStress(unittest.TestCase):
     def test_06_explicit_cleanup_and_daemon_do_not_double_decrement(self):
         """PyObject.cleanup() racing with the daemon must not double-decrement.
 
-        synchronized on threadSafeCleanup() guarantees mutual exclusion —
-        only one caller can hold the buffer and drain the queue at a time.
+        Thread-safety is guaranteed by ReferenceQueue's internal lock — each
+        reference is dequeued exactly once regardless of how many callers race.
         """
         self.fixture.holdPyObjects(_make_trackable, FLOOD)
         self.fixture.releaseAll()
@@ -247,19 +241,14 @@ class TestCleanupThreadStress(unittest.TestCase):
 
 
     def test_07_passive_path_wakes_up_promptly(self):
-        """Small batch is cleaned up by the passive (blocking) path without waiting for timeout.
+        """Small batch is cleaned up promptly via the blocking ReferenceQueue.remove() path.
 
-        The daemon calls ``ReferenceQueue.remove(passive_sleep_millis)`` and
-        wakes up the instant a reference is enqueued.  A batch of SMALL objects
-        (well below the buffer size of 4096) never fills the buffer, so the
-        thread never enters backlog mode.  This test therefore exclusively
-        exercises the passive path.
-
-        We assert that cleanup completes well within the default 1 000 ms
+        A batch of SMALL objects (well below the buffer size of 4096) is released
+        and we assert that cleanup completes well within the default 1 000 ms
         passive timeout (``PROMPT_DEADLINE = 0.5 s``), proving the daemon woke
-        up on the event rather than spinning until the timeout expired.
+        up on the event rather than waiting out the full timeout.
         """
-        SMALL          = 100    # << buffer (4096) — never triggers backlog mode
+        SMALL          = 100    # << buffer size (4096)
         PROMPT_DEADLINE = 0.5   # seconds; comfortably below passive_sleep_millis (1 000 ms)
 
         self.fixture.holdPyObjects(_make_trackable, SMALL)
@@ -283,27 +272,17 @@ class TestCleanupThreadStress(unittest.TestCase):
     def test_08_cleanup_survives_involuntary_gc_under_oom(self):
         """Cleanup thread must survive and drain correctly when GC is triggered by an OOM.
 
-        Reproduces the production scenario from hs_err_pid89198.log: the JVM
-        runs a mandatory full GC before throwing OutOfMemoryError, which enqueues
-        pending WeakReferences as a side effect.  The cleanup daemon wakes up via
-        ReferenceQueue.remove() and calls PyLib.decRefs() while OOM conditions exist.
+        The JVM runs a mandatory full GC before throwing OutOfMemoryError, which enqueues
+        pending WeakReferences as a side effect. The cleanup daemon wakes up immediately
+        via ReferenceQueue.remove() and calls PyLib.decRefs() while OOM conditions persist.
 
-        Under the old code this crashed: the proxy round-trip caused
-        JPy_HandleJavaException to call Throwable.getStackTrace() on the OOM
-        exception, triggering a G1 read barrier on null → SIGSEGV.
-        The fix removes all Java heap allocation from the cleanup path —
-        PyLib.decRefs() is void-returning and allocation-free in JNI.
+        A balloon of 50% of maxMemory is held so a second allocation of equal size cannot
+        succeed even after the pre-OOM full GC, guaranteeing OOM. No gc_java() is called —
+        cleanup must be driven by the OOM-triggered GC alone.
 
-        Design
-        ------
-        A balloon of 50 % of maxMemory is held so a second allocation of the same
-        size cannot fit even after the pre-OOM full GC (balloon + JVM overhead +
-        request > maxMemory), guaranteeing OOM.  No gc_java() is called — any
-        cleanup must be driven by that OOM-triggered GC.
-
-        G1 concurrent marking can enqueue WeakRefs spontaneously before the OOM
-        attempt, making it impossible to attribute cleanup to OOM.  We retry up to
-        MAX_ATTEMPTS times; if the precondition never holds the test is skipped.
+        Concurrent GC activity can enqueue WeakRefs before the OOM attempt, making it
+        impossible to attribute cleanup to OOM. We retry up to MAX_ATTEMPTS times; if the
+        precondition never holds the test is skipped.
         """
         MAX_ATTEMPTS = 3
         max_mem      = _Runtime.getRuntime().maxMemory()
@@ -321,7 +300,7 @@ class TestCleanupThreadStress(unittest.TestCase):
 
             _, destroyed_before = _counts()
             if destroyed_before > 0:
-                # G1 concurrent marking fired before the OOM attempt; retry.
+                # Concurrent GC fired before the OOM attempt; retry.
                 del balloon
                 wait_until_cleaned(FLOOD)
                 continue
@@ -341,11 +320,10 @@ class TestCleanupThreadStress(unittest.TestCase):
             return  # success
 
         self.skipTest(
-            f"G1 concurrent marking fired early on all {MAX_ATTEMPTS} attempts "
+            f"Concurrent GC fired early on all {MAX_ATTEMPTS} attempts "
             f"— cannot prove cleanup is attributable to OOM-triggered GC"
         )
 
 
 if __name__ == '__main__':
     unittest.main()
-

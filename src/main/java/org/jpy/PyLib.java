@@ -240,17 +240,29 @@ public class PyLib {
     public static native String getPythonVersion();
 
     /**
-     * Stops the Python interpreter.
+     * Stops the Python interpreter by calling {@code Py_Finalize}.
      *
-     * <strong>Important note:</strong> Stopping the Python interpreter again after it has been restarted using
-     * {@link #startPython} currently causes a fatal error in the the Java Runtime Environment originating from
-     * the Python interpreter (function {@code Py_Finalize} in standard CPython implementation).
-     * There is currently no workaround for that problem other than not restarting the Python interpreter from
-     * your code.
-     * For more information refer to https://github.com/bcdev/jpy/issues/70
+     * <p><strong>Precondition:</strong> All {@link PyObject} references held by application code
+     * must be released (closed or garbage-collected) before this method is called.
+     * {@code Py_Finalize} is not safe in the presence of live Python object references: any
+     * subsequent {@code Py_DECREF} call against a finalized interpreter will result in a native
+     * crash (SIGSEGV). jpy cannot enforce this contract on behalf of callers.
+     *
+     * <p>This method stops the background cleanup daemon (interrupts it and waits for any
+     * in-flight {@code decRef}/{@code decRefs} batch to complete), then performs one final
+     * synchronous drain before calling {@code Py_Finalize}.
+     *
+     * <p><strong>Important note:</strong> Stopping the Python interpreter again after it has been
+     * restarted using {@link #startPython} currently causes a fatal error in the Java Runtime
+     * Environment originating from the Python interpreter ({@code Py_Finalize} in standard
+     * CPython). There is currently no workaround other than not restarting the interpreter.
+     * For more information refer to <a href="https://github.com/bcdev/jpy/issues/70">issue #70</a>.
      */
     public static void stopPython() {
-        PyObject.cleanup();
+        // Stop the daemon before Py_Finalize — it must not call decRef/decRefs against a
+        // dead interpreter. The final drain in stopCleanupThread() covers any references
+        // enqueued after the daemon's last poll.
+        PyObject.stopCleanupThread();
         if (!STOP_IS_NO_OP) {
             stopPython0();
         }

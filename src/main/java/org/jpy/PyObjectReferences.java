@@ -41,12 +41,11 @@ class PyObjectReferences {
      */
     private static final int DEFAULT_BATCH_CLOSE_SIZE = Integer.parseInt(System.getProperty("PyObject.batch_close_size", "4096"));
 
-    private static final long CLEANUP_THREAD_ACTIVE_SLEEP_MILLIS = Long.parseLong(System.getProperty("PyObject.active_sleep_millis", "0"));
     private static final long CLEANUP_THREAD_PASSIVE_SLEEP_MILLIS = Long.parseLong(System.getProperty("PyObject.passive_sleep_millis", "1000"));
 
     private final ReferenceQueue<PyObject> referenceQueue;
     private final Map<Reference<PyObject>, PyObjectState> references;
-    private final long[] buffer;
+    private final int batchCloseSize;
 
     PyObjectReferences() {
         this(DEFAULT_BATCH_CLOSE_SIZE);
@@ -58,7 +57,7 @@ class PyObjectReferences {
         }
         referenceQueue = new ReferenceQueue<>();
         references = new ConcurrentHashMap<>();
-        buffer = new long[batchCloseSize];
+        this.batchCloseSize = batchCloseSize;
     }
 
     void register(PyObject pyObject) {
@@ -91,40 +90,21 @@ class PyObjectReferences {
      * Drains the reference queue and decrements the Python reference counts of all collected
      * {@link PyObject} instances in a single batch.
      *
-     * <p>The GIL is acquired internally by {@link PyLib#decRef} and {@link PyLib#decRefs}, so
-     * callers do not need to hold the GIL before invoking this method. The reference-queue
-     * draining is pure Java and requires no GIL.
-     *
-     * <p>This method performs zero Java heap allocation inside any JNI call, making it safe
-     * to invoke even under severe heap pressure.
+     * <p>Safe to call concurrently with the cleanup daemon: {@link ReferenceQueue#poll()} is
+     * internally synchronized so each enqueued reference is dequeued exactly once, and
+     * {@link ConcurrentHashMap} ensures safe concurrent map access. Each caller uses its own
+     * independently allocated buffer, so there is no shared mutable state between callers.
      */
-    public synchronized int threadSafeCleanup() {
-        int index = 0;
-        while (index < buffer.length) {
-            final Reference<? extends PyObject> reference = referenceQueue.poll();
-            if (reference == null) {
-                break;
-            }
-            index = appendIfNotClosed(buffer, index, reference);
-        }
-        if (index == 0) {
-            return 0;
-        }
-        if (index == 1) {
-            PyLib.decRef(buffer[0]);
-            return 1;
-        }
-        PyLib.decRefs(buffer, index);
-        return index;
+    public int cleanup() {
+        return drainAndDecRef(new long[batchCloseSize], 0);
     }
 
     /**
-     * Drains the reference queue starting from an already-removed first reference, then
-     * continues with {@link ReferenceQueue#poll()} until the queue is empty or the batch
-     * buffer is full.  Called by the cleanup daemon thread.
+     * Drains the reference queue into {@code buffer} starting at {@code index}, then
+     * decrements the Python reference counts of all collected pointers via
+     * {@link PyLib#decRef}/{@link PyLib#decRefs}.
      */
-    private synchronized int threadSafeCleanup(final Reference<? extends PyObject> first) {
-        int index = appendIfNotClosed(buffer, 0, first);
+    private int drainAndDecRef(final long[] buffer, int index) {
         while (index < buffer.length) {
             final Reference<? extends PyObject> ref = referenceQueue.poll();
             if (ref == null) {
@@ -161,51 +141,35 @@ class PyObjectReferences {
 
 
     Thread createCleanupThread(String name) {
-        return new Thread(() -> {
-            try {
-                boolean backlogged = false;
-                while (!Thread.currentThread().isInterrupted()) {
-                    final Reference<? extends PyObject> first;
-                    if (backlogged) {
-                        // Previous batch was full — more items are likely queued.
-                        // Poll immediately rather than blocking, to drain quickly.
-                        first = referenceQueue.poll();
-                        if (first == null) {
-                            // Queue drained — fall back to passive waiting.
-                            backlogged = false;
-                            continue;
-                        }
-                    } else {
-                        // Block until an item arrives or the timeout expires.
-                        // This avoids busy-polling and wakes up immediately when
-                        // there is cleanup work to do.
-                        first = referenceQueue.remove(CLEANUP_THREAD_PASSIVE_SLEEP_MILLIS);
-                        if (first == null) {
-                            continue;
-                        }
-                    }
+        return new Thread(this::cleanupThreadLogic, name);
+    }
 
-                    final int size = threadSafeCleanup(first);
-                    backlogged = (size == buffer.length);
-
-                    if (backlogged && CLEANUP_THREAD_ACTIVE_SLEEP_MILLIS > 0) {
-                        Thread.sleep(CLEANUP_THREAD_ACTIVE_SLEEP_MILLIS);
-                    }
+    private void cleanupThreadLogic() {
+        // Buffer allocated once and owned exclusively by this thread for its lifetime.
+        final long[] buffer = new long[batchCloseSize];
+        try {
+            while (!Thread.currentThread().isInterrupted()) {
+                // Block until a reference is enqueued or the timeout expires.
+                final Reference<? extends PyObject> first =
+                        referenceQueue.remove(CLEANUP_THREAD_PASSIVE_SLEEP_MILLIS);
+                if (first == null) {
+                    continue;
                 }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+                drainAndDecRef(buffer, appendIfNotClosed(buffer, 0, first));
             }
-            // Any RuntimeException escaping here propagates to the thread's
-            // UncaughtExceptionHandler (stderr + thread death by default).
-            // All plausible causes are non-recoverable:
-            //   1. Python is in a non-recoverable state — no new PyObjects can be
-            //      created so the ReferenceQueue will not grow further.
-            //   2. An invalid pointer reached decRef/decRefs, indicating a double-dec
-            //      or memory corruption; continuing would risk further corruption.
-            //   3. A violated invariant inside PyObjectReferences itself (e.g.
-            //      IllegalStateException from appendIfNotClosed) — internal state is
-            //      inconsistent and cannot be trusted.
-            // In all cases letting the thread die is the correct behaviour.
-        }, name);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        // Any RuntimeException escaping here propagates to the thread's
+        // UncaughtExceptionHandler (stderr + thread death by default).
+        // All plausible causes are non-recoverable:
+        //   1. Python is in a non-recoverable state — no new PyObjects can be
+        //      created so the ReferenceQueue will not grow further.
+        //   2. An invalid pointer reached decRef/decRefs, indicating a double-dec
+        //      or memory corruption; continuing would risk further corruption.
+        //   3. A violated invariant inside PyObjectReferences itself (e.g.
+        //      IllegalStateException from appendIfNotClosed) — internal state is
+        //      inconsistent and cannot be trusted.
+        // In all cases letting the thread die is the correct behaviour.
     }
 }

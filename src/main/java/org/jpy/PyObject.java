@@ -64,7 +64,32 @@ public class PyObject implements AutoCloseable {
     }
 
     public static int cleanup() {
-        return REFERENCES.threadSafeCleanup();
+        return REFERENCES.cleanup();
+    }
+
+    /**
+     * Interrupts the cleanup daemon and waits for it to finish its current batch, then performs
+     * a final synchronous drain on the calling thread.
+     *
+     * <p>Must be called before {@code Py_Finalize} to ensure the daemon cannot call
+     * {@link PyLib#decRef}/{@link PyLib#decRefs} against a dead interpreter.
+     *
+     * <p>The join is indefinite: if the daemon is mid-batch in a JNI call ({@code decRef} or
+     * {@code decRefs}) when interrupted, we must wait for it to complete rather than racing
+     * {@code Py_Finalize} with an in-flight native call — the latter would be a guaranteed crash.
+     */
+    static void stopCleanupThread() {
+        final Thread thread = CLEANUP_THREAD.getAndSet(null);
+        if (thread != null && thread.isAlive()) {
+            thread.interrupt();
+            try {
+                thread.join();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        // Final drain: pick up any references enqueued after the daemon's last poll.
+        REFERENCES.cleanup();
     }
 
     private final PyObjectState state;
@@ -76,11 +101,10 @@ public class PyObject implements AutoCloseable {
     @SuppressWarnings("WeakerAccess")
     PyObject(long pointer, boolean fromJNI) {
         state = new PyObjectState(pointer);
-        if (fromJNI) {
-            if (CLEANUP_ON_THREAD) {
-                // ensures that we've only started after python has been started, and we know there is something to cleanup
-                startCleanupThread();
-            }
+        // Start the cleanup daemon lazily on the first PyObject arriving from JNI;
+        // fromJNI==true guarantees Python is already running (the C layer sets JNI_TRUE).
+        if (fromJNI && CLEANUP_ON_THREAD && CLEANUP_THREAD.get() == null) {
+            startCleanupThread();
         }
         registerSelfInto(REFERENCES);
     }
