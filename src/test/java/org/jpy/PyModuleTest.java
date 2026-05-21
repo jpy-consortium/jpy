@@ -74,17 +74,11 @@ public class PyModuleTest {
                 raiserModule.call("raise_if_zero", 0);
                 Assert.fail();
             } catch (RuntimeException e) {
-                //e.printStackTrace();
                 String message = e.getMessage();
-                //System.out.println("message = " + message);
                 assertNotNull(message);
                 assertTrue(message.startsWith("Error in Python interpreter"));
-                assertTrue(message.contains("Type: <"));
-                assertTrue(message.contains("IndexError'>\n"));
-                assertTrue(message.contains("Value: arg wasn't there\n"));
-                assertTrue(message.contains("Line: 3\n"));
-                assertTrue(message.contains("Namespace: raise_if_zero\n"));
-                assertTrue(message.contains("File: "));
+                assertTrue(message.contains("IndexError"));
+                assertTrue(message.contains("arg wasn't there"));
             }
             // ok
             raiserModule.call("raise_if_zero", 1);

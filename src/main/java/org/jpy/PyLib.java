@@ -310,6 +310,17 @@ public class PyLib {
 
     static native void incRef(long pointer);
 
+    /**
+     * Decrements the reference count of the Python object identified by {@code pointer}.
+     *
+     * <p><b>Ownership warning:</b> This must be called at most once per new reference, and only
+     * when the raw {@code long} pointer is the sole owner — i.e. it was obtained directly from a
+     * low-level API (such as {@link #callAndReturnObject}) and has <em>not</em> been wrapped in a
+     * {@link PyObject}.  If {@code pointer} was obtained via {@link PyObject#getPointer()}, do
+     * <em>not</em> call this method: the {@link PyObject} already owns the reference and will
+     * decrement it on {@link PyObject#close()} or GC-driven cleanup.  Calling both causes a
+     * double-decref that silently corrupts CPython's allocator state.
+     */
     static native void decRef(long pointer);
 
     static native void decRefs(long[] pointers, int len);
@@ -454,7 +465,15 @@ public class PyLib {
      * The {@code args} array may also contain objects of type {@code PyObject}.
      * These will be directly translated into the corresponding Python objects without conversion.
      * <p>
-     * Callers must close the returned reference with {@link #decRef(long)}.
+     * <b>Ownership:</b> The returned {@code long} is a new Python reference owned by the caller.
+     * The caller must release it via exactly one of:
+     * <ul>
+     *   <li>{@link #decRef(long)} — when keeping the result as a raw pointer, or</li>
+     *   <li>wrapping it in {@code new PyObject(long)} and relying on {@link PyObject#close()} /
+     *       GC cleanup for release.</li>
+     * </ul>
+     * Mixing both (explicit {@link #decRef(long)} <em>and</em> a live {@link PyObject} wrapper)
+     * causes a double-decref that silently corrupts CPython's allocator state.
      *
      * @param pointer    Identifies the Python object which contains the callable {@code name}.
      * @param methodCall true, if this is a call of a method of the Python object pointed to by {@code pointer}.

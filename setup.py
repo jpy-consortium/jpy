@@ -225,9 +225,18 @@ def test_python_java_classes():
 
 def test_maven():
     jpy_config = os.path.join(_build_dir(), 'jpyconfig.properties')
-    mvn_args = '-DargLine=-Xmx512m -Djpy.config=' + jpy_config + ' -Djpy.debug=true'
+    # jpy.stopIsNoOp=true prevents Py_Finalize from being called between test methods/classes.
+    # Multiple start/stop cycles in the same JVM crash CPython (issue #70); with this flag,
+    # stopPython() is a no-op and startPython() remains idempotent.
+    mvn_args = ('-DargLine=-Xmx512m -Djpy.config=' + jpy_config + ' -Djpy.debug=true'
+                + ' -Djpy.stopIsNoOp=true')
     log.info("Executing Maven goal 'test' with arg line " + repr(mvn_args))
-    code = subprocess.call(['mvn', 'test', mvn_args], shell=platform.system() == 'Windows')
+    # PYTHONHOME must point to the base Python installation (not the venv prefix) so that the
+    # embedded interpreter can find the standard library.  sys.base_prefix is correct for both
+    # plain and virtual-environment Python installations.
+    env = dict(os.environ)
+    env['PYTHONHOME'] = sys.base_prefix
+    code = subprocess.call(['mvn', 'test', mvn_args], shell=platform.system() == 'Windows', env=env)
     return code == 0
 
 
@@ -285,8 +294,7 @@ def test_suite():
 
     suite.addTest(test_python_with_java_runtime)
     suite.addTest(test_python_with_java_classes)
-    # comment out because the asynchronous nature of the PyObject GC in Java makes stopPython/startPython flakey.
-    # suite.addTest(test_java)
+    suite.addTest(test_java)
 
     return suite
 

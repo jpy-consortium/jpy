@@ -1,6 +1,7 @@
 package org.jpy;
 
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestRule;
@@ -14,6 +15,11 @@ public class LifeCycleTest {
 
     @Test
     public void testCanStartAndStopWithoutException() {
+        // CPython cannot be restarted once finalized (issue #70).  When stopIsNoOp=true,
+        // stopPython() skips Py_Finalize, so isPythonRunning() never returns false and the
+        // module pointers are stable across restarts.  Skip rather than produce a misleading pass.
+        Assume.assumeFalse("Skipped: CPython restart not supported (jpy.stopIsNoOp=true)",
+                Boolean.getBoolean("jpy.stopIsNoOp"));
         PyLib.startPython();
         Assert.assertTrue(PyLib.isPythonRunning());
         PyModule sys1 = PyModule.importModule("sys");

@@ -88,7 +88,12 @@ public class PyObject implements AutoCloseable {
                 Thread.currentThread().interrupt();
             }
         }
-        // Final drain: pick up any references enqueued after the daemon's last poll.
+        // Final drain: pick up any WeakReferences enqueued between the daemon's last poll and
+        // being interrupted.  This is hygiene rather than crash prevention — Py_Finalize() will
+        // reclaim all Python memory regardless of Java-side refcounts, and unprocessed entries
+        // in the queue will simply be discarded at JVM shutdown without causing any late decRef
+        // calls.  The drain ensures reference counts are orderly at shutdown and avoids leaving
+        // stale entries in the REFERENCES map.
         REFERENCES.cleanup();
     }
 
@@ -186,7 +191,15 @@ public class PyObject implements AutoCloseable {
     }
 
     /**
-     * @return A unique pointer to the wrapped Python object.
+     * Returns the raw pointer to the underlying Python object.
+     *
+     * <p><b>Borrowed reference:</b> This {@link PyObject} retains ownership of the reference.
+     * The returned {@code long} must <em>not</em> be passed to {@link PyLib#decRef} — doing so
+     * while this {@link PyObject} is still alive causes a double-decref that silently corrupts
+     * CPython's allocator state.  Use the returned value only to pass to other jpy APIs that
+     * accept a borrowed pointer (e.g. native calls that do not steal the reference).
+     *
+     * @return A pointer to the wrapped Python object.
      */
     public final long getPointer() {
         return state.borrowPointer();

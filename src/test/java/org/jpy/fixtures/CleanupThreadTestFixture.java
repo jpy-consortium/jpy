@@ -45,7 +45,6 @@ public class CleanupThreadTestFixture {
      */
     public void releaseAll() {
         held.clear();
-        held = new ArrayList<>(); // drop old list to remove any lingering reference
     }
 
     /**
