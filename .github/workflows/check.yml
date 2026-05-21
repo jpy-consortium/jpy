@@ -61,7 +61,7 @@ jobs:
             source .venv/bin/activate
             uv pip install pip
             echo $JAVA_HOME
-            echo PATH=$PATH >> $GITHUB_PATH
+            echo "$PWD/.venv/bin" >> $GITHUB_PATH
 
         - run: pip install "setuptools < 72" numpy
 
