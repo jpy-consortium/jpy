@@ -219,15 +219,16 @@ public class PyObjectTest {
     public void testGetSetAttributes() throws Exception {
         // Python equivalent:
         //
-        // >>> import imp
-        // >>> myobj = imp.new_module('myobj')
+        // >>> import types
+        // >>> myobj = types.ModuleType('myobj')
         // >>> myobj.a = 'Tut tut!'
         // >>> myobj.a
         // 'Tut tut!'
         //
+        // Note: imp.new_module() was removed in Python 3.12; types.ModuleType is the replacement.
         try (
-            final PyModule imp = PyModule.importModule("imp");
-            final PyObject myobj = imp.call("new_module", "myobj")) {
+            final PyModule types = PyModule.importModule("types");
+            final PyObject myobj = types.call("ModuleType", "myobj")) {
             // Call imp.new_module('') module
             myobj.setAttribute("a", "Tut tut!");
             Assert.assertEquals("Tut tut!", myobj.getAttribute("a", String.class));
