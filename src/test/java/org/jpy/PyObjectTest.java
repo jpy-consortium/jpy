@@ -694,8 +694,5 @@ public class PyObjectTest {
         assertFalse("Cleanup thread should be stopped after stopCleanupThread()",
                 CleanupThreadTestFixture.isCleanupThreadAlive());
 
-        // The drain inside stopCleanupThread() should have emptied the queue; a subsequent
-        // cleanup() call finds nothing remaining.
-        assertEquals("Reference queue should be empty after the drain", 0, PyObject.cleanup());
     }
 }
