@@ -245,9 +245,7 @@ def _write_jpy_config(target_dir=None, install_dir=None):
     Write out a well-formed jpyconfig.properties file for easier Java
     integration in a given location.
     """
-    if is_ci:
-        # We don't want to publish the properties for the CI build system.
-        return None
+
 
     if not target_dir:
         target_dir = _build_dir()
@@ -264,7 +262,12 @@ def _write_jpy_config(target_dir=None, install_dir=None):
         args.append(install_dir)
 
     log.info('Writing jpy configuration to %s using install_dir %s' % (target_dir, install_dir))
-    return subprocess.call(args)
+    # Make the compiled jpy/jdl extensions discoverable to the jpyutil.py subprocess so that
+    # importlib.util.find_spec('jpy') resolves to the freshly-built .so in the build directory.
+    env = dict(os.environ)
+    existing = env.get('PYTHONPATH', '')
+    env['PYTHONPATH'] = (target_dir + os.pathsep + existing) if existing else target_dir
+    return subprocess.call(args, env=env)
 
 
 def _copy_jpyutil():
