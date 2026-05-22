@@ -94,7 +94,9 @@ public class PyObject implements AutoCloseable {
         // in the queue will simply be discarded at JVM shutdown without causing any late decRef
         // calls.  The drain ensures reference counts are orderly at shutdown and avoids leaving
         // stale entries in the REFERENCES map.
-        REFERENCES.cleanup();
+        if (thread != null) {
+            REFERENCES.cleanup();
+        }
     }
 
     private final PyObjectState state;
