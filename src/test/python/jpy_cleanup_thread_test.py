@@ -56,7 +56,7 @@ TIMEOUT = 10.0   # seconds: generous upper bound for daemon to drain FLOOD objec
 
 # ── Destruction tracking ──────────────────────────────────────────────────────
 
-_lock      = threading.Lock()
+_lock      = threading.RLock()
 _created   = 0
 _destroyed = 0
 
