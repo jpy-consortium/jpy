@@ -110,7 +110,7 @@ public class PyObject implements AutoCloseable {
         state = new PyObjectState(pointer);
         // Start the cleanup daemon lazily on the first PyObject arriving from JNI;
         // fromJNI==true guarantees Python is already running (the C layer sets JNI_TRUE).
-        if (fromJNI && CLEANUP_ON_THREAD && CLEANUP_THREAD.get() == null) {
+        if (fromJNI && CLEANUP_ON_THREAD) {
             startCleanupThread();
         }
         registerSelfInto(REFERENCES);
