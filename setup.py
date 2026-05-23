@@ -245,13 +245,6 @@ def _write_jpy_config(target_dir=None, install_dir=None):
     Write out a well-formed jpyconfig.properties file for easier Java
     integration in a given location.
     """
-    if is_ci and install_dir:
-        # In CI, install_lib runs as part of bdist_wheel to stage files into
-        # the wheel. We must not write jpyconfig.properties with CI-specific
-        # absolute paths (jvm_dll, java_home) into the wheel artifact.
-        return None
-
-
     if not target_dir:
         target_dir = _build_dir()
 
@@ -285,7 +278,6 @@ def _copy_jpyutil():
 def _build_jpy():
     package_maven()
     _copy_jpyutil()
-    _write_jpy_config()
 
 
 def test_suite():
@@ -329,6 +321,7 @@ class JpyBuildBeforeTest(test):
     def run(self):
         self.run_command('build')
         self.run_command('maven')
+        _write_jpy_config()
         test.run(self)
 
 
@@ -336,7 +329,8 @@ class JpyInstallLib(install_lib):
     """ Custom install_lib command for getting install_dir """
 
     def run(self):
-        _write_jpy_config(install_dir=self.install_dir)
+        if not is_ci:
+            _write_jpy_config(install_dir=self.install_dir)
         install_lib.run(self)
 
 
