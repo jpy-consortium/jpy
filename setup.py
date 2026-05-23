@@ -245,6 +245,11 @@ def _write_jpy_config(target_dir=None, install_dir=None):
     Write out a well-formed jpyconfig.properties file for easier Java
     integration in a given location.
     """
+    if is_ci and install_dir:
+        # In CI, install_lib runs as part of bdist_wheel to stage files into
+        # the wheel. We must not write jpyconfig.properties with CI-specific
+        # absolute paths (jvm_dll, java_home) into the wheel artifact.
+        return None
 
 
     if not target_dir:
