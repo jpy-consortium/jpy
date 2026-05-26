@@ -64,7 +64,39 @@ public class PyObject implements AutoCloseable {
     }
 
     public static int cleanup() {
-        return REFERENCES.asProxy().threadSafeCleanup();
+        return REFERENCES.cleanup();
+    }
+
+    /**
+     * Interrupts the cleanup daemon and waits for it to finish its current batch, then performs
+     * a final synchronous drain on the calling thread.
+     *
+     * <p>Must be called before {@code Py_Finalize} to ensure the daemon cannot call
+     * {@link PyLib#decRef}/{@link PyLib#decRefs} against a dead interpreter.
+     *
+     * <p>The join is indefinite: if the daemon is mid-batch in a JNI call ({@code decRef} or
+     * {@code decRefs}) when interrupted, we must wait for it to complete rather than racing
+     * {@code Py_Finalize} with an in-flight native call — the latter would be a guaranteed crash.
+     */
+    static void stopCleanupThread() {
+        final Thread thread = CLEANUP_THREAD.getAndSet(null);
+        if (thread != null && thread.isAlive()) {
+            thread.interrupt();
+            try {
+                thread.join();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        // Final drain: pick up any WeakReferences enqueued between the daemon's last poll and
+        // being interrupted.  This is hygiene rather than crash prevention — Py_Finalize() will
+        // reclaim all Python memory regardless of Java-side refcounts, and unprocessed entries
+        // in the queue will simply be discarded at JVM shutdown without causing any late decRef
+        // calls.  The drain ensures reference counts are orderly at shutdown and avoids leaving
+        // stale entries in the REFERENCES map.
+        if (thread != null) {
+            REFERENCES.cleanup();
+        }
     }
 
     private final PyObjectState state;
@@ -76,11 +108,10 @@ public class PyObject implements AutoCloseable {
     @SuppressWarnings("WeakerAccess")
     PyObject(long pointer, boolean fromJNI) {
         state = new PyObjectState(pointer);
-        if (fromJNI) {
-            if (CLEANUP_ON_THREAD) {
-                // ensures that we've only started after python has been started, and we know there is something to cleanup
-                startCleanupThread();
-            }
+        // Start the cleanup daemon lazily on the first PyObject arriving from JNI;
+        // fromJNI==true guarantees Python is already running (the C layer sets JNI_TRUE).
+        if (fromJNI && CLEANUP_ON_THREAD) {
+            startCleanupThread();
         }
         registerSelfInto(REFERENCES);
     }
@@ -162,7 +193,15 @@ public class PyObject implements AutoCloseable {
     }
 
     /**
-     * @return A unique pointer to the wrapped Python object.
+     * Returns the raw pointer to the underlying Python object.
+     *
+     * <p><b>Borrowed reference:</b> This {@link PyObject} retains ownership of the reference.
+     * The returned {@code long} must <em>not</em> be passed to {@link PyLib#decRef} — doing so
+     * while this {@link PyObject} is still alive causes a double-decref that silently corrupts
+     * CPython's allocator state.  Use the returned value only to pass to other jpy APIs that
+     * accept a borrowed pointer (e.g. native calls that do not steal the reference).
+     *
+     * @return A pointer to the wrapped Python object.
      */
     public final long getPointer() {
         return state.borrowPointer();

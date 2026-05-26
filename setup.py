@@ -100,6 +100,7 @@ python_java_jpy_tests = [
     os.path.join(src_test_py_dir, 'jpy_eval_exec_test.py'),
     os.path.join(src_test_py_dir, 'jpy_mt_eval_exec_test.py'),
     os.path.join(src_test_py_dir, 'jpy_reachability_fence_test.py'),
+    os.path.join(src_test_py_dir, 'jpy_cleanup_thread_test.py'),
 ]
 
 # e.g. jdk_home_dir = '/home/marta/jdk1.7.0_15'
@@ -224,9 +225,18 @@ def test_python_java_classes():
 
 def test_maven():
     jpy_config = os.path.join(_build_dir(), 'jpyconfig.properties')
-    mvn_args = '-DargLine=-Xmx512m -Djpy.config=' + jpy_config + ' -Djpy.debug=true'
+    # jpy.stopIsNoOp=true prevents Py_Finalize from being called between test methods/classes.
+    # Multiple start/stop cycles in the same JVM crash CPython (issue #70); with this flag,
+    # stopPython() is a no-op and startPython() remains idempotent.
+    mvn_args = ('-DargLine=-Xmx512m -Djpy.config=' + jpy_config + ' -Djpy.debug=true'
+                + ' -Djpy.stopIsNoOp=true')
     log.info("Executing Maven goal 'test' with arg line " + repr(mvn_args))
-    code = subprocess.call(['mvn', 'test', mvn_args], shell=platform.system() == 'Windows')
+    # PYTHONHOME must point to the base Python installation (not the venv prefix) so that the
+    # embedded interpreter can find the standard library.  sys.base_prefix is correct for both
+    # plain and virtual-environment Python installations.
+    env = dict(os.environ)
+    env['PYTHONHOME'] = sys.base_prefix
+    code = subprocess.call(['mvn', 'test', mvn_args], shell=platform.system() == 'Windows', env=env)
     return code == 0
 
 
@@ -235,10 +245,6 @@ def _write_jpy_config(target_dir=None, install_dir=None):
     Write out a well-formed jpyconfig.properties file for easier Java
     integration in a given location.
     """
-    if is_ci:
-        # We don't want to publish the properties for the CI build system.
-        return None
-
     if not target_dir:
         target_dir = _build_dir()
 
@@ -254,7 +260,12 @@ def _write_jpy_config(target_dir=None, install_dir=None):
         args.append(install_dir)
 
     log.info('Writing jpy configuration to %s using install_dir %s' % (target_dir, install_dir))
-    return subprocess.call(args)
+    # Make the compiled jpy/jdl extensions discoverable to the jpyutil.py subprocess so that
+    # importlib.util.find_spec('jpy') resolves to the freshly-built .so in the build directory.
+    env = dict(os.environ)
+    existing = env.get('PYTHONPATH', '')
+    env['PYTHONPATH'] = (target_dir + os.pathsep + existing) if existing else target_dir
+    return subprocess.call(args, env=env)
 
 
 def _copy_jpyutil():
@@ -267,7 +278,6 @@ def _copy_jpyutil():
 def _build_jpy():
     package_maven()
     _copy_jpyutil()
-    _write_jpy_config()
 
 
 def test_suite():
@@ -284,8 +294,7 @@ def test_suite():
 
     suite.addTest(test_python_with_java_runtime)
     suite.addTest(test_python_with_java_classes)
-    # comment out because the asynchronous nature of the PyObject GC in Java makes stopPython/startPython flakey.
-    # suite.addTest(test_java)
+    suite.addTest(test_java)
 
     return suite
 
@@ -312,6 +321,7 @@ class JpyBuildBeforeTest(test):
     def run(self):
         self.run_command('build')
         self.run_command('maven')
+        _write_jpy_config()
         test.run(self)
 
 
@@ -319,7 +329,8 @@ class JpyInstallLib(install_lib):
     """ Custom install_lib command for getting install_dir """
 
     def run(self):
-        _write_jpy_config(install_dir=self.install_dir)
+        if not is_ci:
+            _write_jpy_config(install_dir=self.install_dir)
         install_lib.run(self)
 
 

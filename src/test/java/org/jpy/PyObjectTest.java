@@ -21,6 +21,7 @@ package org.jpy;
 
 import java.util.regex.Pattern;
 import org.junit.*;
+import org.jpy.fixtures.CleanupThreadTestFixture;
 import org.jpy.fixtures.Processor;
 import org.junit.rules.TestRule;
 
@@ -85,18 +86,32 @@ public class PyObjectTest {
     
     @Test
     public void testEqualsAndHashCode() throws Exception {
+        // Reference-counting note: new PyObject(long) takes ownership of exactly one Python
+        // reference.  When the same raw pointer is wrapped more than once, each wrapper will
+        // independently decRef on close/GC, resulting in a double- (or triple-) decRef and
+        // silent CPython allocator corruption.
+        //
+        // The fix is to call PyLib.incRef(pointer) immediately before every *additional*
+        // wrapping so that each wrapper owns its own +1 reference.  We deliberately keep the
+        // PyObject(long) constructor semantics unchanged (no automatic incRef) to avoid a
+        // performance penalty on all normal usages.  An alternative design (a static
+        // PyObject.wrap(long) factory that always increfs) was considered but rejected because
+        // it adds API surface solely to satisfy these internal tests.
         long pointer1 = PyLib.importModule("sys");
         long pointer2 = PyLib.importModule("os");
-        PyObject pyObject1 = new PyObject(pointer1);
-        PyObject pyObject2 = new PyObject(pointer2);
+        PyObject pyObject1 = new PyObject(pointer1);   // owns pointer1's ref
+        PyObject pyObject2 = new PyObject(pointer2);   // owns pointer2's ref
         assertEquals(true, pyObject1.equals(pyObject1));
+        PyLib.incRef(pointer1);  // pay for the extra wrapper below
         assertEquals(true, pyObject1.equals(new PyObject(pointer1)));
         assertEquals(false, pyObject1.equals(pyObject2));
+        PyLib.incRef(pointer2);  // pay for the extra wrapper below
         assertEquals(false, pyObject1.equals(new PyObject(pointer2)));
         assertEquals(false, pyObject1.equals((Object) pointer1));
         assertTrue(0 != pyObject1.hashCode());
         assertTrue(0 != pyObject2.hashCode());
         assertEquals(pyObject1.hashCode(), pyObject1.hashCode());
+        PyLib.incRef(pointer1);  // pay for the extra wrapper below
         assertEquals(pyObject1.hashCode(), new PyObject(pointer1).hashCode());
         assertTrue(pyObject1.hashCode() != pyObject2.hashCode());
     }
@@ -204,15 +219,16 @@ public class PyObjectTest {
     public void testGetSetAttributes() throws Exception {
         // Python equivalent:
         //
-        // >>> import imp
-        // >>> myobj = imp.new_module('myobj')
+        // >>> import types
+        // >>> myobj = types.ModuleType('myobj')
         // >>> myobj.a = 'Tut tut!'
         // >>> myobj.a
         // 'Tut tut!'
         //
+        // Note: imp.new_module() was removed in Python 3.12; types.ModuleType is the replacement.
         try (
-            final PyModule imp = PyModule.importModule("imp");
-            final PyObject myobj = imp.call("new_module", "myobj")) {
+            final PyModule types = PyModule.importModule("types");
+            final PyObject myobj = types.call("ModuleType", "myobj")) {
             // Call imp.new_module('') module
             myobj.setAttribute("a", "Tut tut!");
             Assert.assertEquals("Tut tut!", myobj.getAttribute("a", String.class));
@@ -647,5 +663,36 @@ public class PyObjectTest {
         PyObject obj = SPECIAL_METHODS.call("Simple", 1);
         obj.close();
         obj.getPointer();
+    }
+
+    @Test
+    public void testStopCleanupThread() {
+        // The cleanup thread only starts when a fromJNI=true PyObject is created — i.e. when JNI
+        // code calls JType_CreateJavaPyObject (e.g. getMainGlobals, newDict, executeCode).
+        // PyModule.importModule() in setUp() uses new PyModule(name, pointer) → PyObject(pointer,
+        // false), so fromJNI=false and the thread is NOT started there.  We must trigger it
+        // explicitly here.
+        try (PyObject ignored = PyLib.getMainGlobals()) {
+            // getMainGlobals() creates a fromJNI=true PyObject in JNI, which starts the daemon.
+        }
+        assertTrue("Cleanup thread should be alive after a fromJNI=true PyObject was created",
+                CleanupThreadTestFixture.isCleanupThreadAlive());
+
+        // Create two PyObjects and immediately make them GC-eligible (not stored in a variable).
+        // new PyObject(long) takes ownership of the new reference returned by importModule;
+        // do NOT also call PyLib.decRef() on the same pointer (double-decref).
+        new PyObject(PyLib.importModule("os"));
+        new PyObject(PyLib.importModule("sys"));
+
+        // Prompt the JVM to collect the unreachable wrappers and enqueue their WeakReferences.
+        System.gc();
+
+        // stopCleanupThread() interrupts the daemon, waits for it to exit, then performs a
+        // synchronous final drain to process any WeakReferences enqueued in the interim.
+        PyObject.stopCleanupThread();
+
+        assertFalse("Cleanup thread should be stopped after stopCleanupThread()",
+                CleanupThreadTestFixture.isCleanupThreadAlive());
+
     }
 }

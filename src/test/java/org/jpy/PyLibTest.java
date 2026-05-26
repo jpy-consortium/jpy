@@ -167,14 +167,12 @@ public class PyLibTest {
             PyLib.decRef(max);
 
             long pointer = PyLib.callAndReturnObject(builtins, false, "max", 2, new Object[]{"A", "Z"}, null);
-            try {
-                assertTrue(pointer != 0);
+            // new PyObject(pointer) takes ownership; do NOT also call PyLib.decRef(pointer)
+            // as that causes a double-decref and corrupts CPython's allocator state.
+            assertTrue(pointer != 0);
 
-                //PyLib.Diag.setFlags(PyLib.Diag.F_ALL);
-                assertEquals("Z", new PyObject(pointer).getStringValue());
-            } finally {
-                PyLib.decRef(pointer);
-            }
+            //PyLib.Diag.setFlags(PyLib.Diag.F_ALL);
+            assertEquals("Z", new PyObject(pointer).getStringValue());
         } finally {
             PyLib.decRef(builtins);
         }

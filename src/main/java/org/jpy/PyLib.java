@@ -240,17 +240,29 @@ public class PyLib {
     public static native String getPythonVersion();
 
     /**
-     * Stops the Python interpreter.
+     * Stops the Python interpreter by calling {@code Py_Finalize}.
      *
-     * <strong>Important note:</strong> Stopping the Python interpreter again after it has been restarted using
-     * {@link #startPython} currently causes a fatal error in the the Java Runtime Environment originating from
-     * the Python interpreter (function {@code Py_Finalize} in standard CPython implementation).
-     * There is currently no workaround for that problem other than not restarting the Python interpreter from
-     * your code.
-     * For more information refer to https://github.com/bcdev/jpy/issues/70
+     * <p><strong>Precondition:</strong> All {@link PyObject} references held by application code
+     * must be released (closed or garbage-collected) before this method is called.
+     * {@code Py_Finalize} is not safe in the presence of live Python object references: any
+     * subsequent {@code Py_DECREF} call against a finalized interpreter will result in a native
+     * crash (SIGSEGV). jpy cannot enforce this contract on behalf of callers.
+     *
+     * <p>This method stops the background cleanup daemon (interrupts it and waits for any
+     * in-flight {@code decRef}/{@code decRefs} batch to complete), then performs one final
+     * synchronous drain before calling {@code Py_Finalize}.
+     *
+     * <p><strong>Important note:</strong> Stopping the Python interpreter again after it has been
+     * restarted using {@link #startPython} currently causes a fatal error in the Java Runtime
+     * Environment originating from the Python interpreter ({@code Py_Finalize} in standard
+     * CPython). There is currently no workaround other than not restarting the interpreter.
+     * For more information refer to <a href="https://github.com/bcdev/jpy/issues/70">issue #70</a>.
      */
     public static void stopPython() {
-        PyObject.cleanup();
+        // Stop the daemon before Py_Finalize — it must not call decRef/decRefs against a
+        // dead interpreter. The final drain in stopCleanupThread() covers any references
+        // enqueued after the daemon's last poll.
+        PyObject.stopCleanupThread();
         if (!STOP_IS_NO_OP) {
             stopPython0();
         }
@@ -298,6 +310,17 @@ public class PyLib {
 
     static native void incRef(long pointer);
 
+    /**
+     * Decrements the reference count of the Python object identified by {@code pointer}.
+     *
+     * <p><b>Ownership warning:</b> This must be called at most once per new reference, and only
+     * when the raw {@code long} pointer is the sole owner — i.e. it was obtained directly from a
+     * low-level API (such as {@link #callAndReturnObject}) and has <em>not</em> been wrapped in a
+     * {@link PyObject}.  If {@code pointer} was obtained via {@link PyObject#getPointer()}, do
+     * <em>not</em> call this method: the {@link PyObject} already owns the reference and will
+     * decrement it on {@link PyObject#close()} or GC-driven cleanup.  Calling both causes a
+     * double-decref that silently corrupts CPython's allocator state.
+     */
     static native void decRef(long pointer);
 
     static native void decRefs(long[] pointers, int len);
@@ -442,7 +465,15 @@ public class PyLib {
      * The {@code args} array may also contain objects of type {@code PyObject}.
      * These will be directly translated into the corresponding Python objects without conversion.
      * <p>
-     * Callers must close the returned reference with {@link #decRef(long)}.
+     * <b>Ownership:</b> The returned {@code long} is a new Python reference owned by the caller.
+     * The caller must release it via exactly one of:
+     * <ul>
+     *   <li>{@link #decRef(long)} — when keeping the result as a raw pointer, or</li>
+     *   <li>wrapping it in {@code new PyObject(long)} and relying on {@link PyObject#close()} /
+     *       GC cleanup for release.</li>
+     * </ul>
+     * Mixing both (explicit {@link #decRef(long)} <em>and</em> a live {@link PyObject} wrapper)
+     * causes a double-decref that silently corrupts CPython's allocator state.
      *
      * @param pointer    Identifies the Python object which contains the callable {@code name}.
      * @param methodCall true, if this is a call of a method of the Python object pointed to by {@code pointer}.

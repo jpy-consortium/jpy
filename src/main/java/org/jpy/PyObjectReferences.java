@@ -8,10 +8,24 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Allows for proper cleanup of PyObjects outside of the {@link Object#finalize()} method.
+ * Tracks live {@link PyObject} instances via {@link WeakReference}s and drives
+ * {@code Py_DECREF} on the underlying Python objects once the Java wrappers
+ * become unreachable.
  *
- * <p>Note: this setup could likely be better structured as a factory, but then the existing JNI
- * code would need to be aware of it. Instead, we'll ensure that new PyObjects register.
+ * <h3>Why not {@link java.lang.ref.Cleaner}?</h3>
+ * {@code Cleaner} (Java 9+) is the modern replacement for {@link Object#finalize()}.
+ * Internally it also uses a {@link PhantomReference} + {@link ReferenceQueue} daemon,
+ * but it invokes each registered action individually.  jpy needs to batch multiple
+ * {@code Py_DECREF} calls into a single JNI round-trip ({@link PyLib#decRefs}) for
+ * performance — {@code Cleaner} offers no batching hook.  A hand-rolled
+ * {@link ReferenceQueue} daemon with a fixed-size buffer gives us exactly that.
+ *
+ * <h3>Why {@link WeakReference} rather than {@link PhantomReference}?</h3>
+ * See {@link #asRef} for the rationale.
+ *
+ * <p>Note: this setup could likely be better structured as a factory, but then the
+ * existing JNI code would need to be aware of it.  Instead, new {@link PyObject}s
+ * self-register on construction.
  */
 class PyObjectReferences {
     private static final String WEAK = "weak";
@@ -27,12 +41,11 @@ class PyObjectReferences {
      */
     private static final int DEFAULT_BATCH_CLOSE_SIZE = Integer.parseInt(System.getProperty("PyObject.batch_close_size", "4096"));
 
-    private static final long CLEANUP_THREAD_ACTIVE_SLEEP_MILLIS = Long.parseLong(System.getProperty("PyObject.active_sleep_millis", "0"));
     private static final long CLEANUP_THREAD_PASSIVE_SLEEP_MILLIS = Long.parseLong(System.getProperty("PyObject.passive_sleep_millis", "1000"));
 
     private final ReferenceQueue<PyObject> referenceQueue;
     private final Map<Reference<PyObject>, PyObjectState> references;
-    private final long[] buffer;
+    private final int batchCloseSize;
 
     PyObjectReferences() {
         this(DEFAULT_BATCH_CLOSE_SIZE);
@@ -44,7 +57,7 @@ class PyObjectReferences {
         }
         referenceQueue = new ReferenceQueue<>();
         references = new ConcurrentHashMap<>();
-        buffer = new long[batchCloseSize];
+        this.batchCloseSize = batchCloseSize;
     }
 
     void register(PyObject pyObject) {
@@ -74,33 +87,40 @@ class PyObjectReferences {
     }
 
     /**
-     * This should *only* be invoked through the proxy, or when we *know* we have the GIL.
+     * Drains the reference queue and decrements the Python reference counts of all collected
+     * {@link PyObject} instances in a single batch.
+     *
+     * <p>Safe to call concurrently with the cleanup daemon: {@link ReferenceQueue#poll()} is
+     * internally synchronized so each enqueued reference is dequeued exactly once, and
+     * {@link ConcurrentHashMap} ensures safe concurrent map access. Each caller uses its own
+     * independently allocated buffer, so there is no shared mutable state between callers.
      */
-    public synchronized int threadSafeCleanup() {
-        return PyLib.ensureGil(() -> {
-            int index = 0;
-            while (index < buffer.length) {
-                final Reference<? extends PyObject> reference = referenceQueue.poll();
-                if (reference == null) {
-                    break;
-                }
-                index = appendIfNotClosed(buffer, index, reference);
-            }
-            if (index == 0) {
-                return 0;
-            }
+    public int cleanup() {
+        return drainAndDecRef(new long[batchCloseSize], 0);
+    }
 
-            // We really really really want to make sure we *already* have the GIL lock at this point in
-            // time. Otherwise, we block here until the GIL is available for us, and stall all cleanup
-            // related to our PyObjects.
-
-            if (index == 1) {
-                PyLib.decRef(buffer[0]);
-                return 1;
+    /**
+     * Drains the reference queue into {@code buffer} starting at {@code index}, then
+     * decrements the Python reference counts of all collected pointers via
+     * {@link PyLib#decRef}/{@link PyLib#decRefs}.
+     */
+    private int drainAndDecRef(final long[] buffer, int index) {
+        while (index < buffer.length) {
+            final Reference<? extends PyObject> ref = referenceQueue.poll();
+            if (ref == null) {
+                break;
             }
-            PyLib.decRefs(buffer, index);
-            return index;
-        });
+            index = appendIfNotClosed(buffer, index, ref);
+        }
+        if (index == 0) {
+            return 0;
+        }
+        if (index == 1) {
+            PyLib.decRef(buffer[0]);
+            return 1;
+        }
+        PyLib.decRefs(buffer, index);
+        return index;
     }
 
     private int appendIfNotClosed(long[] buffer, int index, Reference<? extends PyObject> reference) {
@@ -119,85 +139,37 @@ class PyObjectReferences {
         return index + 1;
     }
 
-    PyObjectCleanup asProxy() {
-        try (
-            final CreateModule createModule = CreateModule.create();
-            final IdentityModule identityModule = IdentityModule.create(createModule)) {
-            return identityModule
-                .identity(this)
-                .createProxy(PyObjectCleanup.class);
-        }
-    }
 
     Thread createCleanupThread(String name) {
         return new Thread(this::cleanupThreadLogic, name);
     }
 
     private void cleanupThreadLogic() {
-
-        // Note: this loop logic *could* be written completely in python (as seen below), as python
-        // should release the gil during a `time.sleep(seconds)` operation. It would save us on the
-        // number of java -> python JNI crossings (but not on the python -> java JNI crossings) -
-        // but that isn't a big concern wrt cleanup logic. More important might be java thread
-        // lifecycle interruption, which we get when we call Thread.sleep.
-
-        /*
-            def cleanup(references):
-              import time
-              while True:
-                size = references.cleanup()
-                sleep_time = 0.1 if size == 1024 else 1.0
-                time.sleep(sleep_time)
-         */
-        // try-catch block to handle PyLib not initialized exception when a race condition occurs in the free-threaded
-        // mode that the cleanup thread starts running after Python is already finalized.
+        // Buffer allocated once and owned exclusively by this thread for its lifetime.
+        final long[] buffer = new long[batchCloseSize];
         try {
-            final PyObjectCleanup proxy = asProxy();
-
             while (!Thread.currentThread().isInterrupted()) {
-                // This blocks on the GIL, acquires the GIL, and then releases the GIL.
-                // For linux, acquiring the GIL involves a pthread_mutex_lock, which does not provide
-                // any fairness guarantees. As such, we need to be mindful of other python users/code,
-                // and ensure we don't overly acquire the GIL causing starvation issues, especially when
-                // there is no cleanup work to do.
-                final int size = proxy.threadSafeCleanup();
-
-
-                // Although, it *does* make sense to potentially take the GIL in a tight loop when there
-                // is a lot of real cleanup work to do. Sleeping for any amount of time may be
-                // detrimental to the cleanup of resources. There is a balance that we want to try to
-                // achieve between producers of PyObjects, and the cleanup of PyObjects (us).
-
-                // It would be much nicer if ReferenceQueue exposed a method that blocked until the
-                // queue was non-empty and *doesn't* remove any items. We can potentially implement this
-                // by using reflection to access the internal lock of the ReferenceQueue in the future.
-
-                if (size == buffer.length) {
-                    if (CLEANUP_THREAD_ACTIVE_SLEEP_MILLIS == 0) {
-                        Thread.yield();
-                    } else {
-                        try {
-                            Thread.sleep(CLEANUP_THREAD_ACTIVE_SLEEP_MILLIS);
-                        } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                            return;
-                        }
-                    }
-                } else {
-                    try {
-                        Thread.sleep(CLEANUP_THREAD_PASSIVE_SLEEP_MILLIS);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        return;
-                    }
+                // Block until a reference is enqueued or the timeout expires.
+                final Reference<? extends PyObject> first =
+                        referenceQueue.remove(CLEANUP_THREAD_PASSIVE_SLEEP_MILLIS);
+                if (first == null) {
+                    continue;
                 }
+                drainAndDecRef(buffer, appendIfNotClosed(buffer, 0, first));
             }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
-        catch (RuntimeException e) {
-            String msg;
-            if ((msg = e.getMessage()) != null && !(msg.contains("PyLib not initialized") || msg.contains("interpreter shutdown"))) {
-                throw e;
-            }
-        }
+        // Any RuntimeException escaping here propagates to the thread's
+        // UncaughtExceptionHandler (stderr + thread death by default).
+        // All plausible causes are non-recoverable:
+        //   1. Python is in a non-recoverable state — no new PyObjects can be
+        //      created so the ReferenceQueue will not grow further.
+        //   2. An invalid pointer reached decRef/decRefs, indicating a double-dec
+        //      or memory corruption; continuing would risk further corruption.
+        //   3. A violated invariant inside PyObjectReferences itself (e.g.
+        //      IllegalStateException from appendIfNotClosed) — internal state is
+        //      inconsistent and cannot be trusted.
+        // In all cases letting the thread die is the correct behaviour.
     }
 }

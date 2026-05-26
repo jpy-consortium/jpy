@@ -49,19 +49,15 @@ jobs:
     steps:
         - uses: actions/checkout@v6
 
+        - uses: actions/setup-python@v6
+          with:
+            python-version: ${{ matrix.python }}
+
         - uses: actions/setup-java@v5
           with:
             distribution: 'temurin'
             java-version: ${{ matrix.java }}
 
-        - uses: astral-sh/setup-uv@v7
-        - run: |
-            uv python install ${{ matrix.python }}
-            uv venv --python ${{ matrix.python }}
-            source .venv/bin/activate
-            uv pip install pip
-            echo $JAVA_HOME
-            echo PATH=$PATH >> $GITHUB_PATH
 
         - run: pip install "setuptools < 72" numpy
 
