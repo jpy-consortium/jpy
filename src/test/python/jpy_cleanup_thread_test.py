@@ -55,23 +55,25 @@ FLOOD   = 20_000
 TIMEOUT = 10.0   # seconds: generous upper bound for daemon to drain FLOOD objects
 
 # ── Destruction tracking ──────────────────────────────────────────────────────
-# Counters must work on both GIL-enabled CPython and freethreaded CPython 3.14t.
+# Counters must work on both GIL-enabled and free-threaded CPython, including
+# from inside Trackable.__del__.
 #
-# Why a lock is *not* used:
-#   On freethreaded 3.14t, acquiring any Python-level lock inside __del__ is a
-#   safe point. That lets the interpreter drain pending deferred decrefs, which
-#   fires more __del__ calls, which re-acquire the same lock — leading to
-#   RecursionError. The cleanup daemon avoids this by deferring Py_DECREF back
-#   to the owning thread, so __del__ runs single-threaded per counter.
+# We use lists with append(None) / len() instead of an integer + lock or
+# itertools.count():
+#   * GIL Python — list.append() is a single C call that runs to completion
+#     under the GIL, so it is atomic even when two threads append concurrently
+#     (see test_06, where the cleanup daemon and the main thread both fire
+#     __del__).  len(list) is also a single C call → atomic.
+#   * Free-threaded Python — list.append() takes the list's per-object critical
+#     section.  That lock is only a safe point on contention; the cleanup
+#     daemon defers Py_DECREF back to the owning thread, so each counter has a
+#     single writer in steady state and the critical section stays on its
+#     uncontested fast path.  Acquiring a Python-level lock (threading.Lock /
+#     RLock) inside __del__ would be a safe point and could drain queued
+#     decrefs recursively — see doc/freethreaded-safe-points.md.
 #
-# Why ``list.append`` + ``len`` works on both:
-#   * GIL Python: list.append is a single C call that holds the GIL for its
-#     full duration → atomic even with two concurrent writers (test 06).
-#     len(list) reads ob_size in one C call → atomic.
-#   * Freethreaded 3.14t: list.append uses the list's per-object critical
-#     section. It's only a safe point on contention; deferred-decref keeps
-#     __init__ and __del__ single-writer per counter, so the lock is
-#     uncontested → no safe point in __del__ → no recursion cascade.
+# When CPython gh-124366 lands a thread-safe atomic counter in the threading
+# module, this idiom can be replaced with that API.
 
 _created   = []
 _destroyed = []
