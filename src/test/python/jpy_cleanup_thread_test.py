@@ -55,24 +55,36 @@ FLOOD   = 20_000
 TIMEOUT = 10.0   # seconds: generous upper bound for daemon to drain FLOOD objects
 
 # ── Destruction tracking ──────────────────────────────────────────────────────
+# Counters must work on both GIL-enabled CPython and freethreaded CPython 3.14t.
+#
+# Why a lock is *not* used:
+#   On freethreaded 3.14t, acquiring any Python-level lock inside __del__ is a
+#   safe point. That lets the interpreter drain pending deferred decrefs, which
+#   fires more __del__ calls, which re-acquire the same lock — leading to
+#   RecursionError. The cleanup daemon avoids this by deferring Py_DECREF back
+#   to the owning thread, so __del__ runs single-threaded per counter.
+#
+# Why ``list.append`` + ``len`` works on both:
+#   * GIL Python: list.append is a single C call that holds the GIL for its
+#     full duration → atomic even with two concurrent writers (test 06).
+#     len(list) reads ob_size in one C call → atomic.
+#   * Freethreaded 3.14t: list.append uses the list's per-object critical
+#     section. It's only a safe point on contention; deferred-decref keeps
+#     __init__ and __del__ single-writer per counter, so the lock is
+#     uncontested → no safe point in __del__ → no recursion cascade.
 
-_lock      = threading.RLock()
-_created   = 0
-_destroyed = 0
+_created   = []
+_destroyed = []
 
 
 class Trackable:
     """Python object that counts constructions and destructions thread-safely."""
 
     def __init__(self):
-        global _created
-        with _lock:
-            _created += 1
+        _created.append(None)
 
     def __del__(self):
-        global _destroyed
-        with _lock:
-            _destroyed += 1
+        _destroyed.append(None)
 
 
 def _make_trackable():
@@ -80,15 +92,12 @@ def _make_trackable():
 
 
 def _reset():
-    global _created, _destroyed
-    with _lock:
-        _created = 0
-        _destroyed = 0
+    _created.clear()
+    _destroyed.clear()
 
 
 def _counts():
-    with _lock:
-        return _created, _destroyed
+    return len(_created), len(_destroyed)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -326,4 +335,5 @@ class TestCleanupThreadStress(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    print('\nRunning ' + __file__)
     unittest.main()
