@@ -16,11 +16,12 @@ RUN \
     echo "deb [signed-by=/usr/share/keyrings/adoptium.asc] https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" | tee /etc/apt/sources.list.d/adoptium.list; \
     apt-get -qq update; \
     for i in 1 2 3 4 5; do \
-        apt-get -qq -y --no-install-recommends --fix-missing install temurin-11-jdk maven && break; \
+        apt-get -qq -y --no-install-recommends install temurin-11-jdk maven && break; \
         echo "apt-get install attempt $i failed; retrying in 5s..."; \
         sleep 5; \
         apt-get -qq update || true; \
-    done
+    done; \
+    command -v mvn >/dev/null && command -v javac >/dev/null
 RUN \
     --mount=type=cache,target=/root/.cache/pip,sharing=locked \
     set -eux; \
