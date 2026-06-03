@@ -12,16 +12,15 @@ RUN \
     set -eux; \
     rm -f /etc/apt/apt.conf.d/docker-clean; \
     echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' | tee /etc/apt/apt.conf.d/keep-cache; \
-    wget --no-hsts -O /usr/share/keyrings/adoptium.asc https://packages.adoptium.net/artifactory/api/gpg/key/public; \
+    echo 'Acquire::Retries "3";'           >  /etc/apt/apt.conf.d/80-retries; \
+    echo 'Acquire::Retries::Delay "true";'  >> /etc/apt/apt.conf.d/80-retries; \
+    echo 'Acquire::http::Timeout "30";'     >> /etc/apt/apt.conf.d/80-retries; \
+    echo 'Acquire::https::Timeout "30";'    >> /etc/apt/apt.conf.d/80-retries; \
+    wget --no-hsts --tries=3 --waitretry=5 --retry-connrefused --timeout=10 \
+         -O /usr/share/keyrings/adoptium.asc https://packages.adoptium.net/artifactory/api/gpg/key/public; \
     echo "deb [signed-by=/usr/share/keyrings/adoptium.asc] https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" | tee /etc/apt/sources.list.d/adoptium.list; \
     apt-get -qq update; \
-    for i in 1 2 3 4 5; do \
-        apt-get -qq -y --no-install-recommends install temurin-11-jdk maven && break; \
-        echo "apt-get install attempt $i failed; retrying in 5s..."; \
-        sleep 5; \
-        apt-get -qq update || true; \
-    done; \
-    command -v mvn >/dev/null && command -v javac >/dev/null
+    apt-get -qq -y --no-install-recommends install temurin-11-jdk maven
 RUN \
     --mount=type=cache,target=/root/.cache/pip,sharing=locked \
     set -eux; \
