@@ -55,25 +55,28 @@ FLOOD   = 20_000
 TIMEOUT = 10.0   # seconds: generous upper bound for daemon to drain FLOOD objects
 
 # ── Destruction tracking ──────────────────────────────────────────────────────
-# Counters must work on both GIL-enabled and free-threaded CPython, including
-# from inside Trackable.__del__.
+# Counters must be safe to update from Trackable.__del__ on both GIL and
+# free-threaded CPython.
 #
-# We use lists with append(None) / len() instead of an integer + lock or
-# itertools.count():
-#   * GIL Python — list.append() is a single C call that runs to completion
-#     under the GIL, so it is atomic even when two threads append concurrently
-#     (see test_06, where the cleanup daemon and the main thread both fire
-#     __del__).  len(list) is also a single C call → atomic.
-#   * Free-threaded Python — list.append() takes the list's per-object critical
-#     section.  That lock is only a safe point on contention; the cleanup
-#     daemon defers Py_DECREF back to the owning thread, so each counter has a
-#     single writer in steady state and the critical section stays on its
-#     uncontested fast path.  Acquiring a Python-level lock (threading.Lock /
-#     RLock) inside __del__ would be a safe point and could drain queued
-#     decrefs recursively — see doc/freethreaded-safe-points.md.
+# A "safe point" is a place where the interpreter may pause a thread to run
+# bookkeeping — signals, scheduled callbacks, GC, and (on free-threaded
+# builds) draining queued cross-thread Py_DECREFs. Threads reach safe points
+# at the eval-breaker check on CALL/RETURN/JUMP_BACKWARD bytecodes and
+# whenever a primitive blocks (a contended Python-level lock, a thread-state
+# detach for a blocking call). Guarding an incrementing counter with a lock
+# inside __del__ can therefore drain queued decrefs while the lock is being
+# acquired, calling more __del__s recursively and causing RecursionError.
 #
-# When CPython gh-124366 lands a thread-safe atomic counter in the threading
-# module, this idiom can be replaced with that API.
+# We therefore need a counter that is atomic without taking any
+# Python-level lock. list.append(None) / len() satisfies both:
+#   * GIL Python — both are single C calls under the GIL → atomic.
+#   * Free-threaded — list.append() uses the list's per-object critical
+#     section, which is a safe point only on contention. The cleanup daemon
+#     defers Py_DECREF back to the owning thread, so each counter has a
+#     single writer and the critical section stays uncontested.
+#
+# When CPython gh-124366 lands a thread-safe atomic counter, this idiom can
+# be replaced with that API.
 
 _created   = []
 _destroyed = []
