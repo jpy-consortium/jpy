@@ -1,6 +1,9 @@
 # jpy Changelog
 
-## Version 2.1.0 (in development)
+## Version 2.1.0
+* [#233](https://github.com/jpy-consortium/jpy/pull/233) refactor: simplify Python object cleanup to make it more efficient and avoid accessing Java heap when Java OOM happens
+* [#234](https://github.com/jpy-consortium/jpy/pull/234) Bump docker/bake-action from 7.1.0 to 7.2.
+* [#236](https://github.com/jpy-consortium/jpy/pull/236) fix the jpy_cleanup_thread_test for 3.14
 
 ## Version 2.0.0
 
