@@ -55,24 +55,41 @@ FLOOD   = 20_000
 TIMEOUT = 10.0   # seconds: generous upper bound for daemon to drain FLOOD objects
 
 # ── Destruction tracking ──────────────────────────────────────────────────────
+# Counters must be safe to update from Trackable.__del__ on both GIL and
+# free-threaded CPython.
+#
+# A "safe point" is a place where the interpreter may pause a thread to run
+# bookkeeping — signals, scheduled callbacks, GC, and (on free-threaded
+# builds) draining queued cross-thread Py_DECREFs. Threads reach safe points
+# at the eval-breaker check on CALL/RETURN/JUMP_BACKWARD bytecodes and
+# whenever a primitive blocks (a contended Python-level lock, a thread-state
+# detach for a blocking call). Guarding an incrementing counter with a lock
+# inside __del__ can therefore drain queued decrefs while the lock is being
+# acquired, calling more __del__s recursively and causing RecursionError.
+#
+# We therefore need a counter that is atomic without taking any
+# Python-level lock. list.append(None) / len() satisfies both:
+#   * GIL Python — both are single C calls under the GIL → atomic.
+#   * Free-threaded — list.append() uses the list's per-object critical
+#     section, which is a safe point only on contention. The cleanup daemon
+#     defers Py_DECREF back to the owning thread, so each counter has a
+#     single writer and the critical section stays uncontested.
+#
+# When CPython gh-124366 lands a thread-safe atomic counter, this idiom can
+# be replaced with that API.
 
-_lock      = threading.RLock()
-_created   = 0
-_destroyed = 0
+_created   = []
+_destroyed = []
 
 
 class Trackable:
     """Python object that counts constructions and destructions thread-safely."""
 
     def __init__(self):
-        global _created
-        with _lock:
-            _created += 1
+        _created.append(None)
 
     def __del__(self):
-        global _destroyed
-        with _lock:
-            _destroyed += 1
+        _destroyed.append(None)
 
 
 def _make_trackable():
@@ -80,15 +97,12 @@ def _make_trackable():
 
 
 def _reset():
-    global _created, _destroyed
-    with _lock:
-        _created = 0
-        _destroyed = 0
+    _created.clear()
+    _destroyed.clear()
 
 
 def _counts():
-    with _lock:
-        return _created, _destroyed
+    return len(_created), len(_destroyed)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -326,4 +340,5 @@ class TestCleanupThreadStress(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    print('\nRunning ' + __file__)
     unittest.main()
