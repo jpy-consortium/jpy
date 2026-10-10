@@ -230,6 +230,33 @@ JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_setProgramName
     return result;
 }
 
+#if PY_VERSION_HEX >= 0x030E0000 // >= 3.14
+/**
+ * Prints the value of a Python configuration option for diagnostic purposes.
+ * Must be called with the GIL held.
+ */
+static void PyLib_PrintConfigValue(const char* name)
+{
+    PyObject* value;
+    PyObject* valueStr;
+    const char* valueUtf8 = NULL;
+
+    value = PyConfig_Get(name);
+    if (value != NULL) {
+        valueStr = PyUnicode_Check(value) ? (Py_INCREF(value), value) : PyObject_Repr(value);
+        if (valueStr != NULL) {
+            valueUtf8 = PyUnicode_AsUTF8(valueStr);
+        }
+        printf("  PyConfig_Get(\"%s\") = \"%s\"\n", name, valueUtf8 != NULL ? valueUtf8 : "<?>");
+        Py_XDECREF(valueStr);
+        Py_DECREF(value);
+    } else {
+        printf("  PyConfig_Get(\"%s\") = <unavailable>\n", name);
+    }
+    PyErr_Clear();
+}
+#endif
+
 /*
  * Class:     org_jpy_PyLib
  * Method:    startPython0
@@ -257,12 +284,25 @@ JNIEXPORT jboolean JNICALL Java_org_jpy_PyLib_startPython0
 
         if (JPy_DiagFlags != 0) {
             printf("PyLib_startPython: global Python interpreter information:\n");
+#if PY_VERSION_HEX >= 0x030E0000 // >= 3.14
+            // The Py_GetXXX() path functions are deprecated since 3.13 and removed in 3.15; PyConfig_Get()
+            // (added in 3.14) replaces them.
+            JPy_BEGIN_GIL_STATE(JNI_FALSE)
+            PyLib_PrintConfigValue("program_name");
+            PyLib_PrintConfigValue("base_prefix");
+            PyLib_PrintConfigValue("base_exec_prefix");
+            PyLib_PrintConfigValue("executable");
+            PyLib_PrintConfigValue("module_search_paths");
+            PyLib_PrintConfigValue("home");
+            JPy_END_GIL_STATE
+#else
             printf("  Py_GetProgramName()     = \"%ls\"\n", Py_GetProgramName());
             printf("  Py_GetPrefix()          = \"%ls\"\n", Py_GetPrefix());
             printf("  Py_GetExecPrefix()      = \"%ls\"\n", Py_GetExecPrefix());
             printf("  Py_GetProgramFullPath() = \"%ls\"\n", Py_GetProgramFullPath());
             printf("  Py_GetPath()            = \"%ls\"\n", Py_GetPath());
             printf("  Py_GetPythonHome()      = \"%ls\"\n", Py_GetPythonHome());
+#endif
             printf("  Py_GetVersion()         = \"%s\"\n", Py_GetVersion());
             printf("  Py_GetPlatform()        = \"%s\"\n", Py_GetPlatform());
             printf("  Py_GetCompiler()        = \"%s\"\n", Py_GetCompiler());
@@ -1358,7 +1398,7 @@ JNIEXPORT jlong JNICALL Java_org_jpy_PyLib_getType
 
     JPy_BEGIN_GIL_STATE(0)
 
-    pyObject = ((PyObject*) objId)->ob_type;
+    pyObject = (PyObject*) Py_TYPE((PyObject*) objId);
     JPy_INCREF(pyObject);
 
     JPy_END_GIL_STATE

@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        python: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.14']
+        python: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.14', '3.15']
         java: ['11', '17', '21', '25']
     steps:
       - uses: actions/checkout@v6
@@ -44,7 +44,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        python: ['3.13t', '3.14t']
+        python: ['3.13t', '3.14t', '3.15t']
         java: ['11', '17', '21', '25']
     steps:
         - uses: actions/checkout@v6

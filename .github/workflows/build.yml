@@ -55,6 +55,8 @@ jobs:
           - { machine: 'ubuntu-22.04-arm', python: '3.13t',  java: '11', cmd: '.github/env/Linux/bdist-wheel.sh' }
           - { machine: 'ubuntu-22.04', python: '3.14t', java: '11',cmd: '.github/env/Linux/bdist-wheel.sh' }
           - { machine: 'ubuntu-22.04-arm', python: '3.14t', java: '11', cmd: '.github/env/Linux/bdist-wheel.sh' }
+          - { machine: 'ubuntu-22.04', python: '3.15t', java: '11', cmd: '.github/env/Linux/bdist-wheel.sh' }
+          - { machine: 'ubuntu-22.04-arm', python: '3.15t', java: '11', cmd: '.github/env/Linux/bdist-wheel.sh' }
 
           - { machine: 'windows-2022', python: '3.9', java: '11',  cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
           - { machine: 'windows-2022', python: '3.10', java: '11', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
@@ -64,6 +66,8 @@ jobs:
           - { machine: 'windows-2022', python: '3.13t', java: '11', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
           - { machine: 'windows-2022', python: '3.14', java: '11', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
           - { machine: 'windows-2022', python: '3.14t', java: '11', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.15', java: '11', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
+          - { machine: 'windows-2022', python: '3.15t', java: '11', cmd: '.\.github\env\Windows\bdist-wheel.ps1' }
 
           - { machine: 'macos-14', python: '3.11', java: '11', cmd: '.github/env/macOS/bdist-wheel.sh' }
           - { machine: 'macos-14', python: '3.12', java: '11', cmd: '.github/env/macOS/bdist-wheel.sh' }
@@ -71,6 +75,8 @@ jobs:
           - { machine: 'macos-14', python: '3.13t', java: '11', cmd: '.github/env/macOS/bdist-wheel.sh' }
           - { machine: 'macos-14', python: '3.14', java: '11', cmd: '.github/env/macOS/bdist-wheel.sh' }
           - { machine: 'macos-14', python: '3.14t', java: '11', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-14', python: '3.15', java: '11', cmd: '.github/env/macOS/bdist-wheel.sh' }
+          - { machine: 'macos-14', python: '3.15t', java: '11', cmd: '.github/env/macOS/bdist-wheel.sh' }
 
 
     steps:

@@ -20,7 +20,7 @@ languages.  It comes with a number of outstanding features:
 * Java arrays translate into Python sequence objects
 * Java API for accessing Python objects (`jpy.jar`)
 
-jpy has been tested with Python 3.9–3.14 and OpenJDK 11+ on Linux, Windows, and macOS.
+jpy has been tested with Python 3.9–3.15 and OpenJDK 11+ on Linux, Windows, and macOS.
 
 The initial development of jpy was driven by the need to write Python
 extensions to an established scientific imaging application programmed in
