@@ -16,6 +16,10 @@ RUN \
     echo 'Acquire::Retries::Delay "true";'  >> /etc/apt/apt.conf.d/80-retries; \
     echo 'Acquire::http::Timeout "30";'     >> /etc/apt/apt.conf.d/80-retries; \
     echo 'Acquire::https::Timeout "30";'    >> /etc/apt/apt.conf.d/80-retries; \
+    # bullseye is EOL; its packages have moved from deb.debian.org to archive.debian.org
+    if grep -q '^VERSION_CODENAME=bullseye$' /etc/os-release; then \
+        sed -i 's|http://deb.debian.org/|http://archive.debian.org/|g' /etc/apt/sources.list; \
+    fi; \
     wget --no-hsts --tries=3 --waitretry=5 --retry-connrefused --timeout=10 \
          -O /usr/share/keyrings/adoptium.asc https://packages.adoptium.net/artifactory/api/gpg/key/public; \
     echo "deb [signed-by=/usr/share/keyrings/adoptium.asc] https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" | tee /etc/apt/sources.list.d/adoptium.list; \
