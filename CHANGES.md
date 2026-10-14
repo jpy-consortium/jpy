@@ -1,8 +1,8 @@
 # jpy Changelog
 
 ## Version 2.2.0 (in development)
-* Support Python 3.15: replace the `Py_GetPath()`-family diagnostics removed in 3.15 with `PyConfig_Get()`, and add 3.15 / 3.15t to the CI and wheel build matrix
-* Fix `-Wincompatible-pointer-types` error in `PyLib.getType` reported by GCC 14+
+* [#245](https://github.com/jpy-consortium/jpy/pull/245) Support Python 3.15: replace the `Py_GetPath()`-family diagnostics removed in 3.15 with `PyConfig_Get()`, and add 3.15 / 3.15t to the CI and wheel build matrix
+* [#245](https://github.com/jpy-consortium/jpy/pull/245) Fix `-Wincompatible-pointer-types` error in `PyLib.getType` reported by GCC 14+
 
 ## Version 2.1.0
 * [#233](https://github.com/jpy-consortium/jpy/pull/233) refactor: simplify Python object cleanup to make it more efficient and avoid accessing Java heap when Java OOM happens
