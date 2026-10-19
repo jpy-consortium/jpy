@@ -1,8 +1,13 @@
 # jpy Changelog
 
-## Version 2.2.0 (in development)
+## Version 2.2.0
+* [#240](https://github.com/jpy-consortium/jpy/pull/240) Bump actions/checkout from 6 to 7
+* [#242](https://github.com/jpy-consortium/jpy/pull/242) Bump actions/setup-python from 6 to 7
+* [#244](https://github.com/jpy-consortium/jpy/pull/244) Bump actions/setup-java from 5 to 6
 * [#245](https://github.com/jpy-consortium/jpy/pull/245) Support Python 3.15: replace the `Py_GetPath()`-family diagnostics removed in 3.15 with `PyConfig_Get()`, and add 3.15 / 3.15t to the CI and wheel build matrix
 * [#245](https://github.com/jpy-consortium/jpy/pull/245) Fix `-Wincompatible-pointer-types` error in `PyLib.getType` reported by GCC 14+
+* [#246](https://github.com/jpy-consortium/jpy/pull/246) Bump docker/bake-action from 7.2.0 to 7.4.0
+* [#247](https://github.com/jpy-consortium/jpy/pull/247) fix: fetch bullseye packages from archive.debian.org
 
 ## Version 2.1.0
 * [#233](https://github.com/jpy-consortium/jpy/pull/233) refactor: simplify Python object cleanup to make it more efficient and avoid accessing Java heap when Java OOM happens
