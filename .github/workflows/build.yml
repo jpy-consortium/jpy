@@ -248,8 +248,14 @@ jobs:
           server-password: MAVEN_PASSWORD
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
           gpg-passphrase: GPG_PASSPHRASE
+      # Maven 3.10 (on ubuntu-24.04 since image 20261012) leaves maven-metadata-local.xml in the
+      # central-publishing bundle. Central then rejects the deployment with "Bundle has content that
+      # does NOT have a .pom file". Pin Maven 3.9.16 until
+      # https://github.com/mavenplugins/central-publishing-maven-plugin/issues/79 is fixed.
+      - name: Pin Maven 3.9.16
+        run: mvn --batch-mode -N org.apache.maven.plugins:maven-wrapper-plugin:3.3.4:wrapper -Dmaven=3.9.16
       - name: Publish package
-        run: mvn --batch-mode deploy -Pjpy-maven-deploy -DskipTests
+        run: ./mvnw --batch-mode deploy -Pjpy-maven-deploy -DskipTests
         env:
           MAVEN_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.CENTRAL_TOKEN }}
