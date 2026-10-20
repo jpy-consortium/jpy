@@ -1,5 +1,7 @@
 # jpy Changelog
 
+## Version 2.3.0 (in development)
+
 ## Version 2.2.0
 * [#240](https://github.com/jpy-consortium/jpy/pull/240) Bump actions/checkout from 6 to 7
 * [#242](https://github.com/jpy-consortium/jpy/pull/242) Bump actions/setup-python from 6 to 7
