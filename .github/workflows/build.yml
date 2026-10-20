@@ -160,7 +160,7 @@ jobs:
       - run: mkdir /tmp/dist
 
       - name: Bake
-        uses: docker/bake-action@v7.4.0
+        uses: docker/bake-action@v7.5.0
         env:
           DOCKER_BUILD_RECORD_UPLOAD: false
         with:
@@ -189,7 +189,7 @@ jobs:
       - run: mkdir /tmp/dist
 
       - name: Bake
-        uses: docker/bake-action@v7.4.0
+        uses: docker/bake-action@v7.5.0
         env:
           DOCKER_BUILD_RECORD_UPLOAD: false
         with:
