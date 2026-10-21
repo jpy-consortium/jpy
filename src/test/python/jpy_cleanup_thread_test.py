@@ -34,6 +34,7 @@ sustained load.
 import threading
 import time
 import unittest
+import weakref
 
 import jpyutil
 
@@ -55,41 +56,38 @@ FLOOD   = 20_000
 TIMEOUT = 10.0   # seconds: generous upper bound for daemon to drain FLOOD objects
 
 # ── Destruction tracking ──────────────────────────────────────────────────────
-# Counters must be safe to update from Trackable.__del__ on both GIL and
-# free-threaded CPython.
+# Destruction is counted through weak references, not __del__, so no Python
+# code runs when a Trackable is freed.
 #
 # A "safe point" is a place where the interpreter may pause a thread to run
 # bookkeeping — signals, scheduled callbacks, GC, and (on free-threaded
 # builds) draining queued cross-thread Py_DECREFs. Threads reach safe points
-# at the eval-breaker check on CALL/RETURN/JUMP_BACKWARD bytecodes and
-# whenever a primitive blocks (a contended Python-level lock, a thread-state
-# detach for a blocking call). Guarding an incrementing counter with a lock
-# inside __del__ can therefore drain queued decrefs while the lock is being
-# acquired, calling more __del__s recursively and causing RecursionError.
+# at the eval-breaker check on RESUME (the entry of every Python function),
+# after CALL and on JUMP_BACKWARD, and whenever a primitive blocks (a
+# contended Python-level lock, a thread-state detach for a blocking call).
 #
-# We therefore need a counter that is atomic without taking any
-# Python-level lock. list.append(None) / len() satisfies both:
-#   * GIL Python — both are single C calls under the GIL → atomic.
-#   * Free-threaded — list.append() uses the list's per-object critical
-#     section, which is a safe point only on contention. The cleanup daemon
-#     defers Py_DECREF back to the owning thread, so each counter has a
-#     single writer and the critical section stays uncontested.
+# On free-threaded CPython, a Py_DECREF from a thread that does not own the
+# object (here the cleanup daemon) is queued to the owning thread, which runs
+# it at its next safe point. The RESUME of a Python __del__ is a safe point,
+# so each __del__ runs the next queued __del__ inside itself before its first
+# line. In test 05 the owner thread keeps running Python while the daemon
+# queues decrefs, and the nesting reached hundreds of frames. On slow CI
+# runners it passed the recursion limit, __del__ raised RecursionError on
+# entry, and the destroyed count came up short. An atomic counter inside
+# __del__ (a lock, or list.append) cannot fix this, because the error is
+# raised before the counter runs.
 #
-# When CPython gh-124366 lands a thread-safe atomic counter, this idiom can
-# be replaced with that API.
+# Freeing an object that has no __del__ runs only C code, which has no safe
+# point, so it cannot nest. The weak reference is cleared by that C code.
 
-_created   = []
-_destroyed = []
+_refs = []
 
 
 class Trackable:
-    """Python object that counts constructions and destructions thread-safely."""
+    """Python object whose construction and destruction can be counted."""
 
     def __init__(self):
-        _created.append(None)
-
-    def __del__(self):
-        _destroyed.append(None)
+        _refs.append(weakref.ref(self))
 
 
 def _make_trackable():
@@ -97,12 +95,12 @@ def _make_trackable():
 
 
 def _reset():
-    _created.clear()
-    _destroyed.clear()
+    _refs.clear()
 
 
 def _counts():
-    return len(_created), len(_destroyed)
+    refs = list(_refs)
+    return len(refs), sum(1 for r in refs if r() is None)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
